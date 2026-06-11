@@ -44,11 +44,11 @@ export const PublishButton: FC<Props> = ({ restaurant }: Props) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
 
     const { mutate: setPublished } = api.restaurant.setPublished.useMutation({
-        onError: (err, _newItem, context: { previousRestaurant: Restaurant | undefined } | undefined) => {
+        onError: (err: any, _newItem: any, context: { previousRestaurant: Restaurant | undefined } | undefined) => {
             showErrorToast(t("statusUpdateError"), err);
             trpcCtx.restaurant.get.setData({ id }, context?.previousRestaurant);
         },
-        onMutate: async (setPublishedReq) => {
+        onMutate: async (setPublishedReq: any) => {
             await trpcCtx.restaurant.get.cancel({ id });
             const previousRestaurant = trpcCtx.restaurant.get.getData({ id });
             if (previousRestaurant) {

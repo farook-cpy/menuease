@@ -31,26 +31,26 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
     const tCommon = useTranslations("common");
 
     const { mutate: createMenuItem, isLoading: isCreating } = api.menuItem.create.useMutation({
-        onError: (err) => showErrorToast(t("createError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("createError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.category.getAll.setData({ menuId }, (categories) =>
-                categories?.map((item) => (item.id === categoryId ? { ...item, items: [...item.items, data] } : item))
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) =>
+                categories?.map((item: any) => (item.id === categoryId ? { ...item, items: [...(item.items || []), data] } : item))
             );
             showSuccessToast(tCommon("createSuccess"), t("createSuccessDesc", { name: data.name }));
         },
     });
 
     const { mutate: updateMenuItem, isLoading: isUpdating } = api.menuItem.update.useMutation({
-        onError: (err) => showErrorToast(t("updateError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("updateError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.category.getAll.setData({ menuId }, (categories) =>
-                categories?.map((categoryItem) =>
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) =>
+                categories?.map((categoryItem: any) =>
                     categoryItem.id === categoryId
                         ? {
                               ...categoryItem,
-                              items: categoryItem.items?.map((item) => (item.id === data.id ? data : item)),
+                              items: (categoryItem.items || []).map((item: any) => (item.id === data.id ? data : item)),
                           }
                         : categoryItem
                 )

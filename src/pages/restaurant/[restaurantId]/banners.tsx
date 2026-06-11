@@ -31,11 +31,11 @@ const BannerCard: FC<{ index?: number; item: Image; restaurantName?: string }> =
     const tCommon = useTranslations("common");
 
     const { mutate: deleteRestaurant, isLoading: isDeleting } = api.restaurant.deleteBanner.useMutation({
-        onError: (err) => showErrorToast(t("deleteError"), err),
+        onError: (err: any) => showErrorToast(t("deleteError"), err),
         onSettled: () => setDeleteFormOpen(false),
-        onSuccess: (data) => {
-            trpcCtx.restaurant.getBanners.setData({ id: restaurantId }, (banners = []) =>
-                banners.filter((bannerItem) => bannerItem.id !== data.id)
+        onSuccess: (data: any) => {
+            trpcCtx.restaurant.getBanners.setData({ id: restaurantId }, (banners: any[] = []) =>
+                banners.filter((bannerItem: any) => bannerItem.id !== data.id)
             );
             showSuccessToast(tCommon("deleteSuccess"), t("deleteSuccessDesc"));
         },
@@ -157,8 +157,5 @@ const BannersPage: NextPage = () => {
     );
 };
 
-export const getStaticProps = async () => ({ props: { messages: (await import("src/lang/en.json")).default } });
-
-export const getStaticPaths = async () => ({ fallback: "blocking", paths: [] });
 
 export default BannersPage;

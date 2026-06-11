@@ -1,10 +1,9 @@
 import { ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import { NotificationsProvider } from "@mantine/notifications";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { type AppType } from "next/app";
-import { type Session } from "next-auth";
-import { SessionProvider } from "next-auth/react";
 import { NextIntlProvider } from "next-intl";
 import { DefaultSeo } from "next-seo";
 
@@ -14,11 +13,21 @@ import type { AbstractIntlMessages } from "next-intl";
 import { env } from "src/env/client.mjs";
 import { CustomFonts } from "src/styles/CustomFonts";
 import { getMantineTheme, theme } from "src/styles/theme";
-import { api } from "src/utils/api";
+import { SupabaseAuthProvider } from "src/utils/supabaseAuth";
+import messagesEn from "src/lang/en.json";
 
-const MyApp: AppType<{ messages?: AbstractIntlMessages; session: Session | null }> = ({
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: false,
+        },
+    },
+});
+
+const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
     Component,
-    pageProps: { session, ...pageProps },
+    pageProps,
 }) => {
     const preferredColorScheme = useColorScheme();
 
@@ -51,12 +60,14 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages; session: Session | null 
                 <MantineProvider theme={getMantineTheme(colorScheme)} withGlobalStyles withNormalizeCSS>
                     <CustomFonts />
                     <NotificationsProvider>
-                        <SessionProvider session={session}>
-                            <NextIntlProvider messages={pageProps.messages}>
-                                <Component {...pageProps} />
-                            </NextIntlProvider>
-                            <Analytics />
-                        </SessionProvider>
+                        <QueryClientProvider client={queryClient}>
+                            <SupabaseAuthProvider>
+                                <NextIntlProvider messages={(pageProps.messages || messagesEn) as any}>
+                                    <Component {...pageProps} />
+                                </NextIntlProvider>
+                                <Analytics />
+                            </SupabaseAuthProvider>
+                        </QueryClientProvider>
                     </NotificationsProvider>
                 </MantineProvider>
             </ColorSchemeProvider>
@@ -64,4 +75,4 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages; session: Session | null 
     );
 };
 
-export default api.withTRPC(MyApp);
+export default MyApp;

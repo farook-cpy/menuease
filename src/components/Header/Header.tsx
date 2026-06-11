@@ -22,10 +22,10 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconEyeglass2, IconHome, IconLogin, IconLogout, IconMoonStars, IconPizza, IconSun } from "@tabler/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "src/utils/supabaseAuth";
 import { useTranslations } from "next-intl";
 
-import { LoginOptions } from "../LoginOptions";
+
 import { Logo } from "../Logo";
 
 interface Props {
@@ -174,7 +174,7 @@ export const NavHeader: FC<Props> = ({
                                                 )}
                                             </Link>
                                         ) : (
-                                            <LoginOptions>
+                                            <Link href="/auth/signin">
                                                 {isMobile ? (
                                                     <ActionIcon className={classes.dashboardActionIcon} size={36}>
                                                         <IconLogin />
@@ -184,7 +184,7 @@ export const NavHeader: FC<Props> = ({
                                                         {t("common.login")}
                                                     </Button>
                                                 )}
-                                            </LoginOptions>
+                                            </Link>
                                         )}
                                     </>
                                 )}

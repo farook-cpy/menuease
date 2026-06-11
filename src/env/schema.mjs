@@ -6,27 +6,7 @@ import { z } from "zod";
  * This way you can ensure the app isn't built with invalid env vars.
  */
 export const serverSchema = z.object({
-    DATABASE_URL: z.string().url(),
-    GITHUB_CLIENT_ID: z.string(),
-    GITHUB_CLIENT_SECRET: z.string(),
-    GOOGLE_CLIENT_ID: z.string(),
-    GOOGLE_CLIENT_SECRET: z.string(),
-    IMAGEKIT_BASE_FOLDER: z.string(),
-    IMAGEKIT_PRIVATE_KEY: z.string(),
-    IMAGEKIT_PUBLIC_KEY: z.string(),
-    NEXTAUTH_SECRET: process.env.NODE_ENV === "production" ? z.string().min(1) : z.string().min(1).optional(),
-    NEXTAUTH_URL: z.preprocess(
-        // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
-        // Since NextAuth automatically uses the VERCEL_URL if present.
-        (str) => process.env.VERCEL_URL ?? str,
-        // VERCEL_URL doesnt include `https` so it cant be validated as a URL
-        process.env.VERCEL ? z.string() : z.string().url()
-    ),
     NODE_ENV: z.enum(["development", "test", "production"]),
-    SENTRY_AUTH_TOKEN: z.string().optional(),
-    SENTRY_ORG: z.string().optional(),
-    SENTRY_PROJECT: z.string().optional(),
-    TEST_MENUFIC_USER_LOGIN_KEY: z.string().optional(),
 });
 
 /**
@@ -37,7 +17,7 @@ export const serverSchema = z.object({
 export const clientSchema = z.object({
     NEXT_PUBLIC_CONTACT_EMAIL: z.string().optional().default("bob@email.com"),
     NEXT_PUBLIC_FORM_API_KEY: z.string().optional(),
-    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: z.string(),
+    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: z.string().optional(),
     NEXT_PUBLIC_MAX_BANNERS_PER_RESTAURANT: z.string().regex(/^\d+$/).default("5"),
     NEXT_PUBLIC_MAX_CATEGORIES_PER_MENU: z.string().regex(/^\d+$/).default("10"),
     NEXT_PUBLIC_MAX_MENUS_PER_RESTAURANT: z.string().regex(/^\d+$/).default("5"),
@@ -46,6 +26,8 @@ export const clientSchema = z.object({
     NEXT_PUBLIC_PROD_URL: z.string().optional().default("https://menufic.com"),
     NEXT_PUBLIC_SAMPLE_MENU_ID: z.string().optional(),
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
 });
 
 /**
@@ -66,4 +48,6 @@ export const clientEnv = {
     NEXT_PUBLIC_PROD_URL: process.env.NEXT_PUBLIC_PROD_URL,
     NEXT_PUBLIC_SAMPLE_MENU_ID: process.env.NEXT_PUBLIC_SAMPLE_MENU_ID,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 };

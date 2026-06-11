@@ -30,10 +30,10 @@ export const CategoryForm: FC<Props> = ({ opened, onClose, menuId, categoryItem,
     const tCommon = useTranslations("common");
 
     const { mutate: createCategory, isLoading: isCreating } = api.category.create.useMutation({
-        onError: (err) => showErrorToast(t("createError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("createError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.category.getAll.setData({ menuId }, (categories) => [...(categories || []), data]);
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) => [...(categories || []), { ...data, items: [] }]);
             if (onAddSuccess) {
                 onAddSuccess(data);
             }
@@ -42,11 +42,11 @@ export const CategoryForm: FC<Props> = ({ opened, onClose, menuId, categoryItem,
     });
 
     const { mutate: updateCategory, isLoading: isUpdating } = api.category.update.useMutation({
-        onError: (err) => showErrorToast(t("updateError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("updateError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.category.getAll.setData({ menuId }, (categories) =>
-                categories?.map((item) => (item.id === data.id ? { ...item, ...data } : item))
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) =>
+                categories?.map((item: any) => (item.id === data.id ? { ...item, ...data } : item))
             );
             showSuccessToast(tCommon("updateSuccess"), t("updateSuccessDesc", { name: data.name }));
         },

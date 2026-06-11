@@ -40,8 +40,8 @@ export const Menus: FC<Props> = ({ restaurantId, selectedMenu, setSelectedMenu }
         {
             enabled: !!restaurantId,
             onError: () => showErrorToast(t("fetchError")),
-            onSuccess: (menusRes) => {
-                if (!selectedMenu || !menusRes.some((item) => item.id === selectedMenu.id)) {
+            onSuccess: (menusRes: any[]) => {
+                if (!selectedMenu || !menusRes.some((item: any) => item.id === selectedMenu.id)) {
                     setSelectedMenu(menusRes.length > 0 ? menusRes[0] : undefined);
                 }
             },
@@ -49,23 +49,23 @@ export const Menus: FC<Props> = ({ restaurantId, selectedMenu, setSelectedMenu }
     );
 
     useEffect(() => {
-        if (!selectedMenu || !menus.some((item) => item.id === selectedMenu.id)) {
-            setSelectedMenu(menus.length > 0 ? menus[0] : undefined);
+        if (!selectedMenu || !(menus as any[]).some((item: any) => item.id === selectedMenu.id)) {
+            setSelectedMenu(menus.length > 0 ? (menus[0] as any) : undefined);
         }
     }, [selectedMenu, setSelectedMenu, menus]);
 
     const { mutate: updateMenuPositions } = api.menu.updatePosition.useMutation({
-        onError: (err, _newItem, context: { previousMenus: Menu[] | undefined } | undefined) => {
+        onError: (err: any, _newItem: any, context: { previousMenus: Menu[] | undefined } | undefined) => {
             showErrorToast(t("positionUpdateError"), err);
             trpcCtx.menu.getAll.setData({ restaurantId }, context?.previousMenus);
         },
-        onMutate: async (reorderedList) => {
+        onMutate: async (reorderedList: any[]) => {
             await trpcCtx.menu.getAll.cancel({ restaurantId });
 
-            const previousMenus = trpcCtx.menu.getAll.getData({ restaurantId });
+            const previousMenus = trpcCtx.menu.getAll.getData({ restaurantId }) as any[] | undefined;
             const reorderedMenus: Menu[] = [];
-            reorderedList.forEach((item) => {
-                const matchingItem = previousMenus?.find((prev) => prev.id === item.id);
+            reorderedList.forEach((item: any) => {
+                const matchingItem = previousMenus?.find((prev: any) => prev.id === item.id);
                 if (matchingItem) {
                     reorderedMenus.push({ ...matchingItem, position: item.newPosition });
                 }
@@ -82,9 +82,9 @@ export const Menus: FC<Props> = ({ restaurantId, selectedMenu, setSelectedMenu }
                 <DragDropContext
                     onDragEnd={({ destination, source }) => {
                         if (source.index !== destination?.index) {
-                            const reorderedList = reorderList(menus, source.index, destination?.index || 0);
+                            const reorderedList = reorderList(menus as any[], source.index, destination?.index || 0);
                             updateMenuPositions(
-                                reorderedList.map((item, index) => ({
+                                reorderedList.map((item: any, index: number) => ({
                                     id: item.id,
                                     newPosition: index,
                                 }))

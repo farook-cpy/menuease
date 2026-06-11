@@ -34,19 +34,19 @@ export const MenuItems: FC<Props> = ({ categoryId, menuItems, menuId }) => {
 
     const { mutate: updateMenuItemsPositions } = api.menuItem.updatePosition.useMutation({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onError: (err, _newItem, context: any) => {
+        onError: (err: any, _newItem: any, context: any) => {
             showErrorToast(t("positionUpdateError"), err);
             trpcCtx.category.getAll.setData({ menuId }, context?.previousCategories);
         },
-        onMutate: async (reorderedList) => {
+        onMutate: async (reorderedList: any[]) => {
             await trpcCtx.category.getAll.cancel({ menuId });
-            const previousCategories = trpcCtx.category.getAll.getData({ menuId });
-            const reorderedCategories = previousCategories?.map((item) =>
+            const previousCategories = trpcCtx.category.getAll.getData({ menuId }) as any[] | undefined;
+            const reorderedCategories = previousCategories?.map((item: any) =>
                 item.id === categoryId
                     ? {
                           ...item,
-                          items: reorderedList.reduce((acc: (MenuItem & { image: Image | null })[], reorderedItem) => {
-                              const matchingItem = item?.items?.find((menuItem) => menuItem.id === reorderedItem.id);
+                          items: reorderedList.reduce((acc: (MenuItem & { image: Image | null })[], reorderedItem: any) => {
+                              const matchingItem = item?.items?.find((menuItem: any) => menuItem.id === reorderedItem.id);
                               if (matchingItem) {
                                   return [...acc, { ...matchingItem, position: reorderedItem.newPosition }];
                               }

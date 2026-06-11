@@ -98,8 +98,5 @@ const RestaurantManagePage: NextPage = () => {
     );
 };
 
-export const getStaticProps = async () => ({ props: { messages: (await import("src/lang/en.json")).default } });
-
-export const getStaticPaths = async () => ({ fallback: "blocking", paths: [] });
 
 export default RestaurantManagePage;

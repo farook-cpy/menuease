@@ -37,9 +37,9 @@ export const Categories: FC<Props> = ({ menuId }) => {
         {
             enabled: !!menuId,
             onError: () => showErrorToast(t("fetchError")),
-            onSuccess: (data) => {
+            onSuccess: (data: any[]) => {
                 const newSelected = openedCategories.filter((item) =>
-                    data.map((category) => category.id).includes(item)
+                    data.map((category: any) => category.id).includes(item)
                 );
                 if (newSelected.length === 0) {
                     setOpenedCategories(data[0] ? [data[0]?.id] : []);
@@ -50,23 +50,23 @@ export const Categories: FC<Props> = ({ menuId }) => {
 
     const { mutate: updateCategoryPositions } = api.category.updatePosition.useMutation({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onError: (_err, _newItem, context: any) => {
+        onError: (_err: any, _newItem: any, context: any) => {
             showErrorToast(t("positionUpdateError"));
             trpcCtx.category.getAll.setData({ menuId }, context?.previousCategories);
         },
-        onMutate: async (reorderedList) => {
+        onMutate: async (reorderedList: any[]) => {
             await trpcCtx.category.getAll.cancel({ menuId });
-            const previousCategories = trpcCtx.category.getAll.getData({ menuId });
+            const previousCategories = trpcCtx.category.getAll.getData({ menuId }) as any[] | undefined;
             const reorderedCategories = reorderedList?.reduce(
                 (
                     acc: (Category & {
                         items: (MenuItem & { image: Image | null })[];
                     })[],
-                    item
+                    item: any
                 ) => {
-                    const matchingItem = previousCategories?.find((prev) => prev.id === item.id);
+                    const matchingItem = previousCategories?.find((prev: any) => prev.id === item.id);
                     if (matchingItem) {
-                        acc.push({ ...matchingItem, position: item.newPosition });
+                        acc.push({ ...matchingItem, position: item.newPosition } as any);
                     }
                     return acc;
                 },
@@ -92,9 +92,9 @@ export const Categories: FC<Props> = ({ menuId }) => {
                         onBeforeDragStart={() => enableAutoAnimate(false)}
                         onDragEnd={({ destination, source }) => {
                             if (source.index !== destination?.index) {
-                                const reorderedList = reorderList(categories, source.index, destination?.index || 0);
+                                const reorderedList = reorderList(categories as any[], source.index, destination?.index || 0);
                                 updateCategoryPositions(
-                                    reorderedList.map((item, index) => ({
+                                    reorderedList.map((item: any, index: number) => ({
                                         id: item.id,
                                         newPosition: index,
                                     }))
@@ -113,7 +113,7 @@ export const Categories: FC<Props> = ({ menuId }) => {
                                         (categoriesParent as any).current = ref;
                                     }}
                                 >
-                                    {categories.map((item) => (
+                                    {(categories as any[]).map((item: any) => (
                                         <CategoryElement key={item.id} categoryItem={item} menuId={menuId} />
                                     ))}
                                     {provided.placeholder}

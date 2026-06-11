@@ -27,11 +27,11 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null } }> = ({ it
     const tCommon = useTranslations("common");
 
     const { mutate: deleteRestaurant, isLoading: isDeleting } = api.restaurant.delete.useMutation({
-        onError: (err) => showErrorToast(t("deleteError"), err),
+        onError: (err: any) => showErrorToast(t("deleteError"), err),
         onSettled: () => setDeleteFormOpen(false),
-        onSuccess: (data) => {
-            trpcCtx.restaurant.getAll.setData(undefined, (restaurants) =>
-                restaurants?.filter((restaurantItem) => restaurantItem.id !== data.id)
+        onSuccess: (data: any) => {
+            trpcCtx.restaurant.getAll.setData(undefined, (restaurants: any[] | undefined) =>
+                restaurants?.filter((restaurantItem: any) => restaurantItem.id !== data.id)
             );
             showSuccessToast(tCommon("deleteSuccess"), t("deleteSuccessDesc", { name: data.name }));
         },

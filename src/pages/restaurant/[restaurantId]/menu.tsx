@@ -1,32 +1,37 @@
-import { Container } from "@mantine/core";
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
+import { Container, Center, Loader } from "@mantine/core";
 import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { NextSeo } from "next-seo";
-import superjson from "superjson";
 
-import type { GetStaticPropsContext, NextPage } from "next";
+import type { NextPage } from "next";
 
 import { Empty } from "src/components/Empty";
 import { Footer } from "src/components/Footer";
 import { RestaurantMenu } from "src/components/RestaurantMenu";
 import { env } from "src/env/client.mjs";
-import { appRouter } from "src/server/api/root";
-import { createInnerTRPCContext } from "src/server/api/trpc";
 import { api } from "src/utils/api";
 
-/** Restaurant menu page that will be shared publicly */
 const RestaurantMenuPage: NextPage = () => {
     const router = useRouter();
-    const { status } = useSession();
     const restaurantId = router.query?.restaurantId as string;
     const t = useTranslations("menu");
 
-    const { data: restaurant } = api.restaurant.getDetails.useQuery(
+    const { data: restaurant, isLoading } = api.restaurant.getDetails.useQuery(
         { id: restaurantId },
-        { enabled: status === "authenticated" && !!restaurantId }
+        { enabled: !!restaurantId }
     );
+
+    if (isLoading) {
+        return (
+            <Center h="100vh">
+                <Loader size="lg" />
+            </Center>
+        );
+    }
+
+    const imageUrl = restaurant?.image?.path
+        ? `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${restaurant.image.path}`
+        : "";
 
     return (
         <>
@@ -40,7 +45,7 @@ const RestaurantMenuPage: NextPage = () => {
                         : ""
                 } ${t("seoDescription.menufic")}`}
                 openGraph={{
-                    images: [{ url: `${env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}/${restaurant?.image?.path}` }],
+                    images: [{ url: imageUrl }],
                     type: "restaurant.menu",
                 }}
                 themeColor={restaurant?.image?.color}
@@ -59,27 +64,5 @@ const RestaurantMenuPage: NextPage = () => {
         </>
     );
 };
-
-export async function getStaticProps(context: GetStaticPropsContext<{ restaurantId: string }>) {
-    const ssg = createProxySSGHelpers({
-        ctx: createInnerTRPCContext({ session: null }),
-        router: appRouter,
-        transformer: superjson,
-    });
-    const restaurantId = context.params?.restaurantId as string;
-    const messages = (await import("src/lang/en.json")).default;
-    try {
-        const restaurant = await ssg.restaurant.getDetails.fetch({ id: restaurantId });
-        if (restaurant.isPublished) {
-            // Only return restaurants that are published
-            return { props: { messages, restaurantId, trpcState: ssg.dehydrate() }, revalidate: 1800 }; // revalidate in 30 mins
-        }
-        return { props: { messages, restaurantId }, revalidate: 60 };
-    } catch {
-        return { props: { messages, restaurantId }, revalidate: 1800 };
-    }
-}
-
-export const getStaticPaths = async () => ({ fallback: "blocking", paths: [] });
 
 export default RestaurantMenuPage;

@@ -29,20 +29,20 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
     const tCommon = useTranslations("common");
 
     const { mutate: createRestaurant, isLoading: isCreating } = api.restaurant.create.useMutation({
-        onError: (err) => showErrorToast(t("createError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("createError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.restaurant.getAll.setData(undefined, (restaurants) => [...(restaurants || []), data]);
+            trpcCtx.restaurant.getAll.setData(undefined, (restaurants: any[] | undefined) => [...(restaurants || []), data]);
             showSuccessToast(tCommon("createSuccess"), t("createSuccessDesc", { name: data.name }));
         },
     });
 
     const { mutate: updatedRestaurant, isLoading: isUpdating } = api.restaurant.update.useMutation({
-        onError: (err) => showErrorToast(t("updateError"), err),
-        onSuccess: (data) => {
+        onError: (err: any) => showErrorToast(t("updateError"), err),
+        onSuccess: (data: any) => {
             onClose();
-            trpcCtx.restaurant.getAll.setData(undefined, (restaurants) =>
-                restaurants?.map((item) => (item.id === data.id ? { ...item, ...data } : item))
+            trpcCtx.restaurant.getAll.setData(undefined, (restaurants: any[] | undefined) =>
+                restaurants?.map((item: any) => (item.id === data.id ? { ...item, ...data } : item))
             );
             showSuccessToast(tCommon("updateSuccess"), t("updateSuccessDesc", { name: data.name }));
         },

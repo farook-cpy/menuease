@@ -37,12 +37,12 @@ export const MenuElement: FC<Props> = ({ item, selectedMenu, restaurantId, setSe
     const tCommon = useTranslations("common");
 
     const { mutate: deleteMenu, isLoading: isDeleting } = api.menu.delete.useMutation({
-        onError: (err) => showErrorToast(t("deleteMenuError"), err),
+        onError: (err: any) => showErrorToast(t("deleteMenuError"), err),
         onSettled: () => setDeleteMenuModalOpen(false),
-        onSuccess: (data) => {
-            const filteredMenuData = trpcCtx.menu.getAll
-                .getData({ restaurantId })
-                ?.filter((menuItem) => menuItem.id !== data.id);
+        onSuccess: (data: any) => {
+            const filteredMenuData = (trpcCtx.menu.getAll
+                .getData({ restaurantId }) as any[] | undefined)
+                ?.filter((menuItem: any) => menuItem.id !== data.id);
             trpcCtx.menu.getAll.setData({ restaurantId }, filteredMenuData);
 
             if (data.id === selectedMenu?.id && filteredMenuData) {

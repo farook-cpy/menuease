@@ -34,11 +34,11 @@ export const CategoryElement: FC<Props> = ({ categoryItem, menuId }) => {
     const tCommon = useTranslations("common");
 
     const { mutate: deleteCategory, isLoading: isDeleting } = api.category.delete.useMutation({
-        onError: (err) => showErrorToast(t("deleteCategoryError"), err),
+        onError: (err: any) => showErrorToast(t("deleteCategoryError"), err),
         onSettled: () => setDeleteCategoryModalOpen(false),
-        onSuccess: (data) => {
-            trpcCtx.category.getAll.setData({ menuId }, (categories) =>
-                categories?.filter((item) => item.id !== data.id)
+        onSuccess: (data: any) => {
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) =>
+                categories?.filter((item: any) => item.id !== data.id)
             );
             showSuccessToast(tCommon("deleteSuccess"), t("deleteSuccessToast", { name: data.name }));
         },
