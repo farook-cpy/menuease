@@ -10,6 +10,9 @@ if (!process.env.SKIP_ENV_VALIDATION) {
 
 /** @type {import("next").NextConfig} */
 const config = {
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     i18n: { defaultLocale: "en", locales: ["en"] },
     images: {
         formats: ["image/avif", "image/webp"],

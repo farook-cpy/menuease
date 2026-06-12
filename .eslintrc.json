@@ -24,7 +24,7 @@
         "no-promise-executor-return": "off",
         "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
         "@typescript-eslint/no-shadow": ["warn"],
-        "prettier/prettier": ["warn", { "tabWidth": 4, "printWidth": 120 }],
+        "prettier/prettier": ["warn", { "tabWidth": 4, "printWidth": 120, "endOfLine": "auto" }],
         "sort-keys-fix/sort-keys-fix": "warn",
         "typescript-sort-keys/interface": "warn",
         "react/jsx-sort-props": ["warn", { "reservedFirst": ["key"] }],
