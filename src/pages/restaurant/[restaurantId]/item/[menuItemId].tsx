@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
     Box,
     Stack,
@@ -55,6 +55,15 @@ const MenuItemDetailPage: NextPage = () => {
         { menuItemId: menuItemId || "" },
         { enabled: !!menuItemId }
     );
+
+    // Track item click analytics when this page loads
+    const { mutate: logClick } = api.analytics.logView.useMutation();
+    useEffect(() => {
+        if (restaurantId && menuItemId && menuItem) {
+            logClick({ restaurantId, type: "item_click", menuItemId });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [restaurantId, menuItemId, menuItem?.id]);
 
     // Submit review mutation
     const { mutate: createFeedback, isLoading: isSubmitting } = api.feedback.create.useMutation({

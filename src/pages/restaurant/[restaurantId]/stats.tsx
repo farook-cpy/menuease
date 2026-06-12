@@ -41,7 +41,7 @@ const StatsPage: NextPage = () => {
 
     const { data: stats, isLoading: statsLoading } = api.analytics.getStats.useQuery(
         { restaurantId },
-        { enabled: !!restaurantId }
+        { enabled: !!restaurantId, refetchInterval: 30000, staleTime: 0 }
     );
 
     const isLoading = restaurantLoading || statsLoading;

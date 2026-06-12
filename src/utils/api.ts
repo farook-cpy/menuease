@@ -1980,13 +1980,21 @@ export const api = {
                         .insert([newLog])
                         .select()
                         .single();
-                    if (error) throw error;
+                    if (error) {
+                        console.error("[Analytics] Failed to log event:", error.message, error.details);
+                        throw error;
+                    }
                     return data;
                 }, {
                     ...options,
                     onSuccess: (data: any, variables: any, context: any) => {
                         queryClient.invalidateQueries(["analyticsStats", variables.restaurantId]);
                         if (options?.onSuccess) options.onSuccess(data, variables, context);
+                    },
+                    onError: (error: any) => {
+                        console.error("[Analytics] Mutation error:", error?.message);
+                        // Don't surface to user — analytics failures are non-critical
+                        if (options?.onError) options.onError(error);
                     }
                 });
             }
