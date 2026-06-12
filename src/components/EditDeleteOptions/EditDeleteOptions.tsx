@@ -1,7 +1,7 @@
 import type { FC } from "react";
 
 import { ActionIcon, Loader, Menu, useMantineTheme } from "@mantine/core";
-import { IconDotsVertical, IconEdit, IconTrash } from "@tabler/icons";
+import { IconDotsVertical, IconEdit, IconTrash, IconCopy, IconBan, IconCircleCheck, IconUser } from "@tabler/icons";
 import { useTranslations } from "next-intl";
 
 export interface EditDeleteOptionsProps {
@@ -15,13 +15,25 @@ export interface EditDeleteOptionsProps {
     onDeleteClick?: () => void;
     /** Event handler when edit option is clicked in the menu */
     onEditClick?: () => void;
+    /** Event handler when clone option is clicked in the menu */
+    onCloneClick?: () => void;
+    /** Event handler when impersonate option is clicked in the menu */
+    onImpersonateClick?: () => void;
+    /** Suspension status if applicable */
+    isSuspended?: boolean;
+    /** Event handler when suspend option is clicked in the menu */
+    onSuspendClick?: () => void;
 }
 
-/** Three dot menu to be shown in cards/items to allow users to trigger edit or delete form */
+/** Three dot menu to be shown in cards/items to allow users to trigger edit, delete, clone, suspend, or impersonate */
 export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
     loading,
     onEditClick,
     onDeleteClick,
+    onCloneClick,
+    onImpersonateClick,
+    isSuspended,
+    onSuspendClick,
     color,
     hoverColor,
 }) => {
@@ -64,6 +76,45 @@ export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
                         }}
                     >
                         {t("edit")}
+                    </Menu.Item>
+                )}
+                {onCloneClick && (
+                    <Menu.Item
+                        color="blue"
+                        icon={<IconCopy size={14} />}
+                        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            onCloneClick();
+                        }}
+                    >
+                        Clone
+                    </Menu.Item>
+                )}
+                {onImpersonateClick && (
+                    <Menu.Item
+                        color="violet"
+                        icon={<IconUser size={14} />}
+                        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            onImpersonateClick();
+                        }}
+                    >
+                        Impersonate
+                    </Menu.Item>
+                )}
+                {onSuspendClick && (
+                    <Menu.Item
+                        color={isSuspended ? "green" : "orange"}
+                        icon={isSuspended ? <IconCircleCheck size={14} /> : <IconBan size={14} />}
+                        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            onSuspendClick();
+                        }}
+                    >
+                        {isSuspended ? "Activate" : "Suspend"}
                     </Menu.Item>
                 )}
                 {onDeleteClick && (

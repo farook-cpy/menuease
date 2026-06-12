@@ -1,0 +1,51 @@
+{
+  "menuName": "Dinner Menu",
+  "availableTime": "5 PM - 11 PM",
+  "categories": [
+    {
+      "name": "Starters",
+      "items": [
+        {
+          "name": "Crispy Calamari",
+          "description": "Fried calamari rings served with lemon garlic aioli.",
+          "price": "12.00",
+          "imageUrl": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500"
+        },
+        {
+          "name": "Tomato Bruschetta",
+          "description": "Grilled bread rubbed with garlic and topped with tomatoes, olive oil, and basil.",
+          "price": "9.50",
+          "imageUrl": "https://images.unsplash.com/photo-1572656631137-7935297eff55?w=500"
+        }
+      ]
+    },
+    {
+      "name": "Main Courses",
+      "items": [
+        {
+          "name": "Ribeye Steak",
+          "description": "12oz USDA Choice ribeye served with roasted potatoes and chimichurri.",
+          "price": "34.00",
+          "imageUrl": "https://images.unsplash.com/photo-1544025162-d76694265947?w=500"
+        },
+        {
+          "name": "Truffle Mushroom Pasta",
+          "description": "Fettuccine pasta tossed in a creamy wild mushroom and white truffle oil sauce.",
+          "price": "22.50",
+          "imageUrl": "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=500"
+        }
+      ]
+    },
+    {
+      "name": "Desserts",
+      "items": [
+        {
+          "name": "Warm Chocolate Lava Cake",
+          "description": "Decadent chocolate cake with a molten center, served with vanilla bean ice cream.",
+          "price": "8.50",
+          "imageUrl": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=500"
+        }
+      ]
+    }
+  ]
+}

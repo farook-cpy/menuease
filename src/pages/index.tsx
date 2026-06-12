@@ -13,7 +13,7 @@ const LandingPage: NextPage = () => {
     return (
         <>
             <NextSeo
-                description="A digital menu generator that lets you to create the best menu for your restaurant. Menufic is packed with several features that will boost the online presence of your restaurant with ease"
+                description="A digital menu generator that lets you to create the best menu for your restaurant. Foodler is packed with several features that will boost the online presence of your restaurant with ease"
                 title="Digital menu generator"
             />
             <NavHeader showLoginButton withShadow />

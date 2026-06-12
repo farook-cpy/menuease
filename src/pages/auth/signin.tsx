@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BackgroundImage, Box, Center, createStyles, TextInput, PasswordInput, Button, Tabs, Stack, Alert } from "@mantine/core";
-import { IconAlertCircle, IconMail, IconLock } from "@tabler/icons";
+import { IconAlertCircle, IconMail, IconLock, IconUser } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 
@@ -53,7 +53,12 @@ const SignIn: NextPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password) {
-            setErrorMsg("Email and password are required");
+            setErrorMsg(activeTab === "owner" ? "Username and password are required" : "Email and password are required");
+            return;
+        }
+
+        if (activeTab !== "owner" && email.trim().toLowerCase() === "farookisop@gmail.com") {
+            setErrorMsg("Admin login is restricted to the admin portal.");
             return;
         }
 
@@ -61,13 +66,12 @@ const SignIn: NextPage = () => {
         setErrorMsg("");
 
         try {
-            if (activeTab === "login") {
+            if (activeTab === "owner") {
+                await signIn("restaurant-owner", { email, password });
+            } else if (activeTab === "login") {
                 await signIn("email", { email, password });
-                // Redirect will be handled by useEffect
             } else {
                 await signUp(email, password);
-                // Supabase returns a user immediately (or asks for verification)
-                // For simplicity, let's automatically log them in or show a success message
                 await signIn("email", { email, password });
             }
         } catch (err: any) {
@@ -90,6 +94,7 @@ const SignIn: NextPage = () => {
                         <Tabs.List grow>
                             <Tabs.Tab value="login">Sign In</Tabs.Tab>
                             <Tabs.Tab value="register">Sign Up</Tabs.Tab>
+                            <Tabs.Tab value="owner">Owner Login</Tabs.Tab>
                         </Tabs.List>
 
                         <form onSubmit={handleSubmit} className={classes.form}>
@@ -101,9 +106,9 @@ const SignIn: NextPage = () => {
                                 )}
 
                                 <TextInput
-                                    label="Email Address"
-                                    placeholder="your@email.com"
-                                    icon={<IconMail size={16} />}
+                                    label={activeTab === "owner" ? "Username" : "Email Address"}
+                                    placeholder={activeTab === "owner" ? "Enter restaurant username" : "your@email.com"}
+                                    icon={activeTab === "owner" ? <IconUser size={16} /> : <IconMail size={16} />}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -128,7 +133,7 @@ const SignIn: NextPage = () => {
                                     mt="md"
                                     size="md"
                                 >
-                                    {activeTab === "login" ? "Sign In" : "Sign Up"}
+                                    {activeTab === "owner" ? "Log In as Owner" : activeTab === "login" ? "Sign In" : "Sign Up"}
                                 </Button>
                             </Stack>
                         </form>

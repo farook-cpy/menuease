@@ -12,18 +12,29 @@ datasource db {
 }
 
 model Restaurant {
-    id          String   @unique @default(cuid())
-    userId      String
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    name        String
-    location    String
-    contactNo   String
-    isPublished Boolean
-    menus       Menu[]   @relation("MenusOfRestaurant")
-    image       Image?   @relation("ImageOfRestaurant", fields: [imageId], references: [id], onDelete: SetNull, onUpdate: SetNull)
-    imageId     String?  @unique
-    banners     Image[]  @relation("BannersOfRestaurant")
+    id            String   @unique @default(cuid())
+    userId        String
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    name          String
+    location      String
+    contactNo     String
+    isPublished   Boolean
+    ownerUsername String?
+    ownerPassword String?
+    isSuspended   Boolean  @default(false)
+    isOwnerDisabled Boolean @default(false)
+    menus         Menu[]   @relation("MenusOfRestaurant")
+    image         Image?   @relation("ImageOfRestaurant", fields: [imageId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+    imageId       String?  @unique
+    banners       Image[]  @relation("BannersOfRestaurant")
+    planName      String   @default("Free Trial")
+    subscriptionStatus String @default("trial")
+    subscriptionExpiresAt DateTime?
+    trialEndsAt   DateTime?
+    balance       Float    @default(0.0)
+    billingTransactions BillingTransaction[] @relation("BillingTransactionsOfRestaurant")
+    analytics     MenuAnalytics[] @relation("AnalyticsOfRestaurant")
 
     @@id([id, userId])
     @@index([isPublished])
@@ -73,6 +84,7 @@ model MenuItem {
     categoryId  String?
     image       Image?    @relation("ImageOfMenuItem", fields: [imageId], references: [id])
     imageId     String?   @unique
+    analytics   MenuAnalytics[] @relation("AnalyticsOfMenuItem")
 
     @@id([id, userId])
     @@index([categoryId])
@@ -89,4 +101,44 @@ model Image {
     restaurantId     String?
 
     @@index([restaurantId])
+}
+
+model AdminUser {
+    id        String   @id @default(cuid())
+    email     String   @unique
+    role      String   @default("Admin")
+    createdAt DateTime @default(now())
+}
+
+model LoginLog {
+    id        String   @id @default(cuid())
+    username  String
+    role      String
+    createdAt DateTime @default(now())
+}
+
+model BillingTransaction {
+    id           String      @id @default(cuid())
+    restaurant   Restaurant? @relation("BillingTransactionsOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    restaurantId String?
+    amount       Float
+    type         String // manual_payment, plan_renewal, credit_adjustment, debit_adjustment
+    method       String // Cash, Card, Bank Transfer, Credit Balance, System
+    description  String
+    createdAt    DateTime    @default(now())
+
+    @@index([restaurantId])
+}
+
+model MenuAnalytics {
+    id           String      @id
+    restaurantId String
+    restaurant   Restaurant  @relation("AnalyticsOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    type         String      // page_view, item_click
+    menuItemId   String?
+    menuItem     MenuItem?   @relation("AnalyticsOfMenuItem", fields: [menuItemId], references: [id], onDelete: Cascade)
+    createdAt    DateTime    @default(now())
+
+    @@index([restaurantId])
+    @@index([menuItemId])
 }

@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useEffect } from "react";
 
-import { Button, Group, Stack, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { Button, Group, Stack, Text, TextInput, Checkbox, useMantineTheme } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { IconMapPin, IconPhone } from "@tabler/icons";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,7 @@ import type { Image, Restaurant } from "@prisma/client";
 
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { useSession } from "src/utils/supabaseAuth";
 import { restaurantInput } from "src/utils/validators";
 
 import { ImageUpload } from "../ImageUpload";
@@ -23,6 +24,9 @@ interface Props extends ModalProps {
 
 /** Form to be used when allowing users to add or edit restaurants */
 export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest }) => {
+    const { data: session } = useSession();
+    const { data: adminRole } = api.admin.getRole.useQuery();
+    const isAdmin = adminRole === "Super Admin" || adminRole === "Admin";
     const trpcCtx = api.useContext();
     const theme = useMantineTheme();
     const t = useTranslations("dashboard.restaurant");
@@ -55,6 +59,10 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
             imagePath: restaurant?.image?.path || "",
             location: restaurant?.location || "",
             name: restaurant?.name || "",
+            ownerUsername: (restaurant as any)?.ownerUsername || "",
+            ownerPassword: (restaurant as any)?.ownerPassword || "",
+            userId: restaurant?.userId || "",
+            isOwnerDisabled: (restaurant as any)?.isOwnerDisabled || false,
         },
         validate: zodResolver(restaurantInput),
     });
@@ -67,6 +75,10 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                 imagePath: restaurant?.image?.path || "",
                 location: restaurant?.location || "",
                 name: restaurant?.name || "",
+                ownerUsername: (restaurant as any)?.ownerUsername || "",
+                ownerPassword: (restaurant as any)?.ownerPassword || "",
+                userId: restaurant?.userId || "",
+                isOwnerDisabled: (restaurant as any)?.isOwnerDisabled || false,
             };
             setValues(formValues);
             resetDirty(formValues);
@@ -120,6 +132,35 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                         placeholder={t("inputContactNoPlaceholder")}
                         {...getInputProps("contactNo")}
                     />
+                    {isAdmin && (
+                        <>
+                            <TextInput
+                                disabled={loading}
+                                label="Owner Username"
+                                placeholder="Enter owner username"
+                                {...getInputProps("ownerUsername")}
+                            />
+                            <TextInput
+                                disabled={loading}
+                                label="Owner Password"
+                                placeholder="Enter owner password"
+                                {...getInputProps("ownerPassword")}
+                            />
+                            <TextInput
+                                disabled={loading}
+                                label="Owner User ID (Transfer Ownership)"
+                                placeholder="Enter target User ID"
+                                {...getInputProps("userId")}
+                            />
+                            <Checkbox
+                                disabled={loading}
+                                label="Disable Owner Login"
+                                checked={values.isOwnerDisabled}
+                                {...getInputProps("isOwnerDisabled", { type: "checkbox" })}
+                                mt="xs"
+                            />
+                        </>
+                    )}
                     <ImageUpload
                         disabled={loading}
                         error={!!errors.imagePath}

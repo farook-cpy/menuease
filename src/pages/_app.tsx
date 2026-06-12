@@ -1,5 +1,4 @@
 import { ColorSchemeProvider, MantineProvider } from "@mantine/core";
-import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import { NotificationsProvider } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
@@ -29,16 +28,8 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
     Component,
     pageProps,
 }) => {
-    const preferredColorScheme = useColorScheme();
-
-    const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
-        defaultValue: preferredColorScheme,
-        getInitialValueInEffect: true,
-        key: "mantine-color-scheme",
-    });
-
-    const toggleColorScheme = (value?: ColorScheme) =>
-        setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+    const colorScheme: ColorScheme = "light";
+    const toggleColorScheme = () => {};
 
     return (
         <>
@@ -48,12 +39,12 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
                 ]}
                 openGraph={{
                     images: [{ url: `${env.NEXT_PUBLIC_PROD_URL}/menufic_banner.jpg` }],
-                    siteName: "menufic.com",
+                    siteName: "foodler.com",
                     type: "website",
                     url: env.NEXT_PUBLIC_PROD_URL,
                 }}
                 themeColor={theme.light.primary[6]}
-                titleTemplate="Menufic - %s"
+                titleTemplate="Foodler - %s"
                 twitter={{ cardType: "summary_large_image" }}
             />
             <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>

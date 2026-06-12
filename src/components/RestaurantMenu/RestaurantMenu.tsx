@@ -13,9 +13,8 @@ import {
     Stack,
     Tabs,
     Text,
-    useMantineColorScheme,
 } from "@mantine/core";
-import { IconMapPin, IconMoonStars, IconPhone, IconSun } from "@tabler/icons";
+import { IconMapPin, IconPhone } from "@tabler/icons";
 import Autoplay from "embla-carousel-autoplay";
 import { useTranslations } from "next-intl";
 
@@ -116,14 +115,13 @@ interface Props {
 export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
     const { classes, theme } = useStyles();
     const bannerCarousalRef = useRef(Autoplay({ delay: 5000 }));
-    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
     const [menuParent] = useAutoAnimate<HTMLDivElement>();
     const [selectedMenu, setSelectedMenu] = useState<string | null | undefined>(restaurant?.menus?.[0]?.id);
     const t = useTranslations("menu");
 
     const menuDetails = useMemo(
         () => restaurant?.menus?.find((item) => item.id === selectedMenu),
-        [selectedMenu, restaurant]
+        [selectedMenu, restaurant?.menus]
     );
 
     const images: Image[] = useMemo(() => {
@@ -194,9 +192,6 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                         </Box>
                     </Box>
                 </MediaQuery>
-                <ActionIcon className={classes.themeSwitch} onClick={() => toggleColorScheme()} size="lg">
-                    {colorScheme === "dark" ? <IconSun size={18} strokeWidth={2.5} /> : <IconMoonStars size={18} />}
-                </ActionIcon>
             </Box>
 
             <MediaQuery largerThan="xs" styles={{ display: "none" }}>

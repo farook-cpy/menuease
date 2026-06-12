@@ -9,6 +9,8 @@ interface SupabaseSession {
         email?: string;
         name?: string;
         image?: string;
+        role?: string;
+        restaurantId?: string;
     } | null;
 }
 
@@ -28,6 +30,22 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
     useEffect(() => {
         // Fetch current session on mount
+        if (typeof window !== "undefined") {
+            const ownerSessionStr = localStorage.getItem("owner_session");
+            if (ownerSessionStr) {
+                try {
+                    const currentSession = JSON.parse(ownerSessionStr);
+                    if (currentSession?.user) {
+                        setSession(currentSession);
+                        setStatus("authenticated");
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse owner_session on mount", e);
+                }
+            }
+        }
+
         supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
             if (currentSession) {
                 setSession({
@@ -47,6 +65,11 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+            const hasOwnerSession = typeof window !== "undefined" && localStorage.getItem("owner_session") !== null;
+            if (hasOwnerSession) {
+                return;
+            }
+
             if (currentSession) {
                 setSession({
                     user: {
@@ -97,6 +120,52 @@ export const signIn = async (
     provider: string,
     options?: { callbackUrl?: string; email?: string; password?: string }
 ) => {
+    if (provider === "restaurant-owner") {
+        if (options?.email && options?.password) {
+            const { data: restaurant, error } = await supabase
+                .from("Restaurant")
+                .select("id, name, ownerUsername, isOwnerDisabled")
+                .eq("ownerUsername", options.email)
+                .eq("ownerPassword", options.password)
+                .single();
+
+            if (error || !restaurant) {
+                throw new Error("Invalid restaurant username or password");
+            }
+
+            if (restaurant.isOwnerDisabled) {
+                throw new Error("Login is disabled for this restaurant owner account.");
+            }
+
+            const sessionData = {
+                user: {
+                    id: "restaurant:" + restaurant.id,
+                    email: restaurant.ownerUsername,
+                    name: restaurant.name,
+                    role: "restaurant-owner",
+                    restaurantId: restaurant.id,
+                }
+            };
+
+            // Log to LoginLog
+            try {
+                await supabase.from("LoginLog").insert([{
+                    id: Math.random().toString(36).substring(2, 15),
+                    username: restaurant.ownerUsername,
+                    role: "Restaurant Owner",
+                    createdAt: new Date().toISOString(),
+                }]);
+            } catch (e) {
+                console.error("Failed to insert LoginLog", e);
+            }
+
+            if (typeof window !== "undefined") {
+                localStorage.setItem("owner_session", JSON.stringify(sessionData));
+                window.location.href = options.callbackUrl || "/restaurant";
+            }
+            return { ok: true, error: null, url: options.callbackUrl || "/restaurant" };
+        }
+    }
     if (provider === "credentials" || provider === "email") {
         if (options?.email && options?.password) {
             const { error } = await supabase.auth.signInWithPassword({
@@ -104,6 +173,32 @@ export const signIn = async (
                 password: options.password,
             });
             if (error) throw error;
+
+            // Log to LoginLog
+            try {
+                let role = "User";
+                if (options.email === "farookisop@gmail.com") {
+                    role = "Super Admin";
+                } else {
+                    const { data: admin } = await supabase
+                        .from("AdminUser")
+                        .select("role")
+                        .eq("email", options.email)
+                        .single();
+                    if (admin) {
+                        role = admin.role;
+                    }
+                }
+                await supabase.from("LoginLog").insert([{
+                    id: Math.random().toString(36).substring(2, 15),
+                    username: options.email,
+                    role: role,
+                    createdAt: new Date().toISOString(),
+                }]);
+            } catch (e) {
+                console.error("Failed to insert LoginLog", e);
+            }
+
             return { ok: true, error: null, url: options.callbackUrl || "/restaurant" };
         }
     }
@@ -120,8 +215,37 @@ export const signUp = async (email: string, password: string) => {
 };
 
 export const signOut = async (options?: { callbackUrl?: string }) => {
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("owner_session");
+        localStorage.removeItem("admin_session");
+    }
     await supabase.auth.signOut();
     if (options?.callbackUrl) {
         window.location.href = options.callbackUrl;
+    }
+};
+
+export const impersonate = (restaurantId: string, restaurantName: string, ownerUsername: string) => {
+    if (typeof window !== "undefined") {
+        localStorage.setItem("admin_session", "true");
+        const sessionData = {
+            user: {
+                id: "restaurant:" + restaurantId,
+                email: ownerUsername,
+                name: restaurantName,
+                role: "restaurant-owner",
+                restaurantId: restaurantId,
+            }
+        };
+        localStorage.setItem("owner_session", JSON.stringify(sessionData));
+        window.location.href = "/restaurant";
+    }
+};
+
+export const exitImpersonation = () => {
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("owner_session");
+        localStorage.removeItem("admin_session");
+        window.location.href = "/restaurant";
     }
 };

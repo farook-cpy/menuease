@@ -44,23 +44,33 @@ const RestaurantManagePage: NextPage = () => {
                             </Center>
                         ) : (
                             <>
-                                <SimpleGrid
-                                    breakpoints={[
-                                        { cols: 2, minWidth: "sm" },
-                                        { cols: 1, minWidth: "xs" },
-                                    ]}
+                                <Box
+                                    sx={(theme) => ({
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                        gap: theme.spacing.md,
+                                        width: "100%",
+                                        [`@media (min-width: ${theme.breakpoints.sm}px)`]: {
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                        },
+                                    })}
                                 >
-                                    <Breadcrumbs color={theme.black}>
-                                        <Link href="/restaurant">{t("breadcrumb")}</Link>
-                                        <Text>{restaurant?.name}</Text>
-                                    </Breadcrumbs>
+                                    <Box sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }} py="xs">
+                                        <Breadcrumbs color={theme.black}>
+                                            <Link href="/restaurant">{t("breadcrumb")}</Link>
+                                            <Text>{restaurant?.name}</Text>
+                                        </Breadcrumbs>
+                                    </Box>
                                     {restaurant && <PublishButton restaurant={restaurant} />}
-                                </SimpleGrid>
+                                </Box>
                                 <SimpleGrid
+                                    cols={1}
                                     breakpoints={[
-                                        { cols: 3, minWidth: "lg" },
                                         { cols: 2, minWidth: "sm" },
-                                        { cols: 1, minWidth: "xs" },
+                                        { cols: 3, minWidth: "md" },
                                     ]}
                                     mt="xl"
                                 >
@@ -80,11 +90,13 @@ const RestaurantManagePage: NextPage = () => {
                                     />
                                     <IconCard
                                         Icon={IconStars}
+                                        href={`/restaurant/${router.query?.restaurantId}/feedback`}
                                         subTitle={t("feedbackCardSubTitle")}
                                         title={t("feedbackCardTitle")}
                                     />
                                     <IconCard
                                         Icon={IconChartDots}
+                                        href={`/restaurant/${router.query?.restaurantId}/stats`}
                                         subTitle={t("statsCardSubTitle")}
                                         title={t("statsCardTitle")}
                                     />

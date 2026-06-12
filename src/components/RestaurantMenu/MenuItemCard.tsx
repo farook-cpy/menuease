@@ -1,11 +1,13 @@
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Box, createStyles, Paper, Stack, Text } from "@mantine/core";
 
 import type { Image, MenuItem } from "@prisma/client";
 
-import { ViewMenuItemModal } from "./ViewMenuItemModal";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { api } from "src/utils/api";
 import { ImageKitImage } from "../ImageKitImage";
 
 export interface StyleProps {
@@ -72,14 +74,36 @@ interface Props {
 /** Display each menu item as a card in the full restaurant menu */
 export const MenuItemCard: FC<Props> = ({ item }) => {
     const { classes, cx } = useStyles({ imageColor: item?.image?.color });
-    const [modalVisible, setModalVisible] = useState(false);
+    const router = useRouter();
+    const restaurantId = router.query?.restaurantId as string;
+
+    const { mutate: logClick } = api.analytics.logView.useMutation();
+
+    const handleClick = () => {
+        if (restaurantId) {
+            logClick({
+                restaurantId,
+                type: "item_click",
+                menuItemId: item.id
+            });
+        }
+    };
+
+    const itemUrl = `/restaurant/${restaurantId}/item/${item.id}`;
+
     return (
-        <>
+        <Link
+            href={itemUrl}
+            passHref
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
             <Paper
                 className={classes.cardItem}
                 data-testid="menu-item-card"
                 h={150}
-                onClick={() => setModalVisible(true)}
+                onClick={handleClick}
             >
                 {item?.image?.path && (
                     <Box className={classes.cardImageWrap}>
@@ -108,7 +132,6 @@ export const MenuItemCard: FC<Props> = ({ item }) => {
                     </Text>
                 </Stack>
             </Paper>
-            <ViewMenuItemModal menuItem={item} onClose={() => setModalVisible(false)} opened={modalVisible} />
-        </>
+        </Link>
     );
 };

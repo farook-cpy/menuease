@@ -1146,7 +1146,7 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                                         email: values.email,
                                         message: values.message,
                                         name: values.name,
-                                        subject: `Menufic | ${values.subject}`,
+                                        subject: `Foodler | ${values.subject}`,
                                     })
                                 );
                             })}
@@ -1353,7 +1353,7 @@ export const AboutUs: FC = () => {
                             }}
                         >
                             <Image
-                                alt="menufic open source"
+                                alt="foodler open source"
                                 height={260}
                                 src="/landing-about-us.svg"
                                 width={260}
@@ -1575,7 +1575,7 @@ export const FooterCTA: FC = () => {
                             }}
                         >
                             <Text sx={{ fontSize: 14, color: "#555550", lineHeight: 1.7, marginBottom: 32 }}>
-                                Join restaurants already using Menufic to serve digital menus their customers love.
+                                Join restaurants already using Foodler to serve digital menus their customers love.
                             </Text>
 
                             {status === "authenticated" ? (
@@ -1615,7 +1615,7 @@ export const FooterCTA: FC = () => {
                                 letterSpacing: "0.06em",
                             }}
                         >
-                            © {new Date().getFullYear()} Menufic. MIT Licensed.
+                            © {new Date().getFullYear()} Foodler. MIT Licensed.
                         </Text>
                         <Flex gap={32}>
                             {[

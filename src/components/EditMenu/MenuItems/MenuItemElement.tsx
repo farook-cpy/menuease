@@ -2,8 +2,9 @@ import type { FC } from "react";
 import { useState } from "react";
 
 import { ActionIcon, Box, createStyles, Grid, Text } from "@mantine/core";
-import { IconEdit, IconGripVertical, IconTrash } from "@tabler/icons";
+import { IconEdit, IconGripVertical, IconTrash, IconMessage2 } from "@tabler/icons";
 import { useTranslations } from "next-intl";
+import { MenuItemReviewsModal } from "./MenuItemReviewsModal";
 import { Draggable } from "react-beautiful-dnd";
 
 import type { Image, MenuItem } from "@prisma/client";
@@ -65,6 +66,7 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
     const { classes, cx, theme } = useStyles();
     const [deleteMenuItemModalOpen, setDeleteMenuItemModalOpen] = useState(false);
     const [menuItemFormOpen, setMenuItemFormOpen] = useState(false);
+    const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
     const t = useTranslations("dashboard.editMenu.menuItem");
     const tCommon = useTranslations("common");
 
@@ -90,27 +92,41 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
         <>
             <Draggable key={menuItem.id} draggableId={menuItem.id} index={menuItem.position}>
                 {(provided, snapshot) => (
-                    <Grid
-                        align="center"
+                    <Box
                         className={cx([classes.elementItem, snapshot.isDragging && classes.itemDragging])}
                         data-testid={`menu-item ${menuItem.name}`}
-                        gutter="lg"
-                        my="sm"
                         ref={provided.innerRef}
                         {...provided.draggableProps}
+                        sx={(theme) => ({
+                            display: "flex",
+                            alignItems: "center",
+                            padding: theme.spacing.sm,
+                            gap: theme.spacing.md,
+                            borderRadius: theme.radius.lg,
+                            transition: "background 500ms ease",
+                            "&:hover": {
+                                background: theme.colors.dark[1]
+                            },
+                            [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
+                                flexDirection: "column",
+                                alignItems: "stretch",
+                                gap: theme.spacing.sm
+                            }
+                        })}
                     >
-                        <Grid.Col
-                            className={classes.dragHandleTable}
-                            md={1}
-                            sm={2}
-                            span={1}
-                            {...provided.dragHandleProps}
-                        >
-                            <IconGripVertical size={18} stroke={1.5} />
-                        </Grid.Col>
+                        {/* Top row / primary info on mobile */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+                            {/* Drag handle */}
+                            <Box
+                                className={classes.dragHandleTable}
+                                {...provided.dragHandleProps}
+                                sx={{ display: "flex", alignItems: "center", cursor: "grab" }}
+                            >
+                                <IconGripVertical size={18} stroke={1.5} />
+                            </Box>
 
-                        <Grid.Col md={1} sm={2} span={2}>
-                            <Box className={classes.emptyImage}>
+                            {/* Image */}
+                            <Box className={classes.emptyImage} sx={{ flexShrink: 0 }}>
                                 {menuItem.image?.path ? (
                                     <ImageKitImage
                                         key={`${menuItem.image?.id}-item-image`}
@@ -122,42 +138,83 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
                                         width={50}
                                     />
                                 ) : (
-                                    <Text>{t("noImage")}</Text>
+                                    <Text size="xs" color="dimmed" align="center" style={{ width: "100%" }}>
+                                        {t("noImage")}
+                                    </Text>
                                 )}
                             </Box>
-                        </Grid.Col>
 
-                        <Grid.Col md={2} sm={5} span={6}>
-                            <Text align="center" weight={700}>
-                                {menuItem.name}
-                            </Text>
-                        </Grid.Col>
-                        <Grid.Col md={2} sm={3} span={3}>
-                            <Text align="center" color="red" opacity={0.8}>
+                            {/* Name and Description */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Text weight={700} size="sm" color="dark.8">
+                                    {menuItem.name}
+                                </Text>
+                                <Text
+                                    size="xs"
+                                    color={menuItem.description ? theme.colors.dark[6] : theme.colors.dark[3]}
+                                    sx={{
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis"
+                                    }}
+                                >
+                                    {menuItem.description || t("noDescription")}
+                                </Text>
+                            </Box>
+
+                            {/* Price */}
+                            <Text weight={700} color="red" size="sm" sx={{ flexShrink: 0 }}>
                                 {menuItem.price}
                             </Text>
-                        </Grid.Col>
-                        <Grid.Col lg={5} sm={9} span={12}>
-                            <Text color={menuItem.description ? theme.colors.dark[6] : theme.colors.dark[3]}>
-                                {menuItem.description || t("noDescription")}
-                            </Text>
-                        </Grid.Col>
-                        <Grid.Col className={classes.actionButtons} lg={1} sm={3} span={12}>
+                        </Box>
+
+                        {/* Action buttons (bottom on mobile, inline on desktop) */}
+                        <Box
+                            className={classes.actionButtons}
+                            sx={(theme) => ({
+                                display: "flex",
+                                gap: 10,
+                                justifyContent: "flex-end",
+                                alignItems: "center",
+                                flexShrink: 0,
+                                [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
+                                    justifyContent: "flex-end",
+                                    borderTop: `1px solid ${theme.colors.gray[2]}`,
+                                    paddingTop: theme.spacing.xs
+                                }
+                            })}
+                        >
                             <ActionIcon
+                                color="gray"
+                                variant="light"
+                                onClick={() => setReviewsModalOpen(true)}
+                                title="View Reviews"
+                                size="md"
+                            >
+                                <IconMessage2 size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                                color="gray"
+                                variant="light"
                                 data-testid={`menu-item-edit ${menuItem.name}`}
                                 onClick={() => setMenuItemFormOpen(true)}
+                                size="md"
                             >
-                                <IconEdit size={18} />
+                                <IconEdit size={16} />
                             </ActionIcon>
                             <ActionIcon
                                 color="red"
+                                variant="light"
                                 data-testid={`menu-item-delete ${menuItem.name}`}
                                 onClick={() => setDeleteMenuItemModalOpen(true)}
+                                size="md"
                             >
-                                <IconTrash size={18} />
+                                <IconTrash size={16} />
                             </ActionIcon>
-                        </Grid.Col>
-                    </Grid>
+                        </Box>
+                    </Box>
                 )}
             </Draggable>
 
@@ -176,6 +233,12 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
                 menuItem={menuItem}
                 onClose={() => setMenuItemFormOpen(false)}
                 opened={menuItemFormOpen}
+            />
+
+            <MenuItemReviewsModal
+                menuItem={menuItem}
+                onClose={() => setReviewsModalOpen(false)}
+                opened={reviewsModalOpen}
             />
         </>
     );

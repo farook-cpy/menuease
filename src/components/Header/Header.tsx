@@ -15,14 +15,13 @@ import {
     Popover,
     Text,
     Transition,
-    useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconEyeglass2, IconHome, IconLogin, IconLogout, IconMoonStars, IconPizza, IconSun } from "@tabler/icons";
+import { IconEyeglass2, IconHome, IconLogin, IconLogout, IconPizza } from "@tabler/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { signOut, useSession } from "src/utils/supabaseAuth";
+import { signOut, useSession, exitImpersonation } from "src/utils/supabaseAuth";
 import { useTranslations } from "next-intl";
 
 
@@ -82,7 +81,6 @@ export const NavHeader: FC<Props> = ({
     const theme = useMantineTheme();
     const { data: sessionData, status } = useSession();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.xs}px)`);
-    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
     const { classes, cx } = useStyles({ withShadow });
     const router = useRouter();
     const t = useTranslations();
@@ -189,15 +187,16 @@ export const NavHeader: FC<Props> = ({
                                     </>
                                 )}
 
-                                <ActionIcon
-                                    aria-label="theme-switch"
-                                    className={classes.themeSwitch}
-                                    data-testid="theme-toggle-button"
-                                    onClick={() => toggleColorScheme()}
-                                    size={36}
-                                >
-                                    {colorScheme === "dark" ? <IconSun size={18} /> : <IconMoonStars size={18} />}
-                                </ActionIcon>
+                                {typeof window !== "undefined" && localStorage.getItem("admin_session") && (
+                                    <Button
+                                        color="violet"
+                                        onClick={() => exitImpersonation()}
+                                        variant="outline"
+                                        size="xs"
+                                    >
+                                        Exit Impersonation
+                                    </Button>
+                                )}
 
                                 {status === "authenticated" && (
                                     <Menu

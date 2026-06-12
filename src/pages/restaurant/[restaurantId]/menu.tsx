@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Container, Center, Loader } from "@mantine/core";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
@@ -21,6 +22,14 @@ const RestaurantMenuPage: NextPage = () => {
         { enabled: !!restaurantId }
     );
 
+    const { mutate: logPageView } = api.analytics.logView.useMutation();
+
+    useEffect(() => {
+        if (restaurantId && restaurant) {
+            logPageView({ restaurantId, type: "page_view" });
+        }
+    }, [restaurantId, restaurant, logPageView]);
+
     if (isLoading) {
         return (
             <Center h="100vh">
@@ -43,7 +52,7 @@ const RestaurantMenuPage: NextPage = () => {
                     restaurant?.contactNo
                         ? t("seoDescription.restaurantContactNo", { contactNo: restaurant?.contactNo })
                         : ""
-                } ${t("seoDescription.menufic")}`}
+                } ${t("seoDescription.foodler")}`}
                 openGraph={{
                     images: [{ url: imageUrl }],
                     type: "restaurant.menu",
@@ -53,10 +62,13 @@ const RestaurantMenuPage: NextPage = () => {
             />
             <main>
                 <Container py="lg" size="xl">
-                    {restaurant && restaurant?.isPublished === true ? (
+                    {restaurant && restaurant?.isPublished === true && !(restaurant as any)?.isSuspended ? (
                         <RestaurantMenu restaurant={restaurant} />
                     ) : (
-                        <Empty height="calc(100vh - 100px)" text={t("noDetailsAvailable")} />
+                        <Empty 
+                            height="calc(100vh - 100px)" 
+                            text={(restaurant as any)?.isSuspended ? "This restaurant has been suspended by the administrator." : t("noDetailsAvailable")} 
+                        />
                     )}
                 </Container>
             </main>

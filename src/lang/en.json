@@ -1,6 +1,6 @@
 {
     "common": {
-        "title": "Menufic",
+        "title": "Foodler",
         "edit": "Edit",
         "save": "Save",
         "delete": "Delete",
@@ -11,7 +11,7 @@
         "updateSuccess": "Successfully updated",
         "privacyPolicy": "Privacy Policy",
         "terms&Conditions": "Terms & Conditions",
-        "footerCopyright": "© 2023 Copyright: Menufic",
+        "footerCopyright": "© 2023 Copyright: Foodler",
         "login": "Login",
         "logout": "Logout",
         "openDashboard": "Go to Dashboard"
@@ -71,9 +71,9 @@
             ]
         },
         "features": {
-            "tagLine": "Why Menufic?",
+            "tagLine": "Why Foodler?",
             "title": "Build your restaurant's menu with ease",
-            "subTitle": " Menufic has several awesome features that makes it perfect to take your restaurant's menu to the next level",
+            "subTitle": " Foodler has several awesome features that makes it perfect to take your restaurant's menu to the next level",
             "featuresItems": [
                 {
                     "key": "webOptimized",
@@ -83,7 +83,7 @@
                 {
                     "key": "themeSupport",
                     "title": "Dark and Light themes",
-                    "description": "As Menufic supports both Light and dark themes, you and your restaurant customers will have the independence to switch between these two modes."
+                    "description": "As Foodler supports both Light and dark themes, you and your restaurant customers will have the independence to switch between these two modes."
                 },
                 {
                     "key": "banners",
@@ -93,7 +93,7 @@
                 {
                     "key": "organize",
                     "title": "Organize your data easily",
-                    "description": "Menufic provides an intuitive interface to easily manage your menus. Each restaurant can have multiple menus with multiple sub categories."
+                    "description": "Foodler provides an intuitive interface to easily manage your menus. Each restaurant can have multiple menus with multiple sub categories."
                 },
                 {
                     "key": "responsiveDesign",
@@ -150,7 +150,7 @@
         "aboutUs": {
             "title": "About Us",
             "subtitle": {
-                "line1": "Menufic is an ",
+                "line1": "Foodler is an ",
                 "line2": "open source ",
                 "line3": "project built with "
             },
@@ -168,7 +168,7 @@
             "restaurantName": "Menu of restaurant {name}",
             "restaurantLocation": "Location: {location}.",
             "restaurantContactNo": " Contact Number: {contactNo}.",
-            "menufic": "This menu was generated using Menufic.com"
+            "foodler": "This menu was generated using Foodler.com"
         }
     },
     "preview": {
@@ -301,10 +301,10 @@
             "menuCardSubTitle": "Manage the menus, categories and individual menu items of your restaurant",
             "bannersCardTitle": "Banners",
             "bannersCardSubTitle": "Manage banners that could be used to display promotional content in your restaurant menu",
-            "feedbackCardTitle": "Feedback (Coming Soon)",
-            "feedbackCardSubTitle": "View feedback received from your restaurant customers",
-            "statsCardTitle": "Stats (Coming Soon)",
-            "statsCardSubTitle": "Gain insights on how many people view your published menu and which items are most popular"
+            "feedbackCardTitle": "Feedback & Reviews",
+            "feedbackCardSubTitle": "View and respond to feedback received from your customers",
+            "statsCardTitle": "Menu Analytics",
+            "statsCardSubTitle": "Gain insights on page views, click rates, and popular items"
         },
         "banner": {
             "seoTitle": "Banners",
@@ -332,7 +332,7 @@
         }
     },
     "privacyPolicy": {
-        "seoDescription": "This privacy policy page contains information on how Menufic handles customer data",
+        "seoDescription": "This privacy policy page contains information on how Foodler handles customer data",
         "lastUpdated": "Last updated: {date}",
         "desc1": "This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.",
         "desc2": "We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.",
@@ -352,7 +352,7 @@
                     },
                     {
                         "key": "Company",
-                        "rest": "(referred to as either 'the Company', 'We', 'Us' or 'Our' in this Agreement) refers to Menufic."
+                        "rest": "(referred to as either 'the Company', 'We', 'Us' or 'Our' in this Agreement) refers to Foodler."
                     },
                     {
                         "key": "Cookies",
@@ -384,7 +384,7 @@
                     },
                     {
                         "key": "Website",
-                        "rest": "refers to Menufic, accessible from "
+                        "rest": "refers to Foodler, accessible from "
                     },
                     {
                         "key": "You",
@@ -595,11 +595,11 @@
         }
     },
     "termsAndConditions": {
-        "seoDescription": "The Terms and conditions that needs to be agreed before using Menufic",
+        "seoDescription": "The Terms and conditions that needs to be agreed before using Foodler",
         "lastUpdated": "Last updated: {date}",
         "introduction": {
             "title": "Introduction",
-            "line1": "These Terms of Service govern your use of our website located at {url} operated by Menufic.",
+            "line1": "These Terms of Service govern your use of our website located at {url} operated by Foodler.",
             "line2": "Our Privacy Policy also governs your use of our Service and explains how we collect, safeguard and disclose information that results from your use of our web pages.",
             "line3": "Your agreement with us includes these Terms and our Privacy Policy (“Agreements”). You acknowledge that you have read and understood Agreements, and agree to be bound of them.",
             "line4": "If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at {email} so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service."
@@ -618,8 +618,8 @@
                 "Our Service allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material (“Content”). You are responsible for Content that you post on or through Service, including its legality, reliability, and appropriateness.",
                 "By posting Content on or through Service, You represent and warrant that: (i) Content is yours (you own it) and/or you have the right to use it and the right to grant us the rights and license as provided in these Terms, and (ii) that the posting of your Content on or through Service does not violate the privacy rights, publicity rights, copyrights, contract rights or any other rights of any person or entity. We reserve the right to terminate the account of anyone found to be infringing on a copyright.",
                 "You retain any and all of your rights to any Content you submit, post or display on or through Service and you are responsible for protecting those rights. We take no responsibility and assume no liability for Content you or any third party posts on or through Service. However, by posting Content using Service you grant us the right and license to use, modify, publicly perform, publicly display, reproduce, and distribute such Content on and through Service. You agree that this license includes the right for us to make your Content available to other users of Service, who may also use your Content subject to these Terms.",
-                "Menufic has the right but not the obligation to monitor and edit all Content provided by users.",
-                "In addition, Content found on or through this Service are the property of Menufic or used with permission. You may not distribute, modify, transmit, reuse, download, repost, copy, or use said Content, whether in whole or in part, for commercial purposes or for personal gain, without express advance written permission from us."
+                "Foodler has the right but not the obligation to monitor and edit all Content provided by users.",
+                "In addition, Content found on or through this Service are the property of Foodler or used with permission. You may not distribute, modify, transmit, reuse, download, repost, copy, or use said Content, whether in whole or in part, for commercial purposes or for personal gain, without express advance written permission from us."
             ]
         },
         "prohibitedUses": {
@@ -665,7 +665,7 @@
         },
         "intellectualProperty": {
             "title": "Intellectual Property",
-            "content": "Service and its original content (excluding Content provided by users), features and functionality are and will remain the exclusive property of Menufic and its licensors. Service is protected by copyright, trademark, and other laws of and foreign countries. Our trademarks may not be used in connection with any product or service without the prior written consent of Menufic."
+            "content": "Service and its original content (excluding Content provided by users), features and functionality are and will remain the exclusive property of Foodler and its licensors. Service is protected by copyright, trademark, and other laws of and foreign countries. Our trademarks may not be used in connection with any product or service without the prior written consent of Foodler."
         },
         "copyrightPolicy": {
             "title": "Copyright Policy",
@@ -693,8 +693,8 @@
         "otherSiteLinks": {
             "title": "Links To Other Web Sites",
             "items": [
-                "Our Service may contain links to third party web sites or services that are not owned or controlled by Menufic.",
-                "Menufic has no control over, and assumes no responsibility for the content, privacy policies, or practices of any third party web sites or services. We do not warrant the offerings of any of these entities/individuals or their websites.",
+                "Our Service may contain links to third party web sites or services that are not owned or controlled by Foodler.",
+                "Foodler has no control over, and assumes no responsibility for the content, privacy policies, or practices of any third party web sites or services. We do not warrant the offerings of any of these entities/individuals or their websites.",
                 "YOU ACKNOWLEDGE AND AGREE THAT COMPANY SHALL NOT BE RESPONSIBLE OR LIABLE, DIRECTLY OR INDIRECTLY, FOR ANY DAMAGE OR LOSS CAUSED OR ALLEGED TO BE CAUSED BY OR IN CONNECTION WITH USE OF OR RELIANCE ON ANY SUCH CONTENT, GOODS OR SERVICES AVAILABLE ON OR THROUGH ANY SUCH THIRD PARTY WEB SITES OR SERVICES.",
                 "WE STRONGLY ADVISE YOU TO READ THE TERMS OF SERVICE AND PRIVACY POLICIES OF ANY THIRD PARTY WEB SITES OR SERVICES THAT YOU VISIT."
             ]

@@ -36,7 +36,7 @@ export const BannerForm: FC<Props> = ({ opened, onClose, restaurantId, ...rest }
         },
     });
 
-    const { onSubmit, setValues, isDirty, resetDirty, errors } = useForm({
+    const { onSubmit, setFieldValue, setValues, isDirty, resetDirty, errors } = useForm({
         initialValues: { imageBase64: "", restaurantId },
         validate: zodResolver(bannerInput),
     });
@@ -54,7 +54,7 @@ export const BannerForm: FC<Props> = ({ opened, onClose, restaurantId, ...rest }
         <Modal loading={isCreating} onClose={onClose} opened={opened} title={t("addModalTitle")} {...rest}>
             <form
                 onSubmit={onSubmit((values) => {
-                    if (isDirty()) {
+                    if (values.imageBase64) {
                         addBanner(values);
                     } else {
                         onClose();
@@ -69,11 +69,11 @@ export const BannerForm: FC<Props> = ({ opened, onClose, restaurantId, ...rest }
                         imageRequired
                         imageUrl={imagePath}
                         onImageCrop={(imageBase64, newImagePath) => {
-                            setValues({ imageBase64 });
+                            setFieldValue("imageBase64", imageBase64);
                             setImagePath(newImagePath);
                         }}
                         onImageDeleteClick={() => {
-                            setValues({ imageBase64: "" });
+                            setFieldValue("imageBase64", "");
                             setImagePath("");
                         }}
                         width={1000}
