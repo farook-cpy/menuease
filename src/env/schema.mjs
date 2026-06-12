@@ -26,8 +26,8 @@ export const clientSchema = z.object({
     NEXT_PUBLIC_PROD_URL: z.string().optional().default("https://menufic.com"),
     NEXT_PUBLIC_SAMPLE_MENU_ID: z.string().optional(),
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
-    NEXT_PUBLIC_SUPABASE_URL: z.string(),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default(""),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional().default(""),
 });
 
 /**

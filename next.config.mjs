@@ -27,7 +27,7 @@ const config = {
 };
 
 const sentryWebpackPluginOptions = {
-    dryRun: !process.env.VERCEL,
+    dryRun: !process.env.SENTRY_ORG || !process.env.SENTRY_AUTH_TOKEN,
     silent: true,
 };
 

@@ -97,10 +97,10 @@ const FeedbackPage: NextPage = () => {
         ? (feedbacks.reduce((sum, f) => sum + f.rating, 0) / totalReviews).toFixed(1)
         : "0.0";
 
-    const ratingCounts = [0, 0, 0, 0, 0]; // 1 to 5 stars
+    const ratingCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }; // 1 to 5 stars
     feedbacks.forEach(f => {
         if (f.rating >= 1 && f.rating <= 5) {
-            ratingCounts[f.rating - 1]++;
+            ratingCounts[f.rating - 1] = (ratingCounts[f.rating - 1] ?? 0) + 1;
         }
     });
 
