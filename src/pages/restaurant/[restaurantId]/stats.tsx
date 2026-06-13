@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
     Box,
     Breadcrumbs,
@@ -18,7 +19,7 @@ import {
     Table,
     Progress
 } from "@mantine/core";
-import { IconArrowLeft, IconEye, IconClick, IconFlame, IconTrendingUp, IconCalendar } from "@tabler/icons";
+import { IconArrowLeft, IconEye, IconClick, IconFlame, IconTrendingUp, IconCalendar, IconClock, IconDevices, IconList } from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -60,6 +61,42 @@ const StatsPage: NextPage = () => {
     const maxItemClicks = stats && stats.popularItems.length > 0
         ? Math.max(...stats.popularItems.map(item => item.count), 1)
         : 1;
+
+    // Peak viewing hour format
+    const peakHourInfo = useMemo(() => {
+        if (!stats || !stats.peakHours || stats.peakHours.length === 0) return "No data yet";
+        let maxCount = 0;
+        let peakHour = -1;
+        stats.peakHours.forEach((h: any) => {
+            if (h.count > maxCount) {
+                maxCount = h.count;
+                peakHour = h.hour;
+            }
+        });
+        if (peakHour === -1 || maxCount === 0) return "No data yet";
+        const startHour = peakHour;
+        const endHour = (peakHour + 1) % 24;
+        const formatHr = (hr: number) => {
+            if (hr === 0) return "12 AM";
+            if (hr === 12) return "12 PM";
+            return hr > 12 ? `${hr - 12} PM` : `${hr} AM`;
+        };
+        return `${formatHr(startHour)} - ${formatHr(endHour)}`;
+    }, [stats]);
+
+    // Device distribution percentages
+    const devicePercentages = useMemo(() => {
+        if (!stats || !stats.deviceStats) return { Mobile: 0, Tablet: 0, Desktop: 0, Unknown: 0 };
+        const { Mobile, Tablet, Desktop, Unknown } = stats.deviceStats;
+        const total = Mobile + Tablet + Desktop + Unknown;
+        if (total === 0) return { Mobile: 0, Tablet: 0, Desktop: 0, Unknown: 0 };
+        return {
+            Mobile: Math.round((Mobile / total) * 100),
+            Tablet: Math.round((Tablet / total) * 100),
+            Desktop: Math.round((Desktop / total) * 100),
+            Unknown: Math.round((Unknown / total) * 100),
+        };
+    }, [stats]);
 
     return (
         <>
@@ -165,6 +202,69 @@ const StatsPage: NextPage = () => {
                                     </Card>
                                 </SimpleGrid>
 
+                                {/* Additional Analytics Grid */}
+                                <SimpleGrid
+                                    breakpoints={[
+                                        { maxWidth: "md", cols: 2 },
+                                        { maxWidth: "sm", cols: 1 },
+                                    ]}
+                                    cols={3}
+                                    spacing="lg"
+                                >
+                                    <Card shadow="sm" radius="md" p="xl" withBorder>
+                                        <Group position="apart" align="flex-start" noWrap>
+                                            <Stack spacing={4}>
+                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Most Viewed Dish</Text>
+                                                <Title order={2} size="1.5rem" color="dark.8">
+                                                    {stats?.mostViewedDish ? stats.mostViewedDish.name : "No data yet"}
+                                                </Title>
+                                                {stats?.mostViewedDish && (
+                                                    <Text size="xs" color="dimmed">
+                                                        {stats.mostViewedDish.count} clicks • {stats.mostViewedDish.price}
+                                                    </Text>
+                                                )}
+                                            </Stack>
+                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                                <IconFlame size={24} />
+                                            </Paper>
+                                        </Group>
+                                    </Card>
+
+                                    <Card shadow="sm" radius="md" p="xl" withBorder>
+                                        <Group position="apart" align="flex-start" noWrap>
+                                            <Stack spacing={4}>
+                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Most Clicked Category</Text>
+                                                <Title order={2} size="1.5rem" color="dark.8">
+                                                    {stats?.mostClickedCategory ? stats.mostClickedCategory.name : "No data yet"}
+                                                </Title>
+                                                {stats?.mostClickedCategory && (
+                                                    <Text size="xs" color="dimmed">
+                                                        {stats.mostClickedCategory.count} total item clicks
+                                                    </Text>
+                                                )}
+                                            </Stack>
+                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                                <IconList size={24} />
+                                            </Paper>
+                                        </Group>
+                                    </Card>
+
+                                    <Card shadow="sm" radius="md" p="xl" withBorder>
+                                        <Group position="apart" align="flex-start" noWrap>
+                                            <Stack spacing={4}>
+                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Peak Viewing Hour</Text>
+                                                <Title order={2} size="1.5rem" color="dark.8">
+                                                    {peakHourInfo}
+                                                </Title>
+                                                <Text size="xs" color="dimmed">Hour when public menu gets most views.</Text>
+                                            </Stack>
+                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                                <IconClock size={24} />
+                                            </Paper>
+                                        </Group>
+                                    </Card>
+                                </SimpleGrid>
+
                                 <Grid gutter="lg" mt="md">
                                     {/* Daily Views Bar Chart */}
                                     <Grid.Col xs={12} md={7}>
@@ -225,56 +325,99 @@ const StatsPage: NextPage = () => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Most Popular Menu Items */}
+                                    {/* Right Side Stats Column */}
                                     <Grid.Col xs={12} md={5}>
-                                        <Card shadow="sm" radius="md" p="lg" withBorder h="100%">
-                                            <Group spacing="xs" mb="lg">
-                                                <IconFlame size={18} color={theme.colors.gray[5]} />
-                                                <Text weight={600}>Popular Products</Text>
-                                            </Group>
+                                        <Stack spacing="lg">
+                                            {/* Device Type Distribution Card */}
+                                            <Card shadow="sm" radius="md" p="lg" withBorder>
+                                                <Group spacing="xs" mb="lg">
+                                                    <IconDevices size={18} color={theme.colors.gray[5]} />
+                                                    <Text weight={600}>Device Type Stats</Text>
+                                                </Group>
+                                                <Stack spacing="sm">
+                                                    <Box>
+                                                        <Group position="apart" mb={4}>
+                                                            <Text size="xs" weight={600}>Mobile</Text>
+                                                            <Text size="xs" weight={700}>{devicePercentages.Mobile}% ({stats?.deviceStats?.Mobile || 0})</Text>
+                                                        </Group>
+                                                        <Progress value={devicePercentages.Mobile} color="gray" size="sm" radius="xl" />
+                                                    </Box>
+                                                    <Box>
+                                                        <Group position="apart" mb={4}>
+                                                            <Text size="xs" weight={600}>Desktop</Text>
+                                                            <Text size="xs" weight={700}>{devicePercentages.Desktop}% ({stats?.deviceStats?.Desktop || 0})</Text>
+                                                        </Group>
+                                                        <Progress value={devicePercentages.Desktop} color="gray" size="sm" radius="xl" />
+                                                    </Box>
+                                                    <Box>
+                                                        <Group position="apart" mb={4}>
+                                                            <Text size="xs" weight={600}>Tablet</Text>
+                                                            <Text size="xs" weight={700}>{devicePercentages.Tablet}% ({stats?.deviceStats?.Tablet || 0})</Text>
+                                                        </Group>
+                                                        <Progress value={devicePercentages.Tablet} color="gray" size="sm" radius="xl" />
+                                                    </Box>
+                                                    {devicePercentages.Unknown > 0 && (
+                                                        <Box>
+                                                            <Group position="apart" mb={4}>
+                                                                <Text size="xs" weight={600}>Unknown</Text>
+                                                                <Text size="xs" weight={700}>{devicePercentages.Unknown}% ({stats?.deviceStats?.Unknown || 0})</Text>
+                                                            </Group>
+                                                            <Progress value={devicePercentages.Unknown} color="gray" size="sm" radius="xl" />
+                                                        </Box>
+                                                    )}
+                                                </Stack>
+                                            </Card>
 
-                                            {stats?.popularItems.length === 0 ? (
-                                                <Center h={180}>
-                                                    <Text color="dimmed" size="sm" italic>No menu items clicked yet.</Text>
-                                                </Center>
-                                            ) : (
-                                                <Table verticalSpacing="sm" horizontalSpacing="xs">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Item</th>
-                                                            <th style={{ textAlign: 'right' }}>Clicks</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {stats?.popularItems.map((item, index) => {
-                                                            const percent = maxItemClicks > 0 ? (item.count / maxItemClicks) * 100 : 0;
-                                                            return (
-                                                                <tr key={item.id}>
-                                                                    <td style={{ width: '70%' }}>
-                                                                        <Stack spacing={2}>
-                                                                            <Text size="sm" weight={600} color="dark.8">
-                                                                                {index + 1}. {item.name}
+                                            {/* Popular Products Card */}
+                                            <Card shadow="sm" radius="md" p="lg" withBorder>
+                                                <Group spacing="xs" mb="lg">
+                                                    <IconFlame size={18} color={theme.colors.gray[5]} />
+                                                    <Text weight={600}>Popular Products</Text>
+                                                </Group>
+
+                                                {stats?.popularItems.length === 0 ? (
+                                                    <Center h={180}>
+                                                        <Text color="dimmed" size="sm" italic>No menu items clicked yet.</Text>
+                                                    </Center>
+                                                ) : (
+                                                    <Table verticalSpacing="sm" horizontalSpacing="xs">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Item</th>
+                                                                <th style={{ textAlign: 'right' }}>Clicks</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {stats?.popularItems.map((item, index) => {
+                                                                const percent = maxItemClicks > 0 ? (item.count / maxItemClicks) * 100 : 0;
+                                                                return (
+                                                                    <tr key={item.id}>
+                                                                        <td style={{ width: '70%' }}>
+                                                                            <Stack spacing={2}>
+                                                                                <Text size="sm" weight={600} color="dark.8">
+                                                                                    {index + 1}. {item.name}
+                                                                                </Text>
+                                                                                <Progress 
+                                                                                    value={percent} 
+                                                                                    color="gray" 
+                                                                                    size="xs" 
+                                                                                    radius="xl"
+                                                                                />
+                                                                            </Stack>
+                                                                        </td>
+                                                                        <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'middle' }}>
+                                                                            <Text size="sm" weight={700} color="dark.7">
+                                                                                {item.count} views
                                                                             </Text>
-                                                                            <Progress 
-                                                                                value={percent} 
-                                                                                color="gray" 
-                                                                                size="xs" 
-                                                                                radius="xl"
-                                                                            />
-                                                                        </Stack>
-                                                                    </td>
-                                                                    <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'middle' }}>
-                                                                        <Text size="sm" weight={700} color="dark.7">
-                                                                            {item.count} views
-                                                                        </Text>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </Table>
-                                            )}
-                                        </Card>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </Table>
+                                                )}
+                                            </Card>
+                                        </Stack>
                                     </Grid.Col>
                                 </Grid>
                             </Stack>

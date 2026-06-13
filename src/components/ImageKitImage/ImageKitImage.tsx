@@ -40,10 +40,12 @@ interface Props {
     imagePath?: string;
     /** Width of the image */
     width: number;
+    /** If true, the image will be loaded eagerly with high priority (useful for LCP optimization) */
+    priority?: boolean;
 }
 
 /** Optimized image component to display images stored in imageKit. */
-export const ImageKitImage: FC<Props> = ({ blurhash, color, imagePath, imageAlt, height, width }) => {
+export const ImageKitImage: FC<Props> = ({ blurhash, color, imagePath, imageAlt, height, width, priority }) => {
     const { classes } = useStyles();
 
     return (
@@ -64,7 +66,8 @@ export const ImageKitImage: FC<Props> = ({ blurhash, color, imagePath, imageAlt,
                     alt={`${imageAlt} image`}
                     className={classes.itemImage}
                     height={height}
-                    loading="lazy"
+                    loading={priority ? undefined : "lazy"}
+                    priority={priority}
                     src={imagePath.startsWith("http") ? imagePath : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${imagePath}`}
                     width={width}
                 />

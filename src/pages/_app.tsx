@@ -3,7 +3,8 @@ import { NotificationsProvider } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { type AppType } from "next/app";
-import { NextIntlProvider } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
+import { useRouter } from "next/router";
 import { DefaultSeo } from "next-seo";
 
 import type { ColorScheme } from "@mantine/core";
@@ -28,6 +29,8 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
     Component,
     pageProps,
 }) => {
+    const router = useRouter();
+    const locale = router.locale || "en";
     const colorScheme: ColorScheme = "light";
     const toggleColorScheme = () => {};
 
@@ -53,9 +56,9 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
                     <NotificationsProvider>
                         <QueryClientProvider client={queryClient}>
                             <SupabaseAuthProvider>
-                                <NextIntlProvider messages={(pageProps.messages || messagesEn) as any}>
+                                <NextIntlClientProvider locale={locale} messages={(pageProps.messages || messagesEn) as any} timeZone="UTC">
                                     <Component {...pageProps} />
-                                </NextIntlProvider>
+                                </NextIntlClientProvider>
                                 <Analytics />
                             </SupabaseAuthProvider>
                         </QueryClientProvider>

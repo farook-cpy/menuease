@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useMemo } from "react";
 
-import { Box, createStyles, Paper, Stack, Text } from "@mantine/core";
+import { Box, createStyles, Paper, Stack, Text, Badge, Group } from "@mantine/core";
 
 import type { Image, MenuItem } from "@prisma/client";
 
@@ -67,7 +67,7 @@ const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
 
 interface Props {
     /** Menu item to be displayed in the card */
-    item: MenuItem & { image: Image | null };
+    item: any;
 }
 
 /** Display each menu item as a card in the full restaurant menu */
@@ -111,11 +111,19 @@ export const MenuItemCard: FC<Props> = ({ item }) => {
                     </Box>
                 )}
 
-                <Stack className={classes.cardDescWrap}>
-                    <Text className={cx(classes.cardText, classes.cardItemTitle)} size="lg" weight={700}>
-                        {item.name}
-                    </Text>
-                    <Text color="red" size="sm">
+                <Stack className={classes.cardDescWrap} spacing={4}>
+                    <Group position="apart" align="center" noWrap style={{ width: '100%' }}>
+                        <Text className={cx(classes.cardText, classes.cardItemTitle)} size="lg" weight={700} sx={{ flex: 1 }}>
+                            {item.name}
+                        </Text>
+                        {item.isVeg === true && (
+                            <Badge color="green" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Veg</Badge>
+                        )}
+                        {item.isVeg === false && (
+                            <Badge color="red" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Non-Veg</Badge>
+                        )}
+                    </Group>
+                    <Text color="red" size="sm" weight={600}>
                         {item.price}
                     </Text>
                     <Text className={cx(classes.cardText, classes.cardItemDesc)} opacity={0.7} size="xs">

@@ -27,6 +27,7 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
     const { data: session } = useSession();
     const { data: adminRole } = api.admin.getRole.useQuery();
     const isAdmin = adminRole === "Super Admin" || adminRole === "Admin";
+    const isSuperAdmin = adminRole === "Super Admin";
     const trpcCtx = api.useContext();
     const theme = useMantineTheme();
     const t = useTranslations("dashboard.restaurant");
@@ -132,7 +133,7 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                         placeholder={t("inputContactNoPlaceholder")}
                         {...getInputProps("contactNo")}
                     />
-                    {isAdmin && (
+                    {isSuperAdmin && (
                         <>
                             <TextInput
                                 disabled={loading}

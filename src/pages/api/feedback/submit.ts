@@ -18,11 +18,12 @@ export default async function handler(
         return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const { menuItemId, rating, comment, reviewerName } = req.body as {
+    const { menuItemId, rating, comment, reviewerName, imageBase64 } = req.body as {
         menuItemId: string;
         rating: number;
         comment: string;
         reviewerName: string;
+        imageBase64?: string;
     };
 
     if (!menuItemId || !comment || rating == null) {
@@ -35,6 +36,30 @@ export default async function handler(
 
     try {
         const id = nanoid(24);
+        let imageUrl: string | null = null;
+
+        if (imageBase64) {
+            try {
+                const buffer = Buffer.from(imageBase64.split(",")[1] || imageBase64, "base64");
+                const fileId = nanoid(12);
+                const filePath = `feedback/${menuItemId}/${fileId}.jpeg`;
+                const { error: uploadError } = await supabaseAdmin.storage
+                    .from("menufic")
+                    .upload(filePath, buffer, {
+                        contentType: "image/jpeg",
+                        upsert: true
+                    });
+                
+                if (uploadError) {
+                    console.error("Feedback image upload failed:", uploadError);
+                } else {
+                    imageUrl = filePath;
+                }
+            } catch (uploadErr) {
+                console.error("Error processing feedback image:", uploadErr);
+            }
+        }
+
         const { data, error } = await supabaseAdmin
             .from("Feedback")
             .insert([
@@ -44,6 +69,7 @@ export default async function handler(
                     rating: Number(rating),
                     comment: String(comment).trim(),
                     reviewerName: String(reviewerName || "Anonymous").trim() || "Anonymous",
+                    imageUrl,
                     createdAt: new Date().toISOString(),
                 },
             ])

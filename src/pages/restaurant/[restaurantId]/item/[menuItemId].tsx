@@ -15,9 +15,12 @@ import {
     Container,
     Paper,
     Title,
-    Center
+    Center,
+    Badge,
+    FileButton,
+    Image
 } from "@mantine/core";
-import { IconStar, IconMessage2, IconCornerDownRight, IconArrowLeft } from "@tabler/icons";
+import { IconStar, IconMessage2, IconCornerDownRight, IconArrowLeft, IconPhoto, IconTrash } from "@tabler/icons";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { type NextPage } from "next";
@@ -26,6 +29,19 @@ import { NextSeo } from "next-seo";
 import { ImageKitImage } from "src/components/ImageKitImage";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { env } from "src/env/client.mjs";
+
+const getDeviceType = () => {
+    if (typeof window === "undefined") return "Desktop";
+    const ua = navigator.userAgent;
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+        return "Tablet";
+    }
+    if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
+        return "Mobile";
+    }
+    return "Desktop";
+};
 
 const MenuItemDetailPage: NextPage = () => {
     const router = useRouter();
@@ -37,6 +53,22 @@ const MenuItemDetailPage: NextPage = () => {
     const [reviewerName, setReviewerName] = useState("");
     const [comment, setComment] = useState("");
     const [rating, setRating] = useState(5);
+    const [reviewImageBase64, setReviewImageBase64] = useState<string | null>(null);
+    const [reviewImageName, setReviewImageName] = useState<string>("");
+
+    const handleFileChange = (file: File | null) => {
+        if (!file) {
+            setReviewImageBase64(null);
+            setReviewImageName("");
+            return;
+        }
+        setReviewImageName(file.name);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setReviewImageBase64(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
 
     // Fetch restaurant details
     const { data: restaurant, isLoading: restaurantLoading } = api.restaurant.getDetails.useQuery(
@@ -45,7 +77,7 @@ const MenuItemDetailPage: NextPage = () => {
     );
 
     // Fetch menuItem details
-    const { data: menuItem, isLoading: menuItemLoading } = api.menuItem.get.useQuery(
+    const { data: menuItem, isLoading: menuItemLoading } = api.menuItem.get.useQuery<any>(
         { id: menuItemId },
         { enabled: !!menuItemId }
     );
@@ -60,7 +92,7 @@ const MenuItemDetailPage: NextPage = () => {
     const { mutate: logClick } = api.analytics.logView.useMutation();
     useEffect(() => {
         if (restaurantId && menuItemId && menuItem) {
-            logClick({ restaurantId, type: "item_click", menuItemId });
+            logClick({ restaurantId, type: "item_click", menuItemId, deviceType: getDeviceType() });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [restaurantId, menuItemId, menuItem?.id]);
@@ -71,6 +103,8 @@ const MenuItemDetailPage: NextPage = () => {
             setReviewerName("");
             setComment("");
             setRating(5);
+            setReviewImageBase64(null);
+            setReviewImageName("");
             showSuccessToast("Review Submitted", "Thank you for your feedback!");
             refetch();
         },
@@ -86,7 +120,8 @@ const MenuItemDetailPage: NextPage = () => {
             menuItemId: menuItemId || "",
             rating,
             comment,
-            reviewerName: reviewerName.trim() || "Anonymous"
+            reviewerName: reviewerName.trim() || "Anonymous",
+            imageBase64: reviewImageBase64 || undefined
         });
     };
 
@@ -179,9 +214,17 @@ const MenuItemDetailPage: NextPage = () => {
                                 )}
 
                                 <Stack spacing={4} mt="sm">
-                                    <Title order={1} size="1.8rem" color="dark.8">
-                                        {menuItem.name}
-                                    </Title>
+                                    <Group align="center" spacing="md">
+                                        <Title order={1} size="1.8rem" color="dark.8">
+                                            {menuItem.name}
+                                        </Title>
+                                        {menuItem.isVeg === true && (
+                                            <Badge color="green" variant="light" size="md">Veg</Badge>
+                                        )}
+                                        {menuItem.isVeg === false && (
+                                            <Badge color="red" variant="light" size="md">Non-Veg</Badge>
+                                        )}
+                                    </Group>
                                     
                                     {feedbacks.length > 0 ? (
                                         <Group spacing={6}>
@@ -246,6 +289,16 @@ const MenuItemDetailPage: NextPage = () => {
                                                 <Text size="sm" color="dark.7" style={{ wordBreak: "break-word" }}>
                                                     {fb.comment}
                                                 </Text>
+                                                {fb.imageUrl && (
+                                                    <Box sx={{ maxWidth: 220, borderRadius: theme.radius.sm, overflow: 'hidden', marginTop: 10 }}>
+                                                        <Image
+                                                            src={`${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${fb.imageUrl}`}
+                                                            alt="Review photo"
+                                                            radius="sm"
+                                                            caption="Customer Photo"
+                                                        />
+                                                    </Box>
+                                                )}
 
                                                 {/* Owner Response */}
                                                 {fb.ownerResponse && (
@@ -318,6 +371,26 @@ const MenuItemDetailPage: NextPage = () => {
                                             minRows={2}
                                             size="xs"
                                         />
+
+                                        <Group spacing="xs" align="center" my={4}>
+                                            <FileButton onChange={handleFileChange} accept="image/png,image/jpeg">
+                                                {(props) => (
+                                                    <Button {...props} variant="outline" color="gray" size="xs" leftIcon={<IconPhoto size={14} />}>
+                                                        Upload Photo
+                                                    </Button>
+                                                )}
+                                            </FileButton>
+                                            {reviewImageName && (
+                                                <Group spacing={4} align="center">
+                                                    <Text size="xs" color="dimmed" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {reviewImageName}
+                                                    </Text>
+                                                    <ActionIcon size="xs" color="red" onClick={() => handleFileChange(null)}>
+                                                        <IconTrash size={12} />
+                                                    </ActionIcon>
+                                                </Group>
+                                            )}
+                                        </Group>
 
                                         <Button type="submit" loading={isSubmitting} size="xs" color="gray" fullWidth>
                                             Submit Review

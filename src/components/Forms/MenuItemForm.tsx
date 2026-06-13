@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useEffect } from "react";
 
-import { Button, Group, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Group, Stack, Textarea, TextInput, Select } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { useTranslations } from "next-intl";
 
@@ -21,7 +21,7 @@ interface Props extends ModalProps {
     /** Id of the menu that the item belongs to */
     menuId: string;
     /** Menu item to be edited */
-    menuItem?: MenuItem & { image?: Image };
+    menuItem?: any;
 }
 
 /** Form to be used when allowing users to add or edit menu items of restaurant menus categories */
@@ -66,6 +66,7 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
             imagePath: menuItem?.image?.path || "",
             name: menuItem?.name || "",
             price: menuItem?.price || "",
+            isVeg: menuItem?.isVeg ?? null,
         },
         validate: zodResolver(menuItemInput),
     });
@@ -78,6 +79,7 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                 imagePath: menuItem?.image?.path || "",
                 name: menuItem?.name || "",
                 price: menuItem?.price || "",
+                isVeg: menuItem?.isVeg ?? null,
             };
             setValues(newValues);
             resetDirty(newValues);
@@ -128,6 +130,18 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         label={t("inputDescriptionLabel")}
                         minRows={3}
                         {...getInputProps("description")}
+                    />
+                    <Select
+                        disabled={loading}
+                        label="Food Type"
+                        placeholder="Select food type"
+                        data={[
+                            { value: "veg", label: "🟢 Vegetarian" },
+                            { value: "nonveg", label: "🔴 Non-Vegetarian" },
+                            { value: "none", label: "Not Specified" }
+                        ]}
+                        value={values.isVeg === true ? "veg" : values.isVeg === false ? "nonveg" : "none"}
+                        onChange={(val) => setValues({ isVeg: val === "veg" ? true : val === "nonveg" ? false : null })}
                     />
                     <ImageUpload
                         disabled={loading}

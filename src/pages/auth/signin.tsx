@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BackgroundImage, Box, Center, createStyles, TextInput, PasswordInput, Button, Tabs, Stack, Alert } from "@mantine/core";
+import { BackgroundImage, Box, Center, createStyles, TextInput, PasswordInput, Button, Tabs, Stack, Alert, Title } from "@mantine/core";
 import { IconAlertCircle, IconMail, IconLock, IconUser } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
@@ -36,7 +36,6 @@ const SignIn: NextPage = () => {
     const t = useTranslations("auth");
 
     const { data: session, status } = useSession();
-    const [activeTab, setActiveTab] = useState<string | null>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -53,12 +52,7 @@ const SignIn: NextPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password) {
-            setErrorMsg(activeTab === "owner" ? "Username and password are required" : "Email and password are required");
-            return;
-        }
-
-        if (activeTab !== "owner" && email.trim().toLowerCase() === "farookisop@gmail.com") {
-            setErrorMsg("Admin login is restricted to the admin portal.");
+            setErrorMsg("Username and password are required");
             return;
         }
 
@@ -66,14 +60,7 @@ const SignIn: NextPage = () => {
         setErrorMsg("");
 
         try {
-            if (activeTab === "owner") {
-                await signIn("restaurant-owner", { email, password });
-            } else if (activeTab === "login") {
-                await signIn("email", { email, password });
-            } else {
-                await signUp(email, password);
-                await signIn("email", { email, password });
-            }
+            await signIn("restaurant-owner", { email, password });
         } catch (err: any) {
             console.error("Auth error", err);
             setErrorMsg(err.message || "Authentication failed. Please check your credentials.");
@@ -90,54 +77,50 @@ const SignIn: NextPage = () => {
                         <Logo />
                     </Box>
 
-                    <Tabs value={activeTab} onTabChange={setActiveTab} style={{ width: "100%" }}>
-                        <Tabs.List grow>
-                            <Tabs.Tab value="login">Sign In</Tabs.Tab>
-                            <Tabs.Tab value="register">Sign Up</Tabs.Tab>
-                            <Tabs.Tab value="owner">Owner Login</Tabs.Tab>
-                        </Tabs.List>
+                    <Title order={3} color="dark.8" align="center" mt="xs" mb="sm">
+                        Restaurant Owner Sign In
+                    </Title>
 
-                        <form onSubmit={handleSubmit} className={classes.form}>
-                            <Stack spacing="sm">
-                                {errorMsg && (
-                                    <Alert color="red" icon={<IconAlertCircle size={16} />} radius="md">
-                                        {errorMsg}
-                                    </Alert>
-                                )}
+                    <form onSubmit={handleSubmit} className={classes.form}>
+                        <Stack spacing="sm">
+                            {errorMsg && (
+                                <Alert color="red" icon={<IconAlertCircle size={16} />} radius="md">
+                                    {errorMsg}
+                                </Alert>
+                            )}
 
-                                <TextInput
-                                    label={activeTab === "owner" ? "Username" : "Email Address"}
-                                    placeholder={activeTab === "owner" ? "Enter restaurant username" : "your@email.com"}
-                                    icon={activeTab === "owner" ? <IconUser size={16} /> : <IconMail size={16} />}
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={loading}
-                                    autoFocus
-                                />
+                            <TextInput
+                                label="Username"
+                                placeholder="Enter restaurant username"
+                                icon={<IconUser size={16} />}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={loading}
+                                autoFocus
+                            />
 
-                                <PasswordInput
-                                    label="Password"
-                                    placeholder="Enter your password"
-                                    icon={<IconLock size={16} />}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    disabled={loading}
-                                />
+                            <PasswordInput
+                                label="Password"
+                                placeholder="Enter your password"
+                                icon={<IconLock size={16} />}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
 
-                                <Button
-                                    type="submit"
-                                    loading={loading}
-                                    fullWidth
-                                    mt="md"
-                                    size="md"
-                                >
-                                    {activeTab === "owner" ? "Log In as Owner" : activeTab === "login" ? "Sign In" : "Sign Up"}
-                                </Button>
-                            </Stack>
-                        </form>
-                    </Tabs>
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                fullWidth
+                                mt="md"
+                                size="md"
+                            >
+                                Sign In
+                            </Button>
+                        </Stack>
+                    </form>
                 </Box>
             </Center>
         </BackgroundImage>

@@ -29,8 +29,10 @@ const LandingPage: NextPage = () => {
     );
 };
 
+import messagesEn from "src/lang/en.json";
+
 export const getStaticProps = async () => ({
-    props: { messages: (await import("src/lang/en.json")).default },
+    props: { messages: messagesEn },
 });
 
 export default LandingPage;

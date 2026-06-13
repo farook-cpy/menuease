@@ -9,7 +9,7 @@ export const CustomFonts = () => {
                         fontDisplay: "swap",
                         fontFamily: "ExpletusSans",
                         fontStyle: "normal",
-                        src: `url('/ExpletusSans-VariableFont_wght.ttf') format("woff2")`,
+                        src: `url('/ExpletusSans-VariableFont_wght.ttf') format("truetype")`,
                     },
                 },
             ]}

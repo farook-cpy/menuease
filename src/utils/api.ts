@@ -53,10 +53,15 @@ const isSuperAdmin = async () => {
 };
 
 // Define detail fetcher helper
-const fetchRestaurantDetails = async (id: string) => {
-    const userId = await getCurrentUserId();
+export const fetchRestaurantDetails = async (id: string) => {
+    let userId = null;
+    try {
+        userId = await getCurrentUserId();
+    } catch (e) {
+        // Not authenticated, which is normal for public customers
+    }
     const isAdm = await isAdmin();
-    if (!isAdm && userId.startsWith("restaurant:")) {
+    if (userId && !isAdm && userId.startsWith("restaurant:")) {
         const ownerRestId = userId.replace("restaurant:", "");
         if (ownerRestId !== id) {
             throw new Error("Unauthorized access to this restaurant details");
@@ -1207,7 +1212,7 @@ export const api = {
                         throw new Error("Restaurant owners are not authorized to create restaurants");
                     }
                     const restaurantId = nanoid(24);
-                    const isAdm = await isAdmin();
+                    const isSuper = await isSuperAdmin();
 
                     const [uploaded, blurHash, rawColor] = await Promise.all([
                         uploadImage(input.imageBase64, `${restaurantId}/profile`),
@@ -1249,7 +1254,7 @@ export const api = {
                         updatedAt: new Date().toISOString(),
                     };
 
-                    if (isAdm) {
+                    if (isSuper) {
                         newRestaurant.ownerUsername = input.ownerUsername || null;
                         newRestaurant.ownerPassword = input.ownerPassword || null;
                         newRestaurant.isOwnerDisabled = input.isOwnerDisabled || false;
@@ -1728,7 +1733,7 @@ export const api = {
                         imageId = imgId;
                     }
 
-                    const isAdm = await isAdmin();
+                    const isSuper = await isSuperAdmin();
                     const updateData: any = {
                         name: input.name,
                         location: input.location,
@@ -1737,7 +1742,7 @@ export const api = {
                         updatedAt: new Date().toISOString(),
                     };
 
-                    if (isAdm) {
+                    if (isSuper) {
                         updateData.ownerUsername = input.ownerUsername || null;
                         updateData.ownerPassword = input.ownerPassword || null;
                         updateData.isOwnerDisabled = input.isOwnerDisabled || false;
@@ -1872,7 +1877,7 @@ export const api = {
             },
         },
         create: {
-            useMutation: <TData = any, TError = Error, TVariables = { menuItemId: string; rating: number; comment: string; reviewerName: string }>(options?: any) => {
+            useMutation: <TData = any, TError = Error, TVariables = { menuItemId: string; rating: number; comment: string; reviewerName: string; imageBase64?: string }>(options?: any) => {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
                     // Use server-side API route to bypass Supabase RLS for public feedback submissions
@@ -1884,6 +1889,7 @@ export const api = {
                             rating: input.rating,
                             comment: input.comment,
                             reviewerName: input.reviewerName || "Anonymous",
+                            imageBase64: input.imageBase64,
                         }),
                     });
                     const result = await response.json();
@@ -1989,22 +1995,38 @@ export const api = {
     },
     analytics: {
         logView: {
-            useMutation: <TData = any, TError = Error, TVariables = { restaurantId: string; type: "page_view" | "item_click"; menuItemId?: string }>(options?: any) => {
+            useMutation: <TData = any, TError = Error, TVariables = { restaurantId: string; type: "page_view" | "item_click"; menuItemId?: string; deviceType?: string }>(options?: any) => {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
                     const id = nanoid(24);
-                    const newLog = {
+                    const newLog: any = {
                         id,
                         restaurantId: input.restaurantId,
                         type: input.type,
                         menuItemId: input.menuItemId || null,
+                        deviceType: input.deviceType || "Unknown",
                         createdAt: new Date().toISOString()
                     };
-                    const { data, error } = await supabase
+                    
+                    let { data, error } = await supabase
                         .from("MenuAnalytics")
                         .insert([newLog])
                         .select()
                         .single();
+                        
+                    if (error && error.code === 'PGRST204' && error.message?.includes('deviceType')) {
+                        console.warn("[Analytics] 'deviceType' column not found in database. Retrying without it.");
+                        const fallbackLog = { ...newLog };
+                        delete fallbackLog.deviceType;
+                        const retry = await supabase
+                            .from("MenuAnalytics")
+                            .insert([fallbackLog])
+                            .select()
+                            .single();
+                        data = retry.data;
+                        error = retry.error;
+                    }
+                    
                     if (error) {
                         console.error("[Analytics] Failed to log event:", error.message, error.details);
                         throw error;
@@ -2039,16 +2061,18 @@ export const api = {
                         .eq("restaurantId", input.restaurantId);
                     
                     let items: any[] = [];
+                    let categoriesList: any[] = [];
                     if (menus && menus.length > 0) {
                         const { data: categories } = await supabase
                             .from("Category")
-                            .select("id")
+                            .select("id, name")
                             .in("menuId", menus.map((m: any) => m.id));
-                        if (categories && categories.length > 0) {
+                        categoriesList = categories || [];
+                        if (categoriesList.length > 0) {
                             const { data: fetchedItems } = await supabase
                                 .from("MenuItem")
-                                .select("id, name, price")
-                                .in("categoryId", categories.map((c: any) => c.id));
+                                .select("id, name, price, categoryId")
+                                .in("categoryId", categoriesList.map((c: any) => c.id));
                             items = fetchedItems || [];
                         }
                     }
@@ -2099,11 +2123,77 @@ export const api = {
                         .sort((a, b) => b.count - a.count)
                         .slice(0, 5);
 
+                    // 3. Most Viewed Dish
+                    const mostViewedDish = popularItems.length > 0 ? popularItems[0] : null;
+
+                    // 4. Most Clicked Category
+                    const categoryClickCounts: Record<string, number> = {};
+                    itemClicks.forEach((l: any) => {
+                        if (l.menuItemId) {
+                            const item = items.find((i: any) => i.id === l.menuItemId);
+                            if (item && item.categoryId) {
+                                categoryClickCounts[item.categoryId] = (categoryClickCounts[item.categoryId] || 0) + 1;
+                            }
+                        }
+                    });
+                    const categoryClicks = Object.entries(categoryClickCounts)
+                        .map(([catId, count]) => {
+                            const cat = categoriesList.find((c: any) => c.id === catId);
+                            return {
+                                id: catId,
+                                name: cat ? cat.name : "Unknown Category",
+                                count
+                            };
+                        })
+                        .sort((a, b) => b.count - a.count);
+                    const mostClickedCategory = categoryClicks.length > 0 ? categoryClicks[0] : null;
+
+                    // 5. Peak Viewing Hours (busiest hours based on page views)
+                    const hourCounts: Record<number, number> = {};
+                    for (let h = 0; h < 24; h++) {
+                        hourCounts[h] = 0;
+                    }
+                    pageViews.forEach((l: any) => {
+                        try {
+                            const date = new Date(l.createdAt);
+                            const hour = date.getHours();
+                            if (hour >= 0 && hour < 24) {
+                                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse createdAt date for peak hours:", l.createdAt, e);
+                        }
+                    });
+                    const peakHours = Object.entries(hourCounts).map(([hour, count]) => ({
+                        hour: Number(hour),
+                        count
+                    }));
+
+                    // 6. Device Type Stats
+                    const deviceCounts = {
+                        Mobile: 0,
+                        Tablet: 0,
+                        Desktop: 0,
+                        Unknown: 0
+                    };
+                    safeLogs.forEach((l: any) => {
+                        const device = l.deviceType || "Unknown";
+                        const normalizedDevice = 
+                            device.toLowerCase() === "mobile" ? "Mobile" :
+                            device.toLowerCase() === "tablet" ? "Tablet" :
+                            device.toLowerCase() === "desktop" ? "Desktop" : "Unknown";
+                        deviceCounts[normalizedDevice] += 1;
+                    });
+
                     return {
                         totalPageViews: pageViews.length,
                         totalItemClicks: itemClicks.length,
                         dailyViews,
-                        popularItems
+                        popularItems,
+                        mostViewedDish,
+                        mostClickedCategory,
+                        peakHours,
+                        deviceStats: deviceCounts
                     };
                 }, options);
             }

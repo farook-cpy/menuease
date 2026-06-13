@@ -8,6 +8,7 @@ import type { NextPage } from "next";
 
 import { Logo } from "src/components/Logo";
 import { useSession, signIn } from "src/utils/supabaseAuth";
+import { supabase } from "src/utils/supabaseClient";
 
 const useStyles = createStyles((theme) => {
     return {
@@ -55,15 +56,30 @@ const AdminSignIn: NextPage = () => {
             return;
         }
 
-        if (email.trim().toLowerCase() !== "farookisop@gmail.com") {
-            setErrorMsg("Access Denied: This portal is restricted to the Super Admin.");
-            return;
-        }
-
         setLoading(true);
         setErrorMsg("");
 
         try {
+            const isSuperAdmin = email.trim().toLowerCase() === "farookisop@gmail.com";
+            let isAdmin = false;
+
+            if (!isSuperAdmin) {
+                const { data: admin } = await supabase
+                    .from("AdminUser")
+                    .select("role")
+                    .eq("email", email.trim().toLowerCase())
+                    .single();
+                if (admin) {
+                    isAdmin = true;
+                }
+            }
+
+            if (!isSuperAdmin && !isAdmin) {
+                setErrorMsg("Access Denied: This portal is restricted to administrators.");
+                setLoading(false);
+                return;
+            }
+
             await signIn("email", { email, password });
         } catch (err: any) {
             console.error("Admin Auth error", err);

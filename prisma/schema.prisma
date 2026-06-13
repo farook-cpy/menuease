@@ -85,6 +85,7 @@ model MenuItem {
     image       Image?    @relation("ImageOfMenuItem", fields: [imageId], references: [id])
     imageId     String?   @unique
     analytics   MenuAnalytics[] @relation("AnalyticsOfMenuItem")
+    isVeg       Boolean?
 
     @@id([id, userId])
     @@index([categoryId])
@@ -137,6 +138,7 @@ model MenuAnalytics {
     type         String      // page_view, item_click
     menuItemId   String?
     menuItem     MenuItem?   @relation("AnalyticsOfMenuItem", fields: [menuItemId], references: [id], onDelete: Cascade)
+    deviceType   String      @default("Unknown")
     createdAt    DateTime    @default(now())
 
     @@index([restaurantId])
