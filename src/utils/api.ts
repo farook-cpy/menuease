@@ -1830,6 +1830,31 @@ export const api = {
                     }
                 });
             }
+        },
+        setCurrency: {
+            useMutation: <TData = any, TError = Error, TVariables = { restaurantId: string; currency: string }>(options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(async (input: any) => {
+                    const isAdm = await isAdmin();
+                    if (!isAdm) throw new Error("Unauthorized");
+                    const { data, error } = await supabase
+                        .from("Restaurant")
+                        .update({ currency: input.currency, updatedAt: new Date().toISOString() })
+                        .eq("id", input.restaurantId)
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    return data;
+                }, {
+                    ...options,
+                    onSuccess: (data, variables: any, context) => {
+                        queryClient.invalidateQueries(["restaurants"]);
+                        queryClient.invalidateQueries(["restaurantDetails", variables.restaurantId]);
+                        queryClient.invalidateQueries(["billingRestaurants"]);
+                        if (options?.onSuccess) options.onSuccess(data, variables, context);
+                    }
+                });
+            }
         }
     },
     feedback: {

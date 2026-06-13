@@ -69,6 +69,7 @@ const AdminConsolePage: NextPage = () => {
     const [subStatus, setSubStatus] = useState<string>("trial");
     const [subExpiresAt, setSubExpiresAt] = useState<string>("");
     const [subTrialEndsAt, setSubTrialEndsAt] = useState<string>("");
+    const [subCurrency, setSubCurrency] = useState<string>("INR");
 
     // Queries
     const { data: userRole, isLoading: loadingRole } = api.admin.getRole.useQuery();
@@ -111,6 +112,14 @@ const AdminConsolePage: NextPage = () => {
             setModalType(null);
             trpcCtx.billing.getAll.invalidate();
             trpcCtx.billing.getSummary.invalidate();
+        }
+    });
+
+    const { mutate: setCurrency, isLoading: settingCurrency } = api.restaurant.setCurrency.useMutation({
+        onError: (err: any) => showErrorToast("Failed to set currency", err),
+        onSuccess: () => {
+            showSuccessToast("Currency Updated", "Restaurant currency has been changed successfully");
+            trpcCtx.billing.getAll.invalidate();
         }
     });
 
@@ -461,6 +470,7 @@ const AdminConsolePage: NextPage = () => {
                                                                             setSubStatus(rest.subscriptionStatus || "trial");
                                                                             setSubExpiresAt(rest.subscriptionExpiresAt ? rest.subscriptionExpiresAt.substring(0, 10) : "");
                                                                             setSubTrialEndsAt(rest.trialEndsAt ? rest.trialEndsAt.substring(0, 10) : "");
+                                                                            setSubCurrency(rest.currency || "INR");
                                                                             setRecordPayment(false);
                                                                             setPaymentAmount(0);
                                                                             setPaymentMethod("Cash");
@@ -682,6 +692,34 @@ const AdminConsolePage: NextPage = () => {
 
                         <Button type="submit" color="violet" loading={updatingSubscription}>
                             Save Subscription Settings
+                        </Button>
+
+                        <Divider label="Currency Settings" labelPosition="center" />
+                        <Select
+                            label="Restaurant Currency"
+                            description="Set the currency displayed to customers on this restaurant's menu"
+                            value={subCurrency}
+                            onChange={(val) => setSubCurrency(val || "INR")}
+                            data={[
+                                { value: "INR", label: "₹ Indian Rupee (INR)" },
+                                { value: "USD", label: "$ US Dollar (USD)" },
+                                { value: "EUR", label: "€ Euro (EUR)" },
+                                { value: "GBP", label: "£ British Pound (GBP)" },
+                                { value: "AED", label: "AED UAE Dirham (AED)" },
+                                { value: "SAR", label: "SAR Saudi Riyal (SAR)" },
+                                { value: "MYR", label: "RM Malaysian Ringgit (MYR)" },
+                                { value: "SGD", label: "S$ Singapore Dollar (SGD)" },
+                            ]}
+                        />
+                        <Button
+                            color="teal"
+                            variant="light"
+                            loading={settingCurrency}
+                            onClick={() => {
+                                if (selectedRest) setCurrency({ restaurantId: selectedRest.id, currency: subCurrency });
+                            }}
+                        >
+                            Update Currency
                         </Button>
                     </Stack>
                 </form>

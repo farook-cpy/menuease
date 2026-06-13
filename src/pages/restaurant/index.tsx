@@ -109,9 +109,6 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                             <Text size="xs" color="dimmed" weight={500}>
                                 Subscription: <Badge size="xs" color={status === "expired" ? "red" : status === "trial" ? "yellow" : "green"} variant="filled">{item.planName || "Free Trial"}</Badge>
                             </Text>
-                            <Text size="xs" color="dimmed">
-                                Balance: <Text span weight={600} color="teal">{((item as any).balance || 0).toFixed(2)} Credits</Text>
-                            </Text>
                         </Stack>
                         <Button size="xs" variant="light" color="violet" onClick={() => setBillingOpen(true)}>
                             Billing & Renew
@@ -180,46 +177,30 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
 
                     <Divider />
 
-                    <div>
-                        <Text size="sm" color="dimmed" weight={500}>Your Account Balance</Text>
-                        <Title order={3} color="teal" mt="xs">
-                            {((item as any).balance || 0).toFixed(2)} Credits
-                        </Title>
-                        <Text size="xs" color="dimmed" mt="xs">
-                            To add credits to your balance, please complete a deposit payment by contacting system administrators.
-                        </Text>
-                    </div>
-
-                    <Divider />
-
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        renewWithCredits({
-                            restaurantId: item.id,
-                            planName: renewPlanName
-                        });
-                    }}>
-                        <Stack spacing="xs">
-                            <Text size="sm" weight={500}>Renew / Upgrade Plan</Text>
-                            <Select
-                                value={renewPlanName}
-                                onChange={(val) => setRenewPlanName(val as any || "Basic Plan")}
-                                data={[
-                                    { value: "Basic Plan", label: "Basic Plan (Cost: 15 Credits for 30 Days)" },
-                                    { value: "Premium Plan", label: "Premium Plan (Cost: 40 Credits for 30 Days)" },
-                                ]}
-                            />
-                            <Button
-                                type="submit"
-                                color="violet"
-                                loading={isRenewing}
-                                fullWidth
-                                mt="sm"
-                            >
-                                Renew Subscription
-                            </Button>
-                        </Stack>
-                    </form>
+                    <Stack spacing="xs">
+                        <Text size="sm" weight={500}>Renew / Upgrade Plan</Text>
+                        <Select
+                            value={renewPlanName}
+                            onChange={(val) => setRenewPlanName(val as any || "Basic Plan")}
+                            data={[
+                                { value: "Basic Plan", label: "Basic Plan (₹15/mo)" },
+                                { value: "Premium Plan", label: "Premium Plan (₹40/mo)" },
+                            ]}
+                        />
+                        <Button
+                            color="violet"
+                            fullWidth
+                            mt="sm"
+                            onClick={() => {
+                                const msg = encodeURIComponent(
+                                    `Hello! I would like to renew my subscription for restaurant *${item.name}*.\n\nPlan: ${renewPlanName}\nRestaurant ID: ${item.id}\nCurrent Status: ${status}\n\nPlease assist me with the renewal.`
+                                );
+                                window.open(`https://wa.me/918547119867?text=${msg}`, "_blank");
+                            }}
+                        >
+                            Renew via WhatsApp
+                        </Button>
+                    </Stack>
 
                     <Divider label="Payment Ledger" labelPosition="center" />
 
