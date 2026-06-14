@@ -1,5 +1,4 @@
 // @ts-check
-import { withSentryConfig } from "@sentry/nextjs";
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
  * This is especially useful for Docker builds.
@@ -20,15 +19,7 @@ const config = {
         unoptimized: true,
     },
     reactStrictMode: false,
-    sentry: {
-        hideSourceMaps: true,
-    },
     swcMinify: true,
 };
 
-const sentryWebpackPluginOptions = {
-    dryRun: !process.env.SENTRY_ORG || !process.env.SENTRY_AUTH_TOKEN,
-    silent: true,
-};
-
-export default withSentryConfig(config, sentryWebpackPluginOptions);
+export default config;

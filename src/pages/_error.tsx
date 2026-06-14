@@ -1,5 +1,4 @@
 import { Box, Button, Container, createStyles, Group, keyframes, Text, Title } from "@mantine/core";
-import * as Sentry from "@sentry/nextjs";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -78,7 +77,9 @@ const ErrorPage: NextPage = ({ statusCode = 0 }: { statusCode?: number }) => {
 
 ErrorPage.getInitialProps = async (contextData) => {
     const { res, err, asPath } = contextData;
-    await Sentry.captureUnderscoreErrorException(contextData);
+    if (err) {
+        console.error("Error boundary caught error:", err);
+    }
     const errorAsPath = Number.isNaN(Number(asPath?.substring(1))) ? 0 : Number(asPath?.substring(1));
     const statusCode = res?.statusCode || err?.statusCode || errorAsPath || 404;
     const messages = (await import("src/lang/en.json")).default;
