@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Box, Breadcrumbs, Center, Loader, SimpleGrid, Text, useMantineTheme } from "@mantine/core";
-import { IconChartDots, IconSlideshow, IconStars, IconToolsKitchen } from "@tabler/icons";
+import { Box, Breadcrumbs, Center, Loader, SimpleGrid, Text, useMantineTheme, Button, Group } from "@mantine/core";
+import { IconChartDots, IconSlideshow, IconStars, IconToolsKitchen, IconQrcode, IconClipboardList } from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -12,6 +13,7 @@ import { IconCard } from "src/components/Cards";
 import { PublishButton } from "src/components/PublishButton";
 import { api } from "src/utils/api";
 import { showErrorToast } from "src/utils/helpers";
+import { TableQrModal } from "src/components/Modal";
 
 /** Page to manage all the options under the restaurant */
 const RestaurantManagePage: NextPage = () => {
@@ -20,6 +22,7 @@ const RestaurantManagePage: NextPage = () => {
     const [itemsParent] = useAutoAnimate<HTMLDivElement>();
     const restaurantId = router.query?.restaurantId as string;
     const t = useTranslations("dashboard.restaurantManage");
+    const [qrModalOpen, setQrModalOpen] = useState(false);
 
     const { data: restaurant, isLoading } = api.restaurant.get.useQuery(
         { id: restaurantId },
@@ -64,7 +67,21 @@ const RestaurantManagePage: NextPage = () => {
                                             <Text>{restaurant?.name}</Text>
                                         </Breadcrumbs>
                                     </Box>
-                                    {restaurant && <PublishButton restaurant={restaurant} />}
+                                    {restaurant && (
+                                        <Group spacing="sm">
+                                            {(restaurant as any).isOrderFeatureEnabled && (
+                                                <Button
+                                                    leftIcon={<IconQrcode size={16} />}
+                                                    variant="outline"
+                                                    color="primary"
+                                                    onClick={() => setQrModalOpen(true)}
+                                                >
+                                                    Table QR Code
+                                                </Button>
+                                            )}
+                                            <PublishButton restaurant={restaurant} />
+                                        </Group>
+                                    )}
                                 </Box>
                                 <SimpleGrid
                                     cols={1}
@@ -100,10 +117,26 @@ const RestaurantManagePage: NextPage = () => {
                                         subTitle={t("statsCardSubTitle")}
                                         title={t("statsCardTitle")}
                                     />
+                                    {(restaurant as any).isKitchenEnabled && (
+                                        <IconCard
+                                            Icon={IconClipboardList}
+                                            href={`/restaurant/${router.query?.restaurantId}/kitchen`}
+                                            subTitle="View and manage incoming table orders"
+                                            title="Kitchen Screen"
+                                        />
+                                    )}
                                 </SimpleGrid>
                             </>
                         )}
                     </Box>
+                    {restaurant && (restaurant as any).isOrderFeatureEnabled && (
+                        <TableQrModal
+                            opened={qrModalOpen}
+                            onClose={() => setQrModalOpen(false)}
+                            restaurantId={restaurantId}
+                            restaurantName={restaurant.name}
+                        />
+                    )}
                 </AppShell>
             </main>
         </>

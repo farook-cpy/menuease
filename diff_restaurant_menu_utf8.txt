@@ -1,0 +1,472 @@
+﻿diff --git a/src/components/RestaurantMenu/MenuItemCard.tsx b/src/components/RestaurantMenu/MenuItemCard.tsx
+index d3a805f..063afe7 100644
+--- a/src/components/RestaurantMenu/MenuItemCard.tsx
++++ b/src/components/RestaurantMenu/MenuItemCard.tsx
+@@ -1,13 +1,14 @@
+ import type { FC } from "react";
+ import { useMemo } from "react";
+ 
+-import { Box, createStyles, Paper, Stack, Text, Badge, Group } from "@mantine/core";
++import { Box, createStyles, Paper, Stack, Text, Badge, Group, Button } from "@mantine/core";
+ 
+ import type { Image, MenuItem } from "@prisma/client";
+ 
+ import Link from "next/link";
+ import { useRouter } from "next/router";
+ import { ImageKitImage } from "../ImageKitImage";
++import { usePlate } from "src/utils/plateContext";
+ 
+ export interface StyleProps {
+     imageColor?: string;
+@@ -68,13 +69,15 @@ const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
+ interface Props {
+     /** Menu item to be displayed in the card */
+     item: any;
++    isOrderFeatureEnabled?: boolean;
+ }
+ 
+ /** Display each menu item as a card in the full restaurant menu */
+-export const MenuItemCard: FC<Props> = ({ item }) => {
++export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
+     const { classes, cx } = useStyles({ imageColor: item?.image?.color });
+     const router = useRouter();
+     const restaurantId = router.query?.restaurantId as string;
++    const { addToPlate } = usePlate();
+ 
+     const handleClick = () => {
+         // Analytics are tracked on the item detail page when it loads
+@@ -123,9 +126,32 @@ export const MenuItemCard: FC<Props> = ({ item }) => {
+                             <Badge color="red" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Non-Veg</Badge>
+                         )}
+                     </Group>
+-                    <Text color="red" size="sm" weight={600}>
+-                        {item.price}
+-                    </Text>
++                    <Group position="apart" align="center" noWrap style={{ width: '100%' }} mt={2}>
++                        <Text color="red" size="sm" weight={600}>
++                            {item.price}
++                        </Text>
++                        {isOrderFeatureEnabled && (
++                            <Button
++                                size="xs"
++                                variant="light"
++                                color="violet"
++                                radius="md"
++                                onClick={(e: React.MouseEvent) => {
++                                    e.preventDefault();
++                                    e.stopPropagation();
++                                    addToPlate({
++                                        id: item.id,
++                                        name: item.name,
++                                        price: item.price,
++                                        isVeg: item.isVeg,
++                                    });
++                                }}
++                                sx={{ height: 26, fontSize: 11, paddingLeft: 10, paddingRight: 10 }}
++                            >
++                                Add +
++                            </Button>
++                        )}
++                    </Group>
+                     <Text className={cx(classes.cardText, classes.cardItemDesc)} opacity={0.7} size="xs">
+                         {item.description}
+                     </Text>
+diff --git a/src/components/RestaurantMenu/RestaurantMenu.tsx b/src/components/RestaurantMenu/RestaurantMenu.tsx
+index bdc7705..2dee603 100644
+--- a/src/components/RestaurantMenu/RestaurantMenu.tsx
++++ b/src/components/RestaurantMenu/RestaurantMenu.tsx
+@@ -1,5 +1,5 @@
+ import type { FC } from "react";
+-import { useMemo, useState } from "react";
++import { useMemo, useState, useEffect } from "react";
+ 
+ import { useAutoAnimate } from "@formkit/auto-animate/react";
+ import {
+@@ -12,10 +12,21 @@ import {
+     Stack,
+     Tabs,
+     Text,
++    Drawer,
++    Button,
++    Textarea,
++    TextInput,
++    Divider,
++    Group,
++    Badge,
++    Paper,
++    Title,
+ } from "@mantine/core";
+-import { IconMapPin, IconPhone } from "@tabler/icons";
++import { IconMapPin, IconPhone, IconBrandWhatsapp, IconTrash, IconShoppingCart, IconQrcode } from "@tabler/icons";
+ import { useTranslations } from "next-intl";
+ import dynamic from "next/dynamic";
++import { usePlate, parsePrice, formatPrice } from "src/utils/plateContext";
++import { api } from "src/utils/api";
+ 
+ const BannerCarousel = dynamic(() => import("./BannerCarousel").then((mod) => mod.BannerCarousel), {
+     ssr: false,
+@@ -121,6 +132,66 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
+     const [selectedMenu, setSelectedMenu] = useState<string | null | undefined>(restaurant?.menus?.[0]?.id);
+     const t = useTranslations("menu");
+ 
++    const {
++        activeRestaurantId,
++        setActiveRestaurantId,
++        plateItems,
++        removeFromPlate,
++        updateQuantity,
++        updateNotes,
++        getPlateTotal,
++        getPlateCount,
++        table,
++        floor,
++    } = usePlate();
++
++    const [drawerOpened, setDrawerOpened] = useState(false);
++    const [generalNotes, setGeneralNotes] = useState("");
++    const { mutate: createOrder } = api.order.create.useMutation();
++
++    useEffect(() => {
++        if (restaurant.id && activeRestaurantId !== restaurant.id) {
++            setActiveRestaurantId(restaurant.id);
++        }
++    }, [restaurant.id, activeRestaurantId, setActiveRestaurantId]);
++
++    const generateWhatsappMessage = () => {
++        let msg = `*­ƒì¢´©Å New Order from Plate!*\n`;
++        msg += `----------------------------------\n`;
++        msg += `*Restaurant:* ${restaurant.name}\n`;
++        msg += `----------------------------------\n`;
++        if (table || floor) {
++            msg += `*Seating Location:*\n`;
++            if (table) msg += `ÔÇó Table Number: ${table}\n`;
++            if (floor) msg += `ÔÇó Floor/Section: ${floor}\n`;
++            msg += `----------------------------------\n`;
++        }
++        msg += `*Order Details:*\n`;
++        
++        plateItems.forEach((item) => {
++            const { number, currency } = parsePrice(item.price);
++            const subtotal = number * item.quantity;
++            msg += `ÔÇó ${item.quantity} x ${item.name} (${formatPrice(number, currency)})\n`;
++            if (item.notes) {
++                msg += `  _- Note: ${item.notes}_\n`;
++            }
++            msg += `  - Subtotal: ${formatPrice(subtotal, currency)}\n`;
++        });
++        
++        msg += `----------------------------------\n`;
++        msg += `*Total Items:* ${getPlateCount()}\n`;
++        msg += `*Total Price:* ${getPlateTotal()}\n`;
++        msg += `----------------------------------\n`;
++        
++        if (generalNotes.trim()) {
++            msg += `*Special Instructions / Address:*\n${generalNotes.trim()}\n`;
++            msg += `----------------------------------\n`;
++        }
++        
++        msg += `Thank you!`;
++        return encodeURIComponent(msg);
++    };
++
+     const menuDetails = useMemo(
+         () => restaurant?.menus?.find((item) => item.id === selectedMenu),
+         [selectedMenu, restaurant?.menus]
+@@ -240,7 +311,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
+                                 mb={30}
+                             >
+                                 {category.items?.map((item) => (
+-                                    <MenuItemCard key={item.id} item={item} />
++                                    <MenuItemCard key={item.id} item={item} isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled} />
+                                 ))}
+                             </SimpleGrid>
+                         </Box>
+@@ -250,6 +321,212 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
+                 )}
+                 {!!restaurant?.menus?.length && !haveMenuItems && <Empty height={400} text={t("noItemsForMenu")} />}
+             </Box>
++
++            {/* Floating 'View Plate' button */}
++            {(restaurant as any).isOrderFeatureEnabled && getPlateCount() > 0 && (
++                <Box
++                    sx={{
++                        position: "fixed",
++                        bottom: 30,
++                        right: 30,
++                        zIndex: 99,
++                        '@media (max-width: 768px)': {
++                            left: 20,
++                            right: 20,
++                            bottom: 20,
++                        }
++                    }}
++                >
++                    <Button
++                        size="lg"
++                        color="violet"
++                        radius="xl"
++                        fullWidth
++                        leftIcon={<IconShoppingCart size={20} />}
++                        onClick={() => setDrawerOpened(true)}
++                        styles={(theme) => ({
++                            root: {
++                                height: 50,
++                                boxShadow: '0 8px 32px rgba(112, 72, 232, 0.3)',
++                                backdropFilter: 'blur(4px)',
++                                transition: 'transform 0.2s ease',
++                                '&:hover': {
++                                    transform: 'scale(1.03)',
++                                }
++                            }
++                        })}
++                    >
++                        <Group spacing="xs" noWrap>
++                            <Text size="md" weight={700}>View Plate</Text>
++                            <Badge color="red" variant="filled" size="sm" radius="xl" sx={{ height: 20, minWidth: 20, padding: 0 }}>
++                                {getPlateCount()}
++                            </Badge>
++                            <Divider orientation="vertical" color="violet.4" />
++                            <Text size="md" weight={700}>{getPlateTotal()}</Text>
++                        </Group>
++                    </Button>
++                </Box>
++            )}
++
++            {/* Cart Drawer */}
++            <Drawer
++                opened={drawerOpened}
++                onClose={() => setDrawerOpened(false)}
++                title={
++                    <Group spacing="xs">
++                        <IconShoppingCart size={20} color={theme.colors.violet[6]} />
++                        <Title order={3} size="1.4rem" color="dark.8">Your Plate</Title>
++                    </Group>
++                }
++                padding="md"
++                size="md"
++                position="right"
++                styles={{
++                    drawer: {
++                        backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white,
++                    }
++                }}
++            >
++                {plateItems.length === 0 ? (
++                    <Stack align="center" justify="center" h="75%" spacing="sm">
++                        <IconShoppingCart size={60} stroke={1} color={theme.colors.gray[4]} />
++                        <Text size="lg" weight={600} color="dimmed">Your plate is empty</Text>
++                        <Text size="sm" color="dimmed" align="center">Add some delicious dishes from the menu to get started!</Text>
++                    </Stack>
++                ) : (
++                    <Flex direction="column" justify="space-between" h="calc(100vh - 100px)">
++                        <Box sx={{ flex: 1, overflowY: "auto" }} pb="md">
++                            <Stack spacing="md">
++                                {(table || floor) && (
++                                    <Paper
++                                        p="sm"
++                                        bg={theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.violet[0]}
++                                        sx={{
++                                            border: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.violet[1]}`,
++                                            borderRadius: theme.radius.md
++                                        }}
++                                    >
++                                        <Group spacing="xs" noWrap>
++                                            <IconQrcode size={18} color={theme.colors.violet[6]} />
++                                            <Box>
++                                                <Text size="xs" color={theme.colorScheme === 'dark' ? "violet.3" : "violet.9"} weight={700}>
++                                                    SEATING LOCATION
++                                                </Text>
++                                                <Text size="sm" color={theme.colorScheme === 'dark' ? "violet.2" : "violet.7"} weight={600}>
++                                                    {table ? `Table: ${table}` : ""}
++                                                    {table && floor ? " ÔÇó " : ""}
++                                                    {floor ? `Floor/Section: ${floor}` : ""}
++                                                </Text>
++                                            </Box>
++                                        </Group>
++                                    </Paper>
++                                )}
++                                {plateItems.map((item) => {
++                                    const { number, currency } = parsePrice(item.price);
++                                    const subtotal = number * item.quantity;
++                                    return (
++                                        <Paper key={item.id} p="sm" withBorder radius="md">
++                                            <Flex align="flex-start" justify="space-between">
++                                                <Stack spacing={2} sx={{ flex: 1 }}>
++                                                    <Group spacing="xs" align="center">
++                                                        <Text weight={600} size="sm" color="dark.8">{item.name}</Text>
++                                                        {item.isVeg === true && (
++                                                            <Badge color="green" variant="light" size="xs">Veg</Badge>
++                                                        )}
++                                                        {item.isVeg === false && (
++                                                            <Badge color="red" variant="light" size="xs">Non-Veg</Badge>
++                                                        )}
++                                                    </Group>
++                                                    <Text color="dimmed" size="xs">{item.price}</Text>
++                                                    <Text weight={600} size="xs" color="violet.6" mt={2}>
++                                                        Subtotal: {formatPrice(subtotal, currency)}
++                                                    </Text>
++                                                </Stack>
++                                                
++                                                <Stack align="flex-end" spacing="xs">
++                                                    <Group spacing={4} sx={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: '2px 4px' }}>
++                                                        <ActionIcon size="xs" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
++                                                            -
++                                                        </ActionIcon>
++                                                        <Text size="xs" weight={600} sx={{ width: 16, textAlign: 'center', color: theme.black }}>
++                                                            {item.quantity}
++                                                        </Text>
++                                                        <ActionIcon size="xs" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
++                                                            +
++                                                        </ActionIcon>
++                                                    </Group>
++                                                    
++                                                    <ActionIcon color="red" variant="subtle" size="xs" onClick={() => removeFromPlate(item.id)}>
++                                                        <IconTrash size={14} />
++                                                    </ActionIcon>
++                                                </Stack>
++                                            </Flex>
++                                            
++                                            <TextInput
++                                                placeholder="Add notes (e.g. spicy, extra sauce)"
++                                                size="xs"
++                                                mt="xs"
++                                                variant="filled"
++                                                value={item.notes || ""}
++                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateNotes(item.id, e.target.value)}
++                                            />
++                                        </Paper>
++                                    );
++                                })}
++                            </Stack>
++                        </Box>
++                        
++                        <Box pt="md" sx={{ borderTop: `1px solid ${theme.colors.gray[2]}` }}>
++                            <Stack spacing="xs">
++                                <Textarea
++                                    label="General Instructions / Delivery Address"
++                                    placeholder="Enter your name, phone, table number, or delivery address..."
++                                    minRows={2}
++                                    value={generalNotes}
++                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setGeneralNotes(e.target.value)}
++                                    size="sm"
++                                />
++                                
++                                <Group position="apart" my="xs">
++                                    <Text weight={700} size="lg">Total:</Text>
++                                    <Text weight={700} size="lg" color="red.6">{getPlateTotal()}</Text>
++                                </Group>
++                                
++                                <Button
++                                    size="md"
++                                    color="green"
++                                    leftIcon={<IconBrandWhatsapp size={20} />}
++                                    fullWidth
++                                    onClick={() => {
++                                        if ((restaurant as any).isKitchenEnabled) {
++                                            createOrder({
++                                                restaurantId: restaurant.id,
++                                                table: table,
++                                                floor: floor,
++                                                items: JSON.stringify(plateItems.map(item => ({
++                                                    id: item.id,
++                                                    name: item.name,
++                                                    price: item.price,
++                                                    quantity: item.quantity,
++                                                    notes: item.notes || ""
++                                                }))),
++                                                generalNotes: generalNotes,
++                                            });
++                                        }
++
++                                        const rawPhone = (restaurant as any).whatsappNo || restaurant.contactNo || "";
++                                        const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
++                                        const waUrl = `https://wa.me/${cleanPhone}?text=${generateWhatsappMessage()}`;
++                                        window.open(waUrl, "_blank");
++                                    }}
++                                >
++                                    Order via WhatsApp
++                                </Button>
++                            </Stack>
++                        </Box>
++                    </Flex>
++                )}
++            </Drawer>
+         </Box>
+     );
+ };
+diff --git a/src/components/RestaurantMenu/ViewMenuItemModal.tsx b/src/components/RestaurantMenu/ViewMenuItemModal.tsx
+index ef25555..b3b34a1 100644
+--- a/src/components/RestaurantMenu/ViewMenuItemModal.tsx
++++ b/src/components/RestaurantMenu/ViewMenuItemModal.tsx
+@@ -15,6 +15,7 @@ import {
+     Loader,
+     Flex
+ } from "@mantine/core";
++import { Carousel } from "@mantine/carousel";
+ import { IconStar, IconMessage2, IconCornerDownRight } from "@tabler/icons";
+ 
+ import type { ModalProps } from "@mantine/core";
+@@ -27,7 +28,7 @@ import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+ 
+ interface Props extends ModalProps {
+     /** Menu item for which the modal needs to be displayed */
+-    menuItem?: MenuItem & { image: Image | null };
++    menuItem?: MenuItem & { image: Image | null; images?: Image[]; videoUrl?: string | null };
+ }
+ 
+ /** Modal to view details of a selected menu item */
+@@ -122,7 +123,44 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
+             {...rest}
+         >
+             <Stack spacing="md" sx={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+-                {menuItem?.image?.path && (
++                {menuItem?.videoUrl && (
++                    <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden", marginBottom: 10 }}>
++                        <video
++                            src={menuItem.videoUrl}
++                            controls
++                            autoPlay
++                            muted
++                            loop
++                            playsInline
++                            style={{ width: "100%", maxHeight: "250px", objectFit: "cover" }}
++                        />
++                    </Box>
++                )}
++                {menuItem?.images && menuItem.images.length > 1 ? (
++                    <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden" }}>
++                        <Carousel
++                            loop
++                            mx="auto"
++                            withIndicators
++                            height={300}
++                            styles={{ indicator: { background: theme.white } }}
++                        >
++                            {menuItem.images.map((img, index) => (
++                                <Carousel.Slide key={img.id}>
++                                    <ImageKitImage
++                                        blurhash={img.blurHash}
++                                        color={img.color}
++                                        height={300}
++                                        imageAlt={`${menuItem.name}-${index}`}
++                                        imagePath={img.path}
++                                        width={400}
++                                        priority={index === 0}
++                                    />
++                                </Carousel.Slide>
++                            ))}
++                        </Carousel>
++                    </Box>
++                ) : menuItem?.image?.path ? (
+                     <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden" }}>
+                         <ImageKitImage
+                             blurhash={menuItem?.image?.blurHash}
+@@ -132,7 +170,7 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
+                             width={400}
+                         />
+                     </Box>
+-                )}
++                ) : null}
+                 <Text color="red" mt="sm" size="lg" weight={700}>
+                     {menuItem?.price}
+                 </Text>

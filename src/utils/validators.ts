@@ -19,6 +19,14 @@ export const menuItemInput = z.object({
     name: z.string().trim().min(1, "Name is required").max(50, "Name cannot be longer than 50 characters"),
     price: z.string().trim().min(1, "Price is required").max(12, "Price cannot be longer than 12 characters"),
     isVeg: z.boolean().nullable().optional(),
+    videoUrl: z.string().nullable().optional(),
+    additionalImages: z.array(z.object({
+        id: z.string(),
+        path: z.string(),
+        blurHash: z.string(),
+        color: z.string()
+    })).optional(),
+    deletedImageIds: z.array(z.string()).optional(),
 });
 export const restaurantInput = z.object({
     contactNo: z.union([

@@ -1,0 +1,18 @@
+﻿-    const itemsMap = itemsList.map((item: any) => ({
+-        ...item,
+-        image: itemImagesList.find((img: any) => img.id === item.imageId) || null,
+-    }));
+-                        .select("id, name, planName, subscriptionStatus, subscriptionExpiresAt, trialEndsAt")
+-                        .update({
+-                            planName: input.planName,
+-                            subscriptionStatus: input.subscriptionStatus,
+-                            subscriptionExpiresAt: input.subscriptionExpiresAt,
+-                            trialEndsAt: input.trialEndsAt,
+-                            updatedAt: new Date().toISOString()
+-                        })
+-            useQuery: <TData = MenuItem & { image: Image | null }, TError = Error>(input: { id: string }, options?: any) => {
+-                        image
+-                        .select("imageId")
+-                        .select("imageId")
+-                    // Delete old image if it is deleted or replaced
+-                    // Upload new image

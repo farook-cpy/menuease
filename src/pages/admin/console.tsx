@@ -20,6 +20,7 @@ import {
     Modal,
     Tooltip,
     Divider,
+    Switch,
 } from "@mantine/core";
 import {
     IconUserPlus,
@@ -35,6 +36,7 @@ import {
     IconPrinter,
     IconSettings,
     IconTrendingDown,
+    IconQrcode,
 } from "@tabler/icons";
 import { type NextPage } from "next";
 import { useRouter } from "next/router";
@@ -42,6 +44,7 @@ import { useTranslations } from "next-intl";
 import { AppShell } from "src/components/AppShell";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { TableQrModal } from "src/components/Modal";
 
 const AdminConsolePage: NextPage = () => {
     const router = useRouter();
@@ -53,6 +56,7 @@ const AdminConsolePage: NextPage = () => {
     // Billing states
     const [selectedRest, setSelectedRest] = useState<any>(null);
     const [modalType, setModalType] = useState<string | null>(null); // 'subscription', 'transaction', 'history', 'invoice'
+    const [tableQrRest, setTableQrRest] = useState<any>(null);
     
     // Billing form fields
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -70,6 +74,9 @@ const AdminConsolePage: NextPage = () => {
     const [subExpiresAt, setSubExpiresAt] = useState<string>("");
     const [subTrialEndsAt, setSubTrialEndsAt] = useState<string>("");
     const [subCurrency, setSubCurrency] = useState<string>("INR");
+    const [subIsOrderFeatureEnabled, setSubIsOrderFeatureEnabled] = useState<boolean>(false);
+    const [subWhatsappNo, setSubWhatsappNo] = useState<string>("");
+    const [subIsKitchenEnabled, setSubIsKitchenEnabled] = useState<boolean>(false);
 
     // Queries
     const { data: userRole, isLoading: loadingRole } = api.admin.getRole.useQuery();
@@ -155,7 +162,7 @@ const AdminConsolePage: NextPage = () => {
                 <Stack align="center" spacing="sm">
                     <Title order={3} color="red">Access Denied</Title>
                     <Text>This console is restricted to administrator accounts.</Text>
-                    <Button color="violet" onClick={() => router.push("/restaurant")}>
+                    <Button color="primary" onClick={() => router.push("/restaurant")}>
                         Go to Dashboard
                     </Button>
                 </Stack>
@@ -176,7 +183,7 @@ const AdminConsolePage: NextPage = () => {
                     <Group position="apart" mb="xl">
                         <Stack spacing="xs">
                             <Group>
-                                <ActionIcon onClick={() => router.push("/restaurant")} size="lg" variant="light" color="violet">
+                                <ActionIcon onClick={() => router.push("/restaurant")} size="lg" variant="light" color="primary">
                                     <IconArrowLeft size={18} />
                                 </ActionIcon>
                                 <Title order={2}>Admin Control Panel</Title>
@@ -187,7 +194,7 @@ const AdminConsolePage: NextPage = () => {
                         </Stack>
                     </Group>
 
-                    <Tabs color="violet" defaultValue={userRole === "Super Admin" ? "admins" : "billing"}>
+                    <Tabs color="primary" defaultValue={userRole === "Super Admin" ? "admins" : "billing"}>
                         <Tabs.List mb="lg">
                             {userRole === "Super Admin" && <Tabs.Tab value="admins" icon={<IconUsers size={16} />}>Admin Users & Roles</Tabs.Tab>}
                             {userRole === "Super Admin" && <Tabs.Tab value="logs" icon={<IconHistory size={16} />}>Login History</Tabs.Tab>}
@@ -223,7 +230,7 @@ const AdminConsolePage: NextPage = () => {
                                                 />
                                                 <Button
                                                     type="submit"
-                                                    color="violet"
+                                                    color="primary"
                                                     leftIcon={<IconUserPlus size={16} />}
                                                     loading={submitting}
                                                 >
@@ -254,7 +261,7 @@ const AdminConsolePage: NextPage = () => {
                                                             <Text weight={500}>farookisop@gmail.com</Text>
                                                         </td>
                                                         <td>
-                                                            <Badge color="violet" variant="filled">System Super Admin</Badge>
+                                                            <Badge color="primary" variant="filled">System Super Admin</Badge>
                                                         </td>
                                                         <td>
                                                             <Text size="xs" color="dimmed">System Account</Text>
@@ -265,7 +272,7 @@ const AdminConsolePage: NextPage = () => {
                                                         <tr key={admin.id}>
                                                             <td>{admin.email}</td>
                                                             <td>
-                                                                <Badge color={admin.role === "Super Admin" ? "violet" : "blue"} variant="light">
+                                                                <Badge color={admin.role === "Super Admin" ? "primary" : "blue"} variant="light">
                                                                     {admin.role}
                                                                 </Badge>
                                                             </td>
@@ -315,7 +322,7 @@ const AdminConsolePage: NextPage = () => {
                                                             <Badge
                                                                 color={
                                                                     log.role === "Super Admin" || log.role === "System Super Admin"
-                                                                        ? "violet"
+                                                                        ? "primary"
                                                                         : log.role === "Admin"
                                                                         ? "blue"
                                                                         : "green"
@@ -440,7 +447,7 @@ const AdminConsolePage: NextPage = () => {
                                                                 <Text weight={500}>{rest.name}</Text>
                                                             </td>
                                                             <td>
-                                                                <Badge color="violet" variant="light">{rest.planName || "Free Trial"}</Badge>
+                                                                <Badge color="primary" variant="light">{rest.planName || "Free Trial"}</Badge>
                                                             </td>
                                                             <td>
                                                                 <Text size="sm">{expiryText}</Text>
@@ -464,13 +471,16 @@ const AdminConsolePage: NextPage = () => {
                                                                         </ActionIcon>
                                                                     </Tooltip>
                                                                     <Tooltip label="Manage Subscription/Plan">
-                                                                        <ActionIcon color="violet" variant="light" onClick={() => {
+                                                                        <ActionIcon color="primary" variant="light" onClick={() => {
                                                                             setSelectedRest(rest);
                                                                             setSubPlanName(rest.planName || "Free Trial");
                                                                             setSubStatus(rest.subscriptionStatus || "trial");
                                                                             setSubExpiresAt(rest.subscriptionExpiresAt ? rest.subscriptionExpiresAt.substring(0, 10) : "");
                                                                             setSubTrialEndsAt(rest.trialEndsAt ? rest.trialEndsAt.substring(0, 10) : "");
                                                                             setSubCurrency(rest.currency || "INR");
+                                                                            setSubIsOrderFeatureEnabled(rest.isOrderFeatureEnabled || false);
+                                                                            setSubWhatsappNo(rest.whatsappNo || "");
+                                                                            setSubIsKitchenEnabled(rest.isKitchenEnabled || false);
                                                                             setRecordPayment(false);
                                                                             setPaymentAmount(0);
                                                                             setPaymentMethod("Cash");
@@ -479,6 +489,13 @@ const AdminConsolePage: NextPage = () => {
                                                                             <IconSettings size={16} />
                                                                         </ActionIcon>
                                                                     </Tooltip>
+                                                                    {rest.isOrderFeatureEnabled && (
+                                                                        <Tooltip label="Generate Table QR Code">
+                                                                            <ActionIcon color="teal" variant="light" onClick={() => setTableQrRest(rest)}>
+                                                                                <IconQrcode size={16} />
+                                                                            </ActionIcon>
+                                                                        </Tooltip>
+                                                                    )}
                                                                     <Tooltip label="Billing Ledger & History">
                                                                         <ActionIcon color="gray" variant="light" onClick={() => {
                                                                             setSelectedRest(rest);
@@ -566,7 +583,7 @@ const AdminConsolePage: NextPage = () => {
                             value={paymentDesc}
                             onChange={(e) => setPaymentDesc(e.target.value)}
                         />
-                        <Button type="submit" color="violet" loading={enteringTransaction}>
+                        <Button type="submit" color="primary" loading={enteringTransaction}>
                             Log Transaction
                         </Button>
                     </Stack>
@@ -593,6 +610,9 @@ const AdminConsolePage: NextPage = () => {
                         recordPayment: recordPayment,
                         paymentAmount: recordPayment ? paymentAmount : undefined,
                         paymentMethod: recordPayment ? paymentMethod : undefined,
+                        isOrderFeatureEnabled: subIsOrderFeatureEnabled,
+                        whatsappNo: subWhatsappNo || null,
+                        isKitchenEnabled: subIsKitchenEnabled,
                     });
                 }}>
                     <Stack spacing="md">
@@ -657,7 +677,7 @@ const AdminConsolePage: NextPage = () => {
                                     <Button
                                         size="xs"
                                         variant={recordPayment ? "filled" : "outline"}
-                                        color={recordPayment ? "violet" : "gray"}
+                                        color={recordPayment ? "primary" : "gray"}
                                         onClick={() => setRecordPayment(!recordPayment)}
                                     >
                                         {recordPayment ? "Yes, Record" : "No, Skip"}
@@ -690,7 +710,30 @@ const AdminConsolePage: NextPage = () => {
                             </>
                         )}
 
-                        <Button type="submit" color="violet" loading={updatingSubscription}>
+                        <Divider label="WhatsApp Order & Kitchen Settings" labelPosition="center" />
+                        <Switch
+                            label="Enable WhatsApp Ordering"
+                            checked={subIsOrderFeatureEnabled}
+                            onChange={(event) => setSubIsOrderFeatureEnabled(event.currentTarget.checked)}
+                        />
+                        {subIsOrderFeatureEnabled && (
+                            <TextInput
+                                label="WhatsApp Number"
+                                description="Enter with country code, e.g., 919876543210 (no '+' or spaces)"
+                                placeholder="919876543210"
+                                required
+                                value={subWhatsappNo}
+                                onChange={(e) => setSubWhatsappNo(e.target.value)}
+                            />
+                        )}
+                        <Switch
+                            label="Approve & Enable Kitchen Screen"
+                            checked={subIsKitchenEnabled}
+                            onChange={(event) => setSubIsKitchenEnabled(event.currentTarget.checked)}
+                            mt="xs"
+                        />
+
+                        <Button type="submit" color="primary" loading={updatingSubscription}>
                             Save Subscription Settings
                         </Button>
 
@@ -876,7 +919,7 @@ const AdminConsolePage: NextPage = () => {
                             <Button variant="outline" color="gray" onClick={() => setModalType("history")}>
                                 Back to History
                             </Button>
-                            <Button color="violet" leftIcon={<IconPrinter size={16} />} onClick={() => {
+                            <Button color="primary" leftIcon={<IconPrinter size={16} />} onClick={() => {
                                 const printContent = document.getElementById("invoice-print-area")?.innerHTML;
                                 const uniqueName = new Date().getTime();
                                 const windowName = "Print" + uniqueName;
@@ -913,6 +956,15 @@ const AdminConsolePage: NextPage = () => {
                     </Stack>
                 )}
             </Modal>
+
+            {tableQrRest && (
+                <TableQrModal
+                    opened={!!tableQrRest}
+                    onClose={() => setTableQrRest(null)}
+                    restaurantId={tableQrRest.id}
+                    restaurantName={tableQrRest.name}
+                />
+            )}
         </main>
     );
 };

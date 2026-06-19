@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ColorSchemeProvider, MantineProvider } from "@mantine/core";
 import { NotificationsProvider } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { CustomFonts } from "src/styles/CustomFonts";
 import { getMantineTheme, theme } from "src/styles/theme";
 import { SupabaseAuthProvider } from "src/utils/supabaseAuth";
 import messagesEn from "src/lang/en.json";
+import { PlateProvider } from "src/utils/plateContext";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -33,6 +35,23 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
     const locale = router.locale || "en";
     const colorScheme: ColorScheme = "light";
     const toggleColorScheme = () => {};
+
+    useEffect(() => {
+        const checkKeepAlive = async () => {
+            try {
+                const lastPing = localStorage.getItem("supabase_keepalive_last");
+                const now = Date.now();
+                // 12 hours interval (43200000 ms)
+                if (!lastPing || now - parseInt(lastPing, 10) > 43200000) {
+                    await fetch("/api/keepalive");
+                    localStorage.setItem("supabase_keepalive_last", now.toString());
+                }
+            } catch (e) {
+                console.error("Keep-alive ping failed:", e);
+            }
+        };
+        checkKeepAlive();
+    }, []);
 
     return (
         <>
@@ -57,7 +76,9 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({
                         <QueryClientProvider client={queryClient}>
                             <SupabaseAuthProvider>
                                 <NextIntlClientProvider locale={locale} messages={(pageProps.messages || messagesEn) as any} timeZone="UTC">
-                                    <Component {...pageProps} />
+                                    <PlateProvider>
+                                        <Component {...pageProps} />
+                                    </PlateProvider>
                                 </NextIntlClientProvider>
                                 <Analytics />
                             </SupabaseAuthProvider>

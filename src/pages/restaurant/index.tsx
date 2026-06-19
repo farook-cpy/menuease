@@ -110,7 +110,7 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                                 Subscription: <Badge size="xs" color={status === "expired" ? "red" : status === "trial" ? "yellow" : "green"} variant="filled">{item.planName || "Free Trial"}</Badge>
                             </Text>
                         </Stack>
-                        <Button size="xs" variant="light" color="violet" onClick={() => setBillingOpen(true)}>
+                        <Button size="xs" variant="light" color="primary" onClick={() => setBillingOpen(true)}>
                             Billing & Renew
                         </Button>
                     </Group>
@@ -141,7 +141,7 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                 <Stack spacing="md">
                     <div>
                         <Text size="sm" color="dimmed" weight={500}>Current Plan</Text>
-                        <Badge size="lg" color="violet" variant="light" mt="xs">
+                        <Badge size="lg" color="primary" variant="light" mt="xs">
                             {item.planName || "Free Trial"}
                         </Badge>
                     </div>
@@ -188,7 +188,7 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                             ]}
                         />
                         <Button
-                            color="violet"
+                            color="primary"
                             fullWidth
                             mt="sm"
                             onClick={() => {
@@ -274,7 +274,7 @@ const RestaurantsListPage: NextPage = () => {
                         <Group spacing="xs">
                             {isSuperAdmin && (
                                 <Button
-                                    color="violet"
+                                    color="primary"
                                     onClick={() => window.location.href = "/admin/console"}
                                     variant="light"
                                 >
@@ -282,7 +282,7 @@ const RestaurantsListPage: NextPage = () => {
                                 </Button>
                             )}
                             {isAdmin && (
-                                <Badge color="violet" size="lg" variant="filled">
+                                <Badge color="primary" size="lg" variant="filled">
                                     {adminRole} Mode
                                 </Badge>
                             )}

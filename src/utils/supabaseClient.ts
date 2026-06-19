@@ -96,40 +96,98 @@ export const rgba2hex = (rgb1: number, rgb2: number, rgb3: number) => {
     return `#${hex}`;
 };
 
-/** Uploads base64 image to Supabase storage public bucket "menufic" */
+/** Uploads base64 image/video to ImageKit/Cloudinary via server-side API */
 export const uploadImage = async (imageBase64: string, imageFolder: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized: Cannot upload image without user session");
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Unauthorized: Cannot upload files without user session");
 
-    const blob = base64ToBlob(imageBase64, "image/jpeg");
-    const fileId = nanoid(24);
-    const filePath = `${user.id}/${imageFolder}/${fileId}.jpeg`;
+    const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            imageBase64,
+            imageFolder,
+        }),
+    });
 
-    const { error } = await supabase.storage
-        .from("menufic")
-        .upload(filePath, blob, {
-            cacheControl: "3600",
-            contentType: "image/jpeg",
-            upsert: true,
-        });
-
-    if (error) {
-        throw error;
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to upload image/video to ImageKit/Cloudinary");
     }
 
+    const { data } = await response.json();
     return {
-        fileId: filePath, // Use filePath as the unique Image ID
-        filePath, // Path to be stored in DB and loaded from public storage URL
+        fileId: data.fileId, // Store the ImageKit fileId or Cloudinary URL as the Image ID in DB
+        filePath: data.url,  // Path/URL to be loaded in the app
     };
 };
 
-/** Deletes a file from Supabase Storage by path */
+/** Deletes a file from storage via server-side API (deletes from R2 or Supabase depending on path) */
 export const deleteFile = async (path: string) => {
-    const { error } = await supabase.storage
-        .from("menufic")
-        .remove([path]);
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
-    if (error) {
-        console.error("Failed to delete file from storage", error);
+    const response = await fetch("/api/delete", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ path }),
+    });
+
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error("Failed to delete file from storage:", errData.error || response.statusText);
     }
+};
+
+/** Uploads base64 image/video with granular progress tracking */
+export const uploadFileWithProgress = (
+    imageBase64: string,
+    imageFolder: string,
+    token: string,
+    onProgress: (progress: number) => void
+): Promise<{ url: string; fileId: string }> => {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/upload", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+        xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+                const progress = Math.round((event.loaded / event.total) * 100);
+                onProgress(progress);
+            }
+        });
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response.data);
+                } catch (e) {
+                    reject(new Error("Failed to parse upload response"));
+                }
+            } else {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    reject(new Error(response.error || "Upload failed"));
+                } catch (e) {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            }
+        };
+
+        xhr.onerror = () => {
+            reject(new Error("Network error during upload"));
+        };
+
+        xhr.send(JSON.stringify({ imageBase64, imageFolder }));
+    });
 };

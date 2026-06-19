@@ -58,7 +58,9 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
     }
 
     const imageUrl = restaurant?.image?.path
-        ? `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${restaurant.image.path}`
+        ? (restaurant.image.path.startsWith("http")
+            ? restaurant.image.path
+            : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${restaurant.image.path}`)
         : "";
 
     return (

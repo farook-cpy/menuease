@@ -93,7 +93,7 @@ export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
                 )}
                 {onImpersonateClick && (
                     <Menu.Item
-                        color="violet"
+                        color="primary"
                         icon={<IconUser size={14} />}
                         onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                             event.stopPropagation();

@@ -15,6 +15,7 @@ import {
     Loader,
     Flex
 } from "@mantine/core";
+import { Carousel } from "@mantine/carousel";
 import { IconStar, IconMessage2, IconCornerDownRight } from "@tabler/icons";
 
 import type { ModalProps } from "@mantine/core";
@@ -27,7 +28,7 @@ import { showErrorToast, showSuccessToast } from "src/utils/helpers";
 
 interface Props extends ModalProps {
     /** Menu item for which the modal needs to be displayed */
-    menuItem?: MenuItem & { image: Image | null };
+    menuItem?: MenuItem & { image: Image | null; images?: Image[]; videoUrl?: string | null };
 }
 
 /** Modal to view details of a selected menu item */
@@ -122,7 +123,44 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
             {...rest}
         >
             <Stack spacing="md" sx={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
-                {menuItem?.image?.path && (
+                {menuItem?.videoUrl && (
+                    <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden", marginBottom: 10 }}>
+                        <video
+                            src={menuItem.videoUrl}
+                            controls
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            style={{ width: "100%", maxHeight: "250px", objectFit: "cover" }}
+                        />
+                    </Box>
+                )}
+                {menuItem?.images && menuItem.images.length > 1 ? (
+                    <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden" }}>
+                        <Carousel
+                            loop
+                            mx="auto"
+                            withIndicators
+                            height={300}
+                            styles={{ indicator: { background: theme.white } }}
+                        >
+                            {menuItem.images.map((img, index) => (
+                                <Carousel.Slide key={img.id}>
+                                    <ImageKitImage
+                                        blurhash={img.blurHash}
+                                        color={img.color}
+                                        height={300}
+                                        imageAlt={`${menuItem.name}-${index}`}
+                                        imagePath={img.path}
+                                        width={400}
+                                        priority={index === 0}
+                                    />
+                                </Carousel.Slide>
+                            ))}
+                        </Carousel>
+                    </Box>
+                ) : menuItem?.image?.path ? (
                     <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden" }}>
                         <ImageKitImage
                             blurhash={menuItem?.image?.blurHash}
@@ -132,7 +170,7 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                             width={400}
                         />
                     </Box>
-                )}
+                ) : null}
                 <Text color="red" mt="sm" size="lg" weight={700}>
                     {menuItem?.price}
                 </Text>

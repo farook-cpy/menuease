@@ -136,7 +136,7 @@ const AdminSignIn: NextPage = () => {
                                 fullWidth
                                 mt="md"
                                 size="md"
-                                color="violet"
+                                color="primary"
                             >
                                 Access Console
                             </Button>

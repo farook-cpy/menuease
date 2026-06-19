@@ -1,13 +1,14 @@
 import type { FC } from "react";
 import { useMemo } from "react";
 
-import { Box, createStyles, Paper, Stack, Text, Badge, Group } from "@mantine/core";
+import { Box, createStyles, Paper, Stack, Text, Badge, Group, Button } from "@mantine/core";
 
 import type { Image, MenuItem } from "@prisma/client";
 
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ImageKitImage } from "../ImageKitImage";
+import { usePlate } from "src/utils/plateContext";
 
 export interface StyleProps {
     imageColor?: string;
@@ -68,13 +69,15 @@ const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
 interface Props {
     /** Menu item to be displayed in the card */
     item: any;
+    isOrderFeatureEnabled?: boolean;
 }
 
 /** Display each menu item as a card in the full restaurant menu */
-export const MenuItemCard: FC<Props> = ({ item }) => {
+export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
     const { classes, cx } = useStyles({ imageColor: item?.image?.color });
     const router = useRouter();
     const restaurantId = router.query?.restaurantId as string;
+    const { addToPlate } = usePlate();
 
     const handleClick = () => {
         // Analytics are tracked on the item detail page when it loads
@@ -123,9 +126,32 @@ export const MenuItemCard: FC<Props> = ({ item }) => {
                             <Badge color="red" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Non-Veg</Badge>
                         )}
                     </Group>
-                    <Text color="red" size="sm" weight={600}>
-                        {item.price}
-                    </Text>
+                    <Group position="apart" align="center" noWrap style={{ width: '100%' }} mt={2}>
+                        <Text color="red" size="sm" weight={600}>
+                            {item.price}
+                        </Text>
+                        {isOrderFeatureEnabled && (
+                            <Button
+                                size="xs"
+                                variant="light"
+                                color="primary"
+                                radius="md"
+                                onClick={(e: React.MouseEvent) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    addToPlate({
+                                        id: item.id,
+                                        name: item.name,
+                                        price: item.price,
+                                        isVeg: item.isVeg,
+                                    });
+                                }}
+                                sx={{ height: 26, fontSize: 11, paddingLeft: 10, paddingRight: 10 }}
+                            >
+                                Add +
+                            </Button>
+                        )}
+                    </Group>
                     <Text className={cx(classes.cardText, classes.cardItemDesc)} opacity={0.7} size="xs">
                         {item.description}
                     </Text>

@@ -189,7 +189,7 @@ export const NavHeader: FC<Props> = ({
 
                                 {typeof window !== "undefined" && localStorage.getItem("admin_session") && (
                                     <Button
-                                        color="violet"
+                                        color="primary"
                                         onClick={() => exitImpersonation()}
                                         variant="outline"
                                         size="xs"

@@ -22,6 +22,7 @@ import {
 } from "@mantine/core";
 import { IconStar, IconMessage2, IconCornerDownRight, IconArrowLeft, IconPhoto, IconTrash } from "@tabler/icons";
 import { useRouter } from "next/router";
+import { Carousel } from "@mantine/carousel";
 import Link from "next/link";
 import { type NextPage } from "next";
 import { NextSeo } from "next-seo";
@@ -30,6 +31,7 @@ import { ImageKitImage } from "src/components/ImageKitImage";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
 import { env } from "src/env/client.mjs";
+import { usePlate } from "src/utils/plateContext";
 
 const getDeviceType = () => {
     if (typeof window === "undefined") return "Desktop";
@@ -55,6 +57,15 @@ const MenuItemDetailPage: NextPage = () => {
     const [rating, setRating] = useState(5);
     const [reviewImageBase64, setReviewImageBase64] = useState<string | null>(null);
     const [reviewImageName, setReviewImageName] = useState<string>("");
+    
+    const { activeRestaurantId, setActiveRestaurantId, addToPlate } = usePlate();
+    const [detailQty, setDetailQty] = useState(1);
+
+    useEffect(() => {
+        if (restaurantId && activeRestaurantId !== restaurantId) {
+            setActiveRestaurantId(restaurantId);
+        }
+    }, [restaurantId, activeRestaurantId, setActiveRestaurantId]);
 
     const handleFileChange = (file: File | null) => {
         if (!file) {
@@ -201,7 +212,48 @@ const MenuItemDetailPage: NextPage = () => {
                         {/* Product Card */}
                         <Paper p="xl" withBorder radius="lg" shadow="sm">
                             <Stack spacing="md">
-                                {menuItem.image?.path && (
+                                {menuItem.videoUrl && (
+                                    <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center", marginBottom: 15 }}>
+                                        <video
+                                            src={menuItem.videoUrl}
+                                            controls
+                                            autoPlay
+                                            muted
+                                            loop
+                                            playsInline
+                                            style={{ width: "100%", maxHeight: "350px", objectFit: "cover", borderRadius: "8px" }}
+                                        />
+                                    </Box>
+                                )}
+
+                                {menuItem.images && menuItem.images.length > 1 ? (
+                                    <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center", width: "100%" }}>
+                                        <Carousel
+                                            loop
+                                            mx="auto"
+                                            withIndicators
+                                            height={400}
+                                            styles={{ indicator: { background: theme.white } }}
+                                            style={{ width: "100%" }}
+                                        >
+                                            {menuItem.images.map((img: any, index: number) => (
+                                                <Carousel.Slide key={img.id}>
+                                                    <Box sx={{ display: "flex", justifyContent: "center", height: "100%", width: "100%" }}>
+                                                        <ImageKitImage
+                                                            blurhash={img.blurHash}
+                                                            color={img.color}
+                                                            height={400}
+                                                            imageAlt={`${menuItem.name}-${index}`}
+                                                            imagePath={img.path}
+                                                            width={500}
+                                                            priority={index === 0}
+                                                        />
+                                                    </Box>
+                                                </Carousel.Slide>
+                                            ))}
+                                        </Carousel>
+                                    </Box>
+                                ) : menuItem.image?.path ? (
                                     <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center" }}>
                                         <ImageKitImage
                                             blurhash={menuItem.image.blurHash}
@@ -211,7 +263,7 @@ const MenuItemDetailPage: NextPage = () => {
                                             width={500}
                                         />
                                     </Box>
-                                )}
+                                ) : null}
 
                                 <Stack spacing={4} mt="sm">
                                     <Group align="center" spacing="md">
@@ -238,9 +290,41 @@ const MenuItemDetailPage: NextPage = () => {
                                     )}
                                 </Stack>
 
-                                <Text color="red" size="xl" weight={700}>
-                                    {menuItem.price}
-                                </Text>
+                                <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "flex-start", sm: "center" }} gap="md">
+                                    <Text color="red" size="xl" weight={700}>
+                                        {menuItem.price}
+                                    </Text>
+                                    {restaurant?.isOrderFeatureEnabled && (
+                                        <Group spacing="sm">
+                                            <Group spacing={4} sx={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: '2px 4px', backgroundColor: theme.colors.gray[0] }}>
+                                                <ActionIcon size="sm" variant="transparent" onClick={() => setDetailQty(Math.max(1, detailQty - 1))} disabled={detailQty <= 1}>
+                                                    -
+                                                </ActionIcon>
+                                                <Text size="sm" weight={600} sx={{ width: 24, textAlign: 'center', color: theme.black }}>
+                                                    {detailQty}
+                                                </Text>
+                                                <ActionIcon size="sm" variant="transparent" onClick={() => setDetailQty(detailQty + 1)}>
+                                                    +
+                                                </ActionIcon>
+                                            </Group>
+                                            <Button
+                                                color="primary"
+                                                radius="md"
+                                                onClick={() => {
+                                                    addToPlate({
+                                                        id: menuItem.id,
+                                                        name: menuItem.name,
+                                                        price: menuItem.price,
+                                                        isVeg: menuItem.isVeg,
+                                                    }, detailQty);
+                                                    showSuccessToast("Added to Plate", `${detailQty}x ${menuItem.name} added to your plate!`);
+                                                }}
+                                            >
+                                                Add to Plate
+                                            </Button>
+                                        </Group>
+                                    )}
+                                </Flex>
 
                                 {menuItem.description && (
                                     <Text color="dark.7" size="sm" style={{ lineHeight: 1.6 }}>
@@ -292,7 +376,7 @@ const MenuItemDetailPage: NextPage = () => {
                                                 {fb.imageUrl && (
                                                     <Box sx={{ maxWidth: 220, borderRadius: theme.radius.sm, overflow: 'hidden', marginTop: 10 }}>
                                                         <Image
-                                                            src={`${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${fb.imageUrl}`}
+                                                            src={fb.imageUrl.startsWith("http") ? fb.imageUrl : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${fb.imageUrl}`}
                                                             alt="Review photo"
                                                             radius="sm"
                                                             caption="Customer Photo"

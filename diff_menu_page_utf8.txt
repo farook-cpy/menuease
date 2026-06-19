@@ -1,0 +1,93 @@
+﻿diff --git a/src/pages/restaurant/[restaurantId]/menu.tsx b/src/pages/restaurant/[restaurantId]/menu.tsx
+index b87140f..ea4c8a3 100644
+--- a/src/pages/restaurant/[restaurantId]/menu.tsx
++++ b/src/pages/restaurant/[restaurantId]/menu.tsx
+@@ -3,6 +3,7 @@ import { Container, Center, Loader } from "@mantine/core";
+ import { useRouter } from "next/router";
+ import { useTranslations } from "next-intl";
+ import { NextSeo } from "next-seo";
++import messagesEn from "src/lang/en.json";
+ 
+ import type { NextPage } from "next";
+ 
+@@ -10,23 +11,41 @@ import { Empty } from "src/components/Empty";
+ import { Footer } from "src/components/Footer";
+ import { RestaurantMenu } from "src/components/RestaurantMenu";
+ import { env } from "src/env/client.mjs";
+-import { api } from "src/utils/api";
++import { api, fetchRestaurantDetails } from "src/utils/api";
++const getDeviceType = () => {
++    if (typeof window === "undefined") return "Desktop";
++    const ua = navigator.userAgent;
++    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
++        return "Tablet";
++    }
++    if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
++        return "Mobile";
++    }
++    return "Desktop";
++};
+ 
+-const RestaurantMenuPage: NextPage = () => {
++interface PageProps {
++    restaurant: any;
++}
++
++const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant }) => {
+     const router = useRouter();
+     const restaurantId = router.query?.restaurantId as string;
+     const t = useTranslations("menu");
+ 
+     const { data: restaurant, isLoading } = api.restaurant.getDetails.useQuery(
+         { id: restaurantId },
+-        { enabled: !!restaurantId }
++        { 
++            enabled: !!restaurantId,
++            initialData: initialRestaurant || undefined,
++        }
+     );
+ 
+     const { mutate: logPageView } = api.analytics.logView.useMutation();
+ 
+     useEffect(() => {
+         if (restaurantId && restaurant) {
+-            logPageView({ restaurantId, type: "page_view" });
++            logPageView({ restaurantId, type: "page_view", deviceType: getDeviceType() });
+         }
+     }, [restaurantId, restaurant, logPageView]);
+ 
+@@ -77,4 +96,34 @@ const RestaurantMenuPage: NextPage = () => {
+     );
+ };
+ 
++export const getStaticPaths = async () => {
++    return {
++        paths: [],
++        fallback: "blocking",
++    };
++};
++
++export const getStaticProps = async (context: any) => {
++    const restaurantId = context.params?.restaurantId as string;
++    try {
++        const restaurant = await fetchRestaurantDetails(restaurantId);
++        return {
++            props: {
++                restaurant: restaurant || null,
++                messages: messagesEn,
++            },
++            revalidate: 10,
++        };
++    } catch (e) {
++        console.error("Failed to fetch restaurant details for SSG:", e);
++        return {
++            props: {
++                restaurant: null,
++                messages: messagesEn,
++            },
++            revalidate: 10,
++        };
++    }
++};
++
+ export default RestaurantMenuPage;

@@ -129,10 +129,29 @@ export const fetchRestaurantDetails = async (id: string) => {
         itemImagesList = itemImages || [];
     }
 
-    const itemsMap = itemsList.map((item: any) => ({
-        ...item,
-        image: itemImagesList.find((img: any) => img.id === item.imageId) || null,
-    }));
+    let additionalImagesList: any[] = [];
+    const itemIds = itemsList.map((i: any) => i.id);
+    if (itemIds.length > 0) {
+        const { data: addImages } = await supabase
+            .from("Image")
+            .select("*")
+            .in("menuItemId", itemIds);
+        additionalImagesList = addImages || [];
+    }
+
+    const itemsMap = itemsList.map((item: any) => {
+        const primaryImage = itemImagesList.find((img: any) => img.id === item.imageId) || null;
+        const itemAdditionalImages = additionalImagesList.filter((img: any) => img.menuItemId === item.id);
+        
+        return {
+            ...item,
+            image: primaryImage,
+            images: [
+                ...(primaryImage ? [primaryImage] : []),
+                ...itemAdditionalImages
+            ]
+        };
+    });
 
     const categoriesMap = categoriesList.map((cat: any) => ({
         ...cat,
@@ -289,7 +308,7 @@ export const api = {
                     
                     const { data, error } = await supabase
                         .from("Restaurant")
-                        .select("id, name, planName, subscriptionStatus, subscriptionExpiresAt, trialEndsAt")
+                        .select("id, name, planName, subscriptionStatus, subscriptionExpiresAt, trialEndsAt, currency, isOrderFeatureEnabled, whatsappNo, isKitchenEnabled")
                         .order("createdAt", { ascending: false });
                     if (error) throw error;
                     return data || [];
@@ -328,21 +347,35 @@ export const api = {
                 recordPayment?: boolean;
                 paymentAmount?: number;
                 paymentMethod?: string;
+                isOrderFeatureEnabled?: boolean;
+                whatsappNo?: string | null;
+                isKitchenEnabled?: boolean;
             }>(options?: any) => {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
                     const isAdm = await isAdmin();
                     if (!isAdm) throw new Error("Unauthorized");
                     
+                    const updateData: any = {
+                        planName: input.planName,
+                        subscriptionStatus: input.subscriptionStatus,
+                        subscriptionExpiresAt: input.subscriptionExpiresAt,
+                        trialEndsAt: input.trialEndsAt,
+                        updatedAt: new Date().toISOString()
+                    };
+                    if (input.isOrderFeatureEnabled !== undefined) {
+                        updateData.isOrderFeatureEnabled = input.isOrderFeatureEnabled;
+                    }
+                    if (input.whatsappNo !== undefined) {
+                        updateData.whatsappNo = input.whatsappNo;
+                    }
+                    if (input.isKitchenEnabled !== undefined) {
+                        updateData.isKitchenEnabled = input.isKitchenEnabled;
+                    }
+
                     const { data, error } = await supabase
                         .from("Restaurant")
-                        .update({
-                            planName: input.planName,
-                            subscriptionStatus: input.subscriptionStatus,
-                            subscriptionExpiresAt: input.subscriptionExpiresAt,
-                            trialEndsAt: input.trialEndsAt,
-                            updatedAt: new Date().toISOString()
-                        })
+                        .update(updateData)
                         .eq("id", input.restaurantId)
                         .select()
                         .single();
@@ -909,7 +942,7 @@ export const api = {
     },
     menuItem: {
         get: {
-            useQuery: <TData = MenuItem & { image: Image | null }, TError = Error>(input: { id: string }, options?: any) => {
+            useQuery: <TData = MenuItem & { image: Image | null; images?: Image[] }, TError = Error>(input: { id: string }, options?: any) => {
                 return useQuery<TData, TError>(["menuItem", input.id], async () => {
                     if (!input.id) throw new Error("Item ID is required");
                     const { data: item, error: iErr } = await supabase
@@ -929,9 +962,18 @@ export const api = {
                         image = img;
                     }
 
+                    const { data: additional } = await supabase
+                        .from("Image")
+                        .select("*")
+                        .eq("menuItemId", item.id);
+
                     return {
                         ...item,
-                        image
+                        image,
+                        images: [
+                            ...(image ? [image] : []),
+                            ...(additional || [])
+                        ]
                     } as any;
                 }, {
                     enabled: !!input.id,
@@ -946,7 +988,10 @@ export const api = {
                 price: string;
                 categoryId: string;
                 menuId: string;
+                isVeg: boolean | null;
                 imageBase64?: string;
+                videoUrl?: string | null;
+                additionalImages?: { id: string; path: string; blurHash: string; color: string }[];
             }>(options?: any) => {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
@@ -994,6 +1039,8 @@ export const api = {
                         position,
                         categoryId: input.categoryId,
                         imageId,
+                        isVeg: input.isVeg,
+                        videoUrl: input.videoUrl || null,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                     };
@@ -1005,6 +1052,22 @@ export const api = {
                         .single();
 
                     if (error) throw error;
+
+                    if (input.additionalImages && input.additionalImages.length > 0) {
+                        const imagesToInsert = input.additionalImages.map((img: any) => ({
+                            id: img.id,
+                            path: img.path,
+                            blurHash: img.blurHash || "L6PZ|ndy1[V@~p%0IyS2IA%0NeR*",
+                            color: img.color || "#eaeaea",
+                            menuItemId: id,
+                        }));
+
+                        const { error: addsErr } = await supabase
+                            .from("Image")
+                            .insert(imagesToInsert);
+                        if (addsErr) throw addsErr;
+                    }
+
                     return data;
                 }, {
                     ...options,
@@ -1021,7 +1084,7 @@ export const api = {
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
                     const { data: current } = await supabase
                         .from("MenuItem")
-                        .select("imageId")
+                        .select("imageId, videoUrl")
                         .eq("id", input.id)
                         .single();
 
@@ -1035,6 +1098,20 @@ export const api = {
                             await deleteFile(img.path);
                         }
                         await supabase.from("Image").delete().eq("id", current.imageId);
+                    }
+
+                    if (current && current.videoUrl) {
+                        await deleteFile(current.videoUrl);
+                    }
+
+                    const { data: additionalImages } = await supabase
+                        .from("Image")
+                        .select("path")
+                        .eq("menuItemId", input.id);
+
+                    if (additionalImages && additionalImages.length > 0) {
+                        await Promise.all(additionalImages.map((img: any) => deleteFile(img.path)));
+                        await supabase.from("Image").delete().eq("menuItemId", input.id);
                     }
 
                     const { data, error } = await supabase
@@ -1061,20 +1138,24 @@ export const api = {
                 name: string;
                 description: string;
                 price: string;
+                isVeg: boolean | null;
                 imageBase64?: string;
                 imagePath?: string;
+                videoUrl?: string | null;
+                additionalImages?: { id: string; path: string; blurHash: string; color: string }[];
+                deletedImageIds?: string[];
             }>(options?: any) => {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(async (input: any) => {
                     const { data: current } = await supabase
                         .from("MenuItem")
-                        .select("imageId")
+                        .select("imageId, videoUrl")
                         .eq("id", input.id)
                         .single();
 
                     let imageId = current?.imageId || null;
+                    let videoUrl = current?.videoUrl || null;
 
-                    // Delete old image if it is deleted or replaced
                     if (current?.imageId && (!input.imagePath || input.imageBase64)) {
                         const { data: img } = await supabase
                             .from("Image")
@@ -1088,7 +1169,30 @@ export const api = {
                         imageId = null;
                     }
 
-                    // Upload new image
+                    if (current?.videoUrl && (input.videoUrl === null || input.videoUrl === "" || input.videoUrl !== current.videoUrl)) {
+                        await deleteFile(current.videoUrl);
+                        videoUrl = null;
+                    }
+
+                    if (input.videoUrl) {
+                        videoUrl = input.videoUrl;
+                    }
+
+                    if (input.deletedImageIds && input.deletedImageIds.length > 0) {
+                        const { data: toDelete } = await supabase
+                            .from("Image")
+                            .select("path")
+                            .in("id", input.deletedImageIds);
+                        
+                        if (toDelete && toDelete.length > 0) {
+                            await Promise.all(toDelete.map((img: any) => deleteFile(img.path)));
+                        }
+                        await supabase
+                            .from("Image")
+                            .delete()
+                            .in("id", input.deletedImageIds);
+                    }
+
                     if (input.imageBase64) {
                         const [uploaded, blurHash, rawColor] = await Promise.all([
                             uploadImage(input.imageBase64, `menu/item-${input.id}`),
@@ -1112,6 +1216,21 @@ export const api = {
                         imageId = imgId;
                     }
 
+                    if (input.additionalImages && input.additionalImages.length > 0) {
+                        const imagesToInsert = input.additionalImages.map((img: any) => ({
+                            id: img.id,
+                            path: img.path,
+                            blurHash: img.blurHash || "L6PZ|ndy1[V@~p%0IyS2IA%0NeR*",
+                            color: img.color || "#eaeaea",
+                            menuItemId: input.id,
+                        }));
+
+                        const { error: addsErr } = await supabase
+                            .from("Image")
+                            .insert(imagesToInsert);
+                        if (addsErr) throw addsErr;
+                    }
+
                     const { data, error } = await supabase
                         .from("MenuItem")
                         .update({
@@ -1119,6 +1238,8 @@ export const api = {
                             description: input.description,
                             price: input.price,
                             imageId,
+                            isVeg: input.isVeg,
+                            videoUrl,
                             updatedAt: new Date().toISOString(),
                         })
                         .eq("id", input.id)
@@ -1407,7 +1528,7 @@ export const api = {
                     }
                     const { data, error } = await supabase
                         .from("Restaurant")
-                        .select("*")
+                        .select("*, image:Image!fk_restaurant_image(*)")
                         .eq("id", input.id)
                         .single();
                     if (error) throw error;
@@ -2199,6 +2320,85 @@ export const api = {
             }
         }
     },
+    order: {
+        create: {
+            useMutation: <TData = any, TError = Error, TVariables = {
+                restaurantId: string;
+                table: string | null;
+                floor: string | null;
+                items: string;
+                generalNotes: string | null;
+                status?: string;
+            }>(options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(async (input: any) => {
+                    const id = nanoid(24);
+                    const newOrder = {
+                        id,
+                        restaurantId: input.restaurantId,
+                        table: input.table || null,
+                        floor: input.floor || null,
+                        items: input.items,
+                        generalNotes: input.generalNotes || null,
+                        status: input.status || "PENDING",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    };
+                    const { data, error } = await supabase
+                        .from("Order")
+                        .insert([newOrder])
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    return data;
+                }, {
+                    ...options,
+                    onSuccess: (data, variables: any, context) => {
+                        queryClient.invalidateQueries(["orders", variables.restaurantId]);
+                        if (options?.onSuccess) options.onSuccess(data, variables, context);
+                    }
+                });
+            }
+        },
+        getByRestaurant: {
+            useQuery: (input: { restaurantId: string }, options?: any) => {
+                return useQuery(["orders", input.restaurantId], async () => {
+                    const { data, error } = await supabase
+                        .from("Order")
+                        .select("*")
+                        .eq("restaurantId", input.restaurantId)
+                        .order("createdAt", { ascending: false });
+                    if (error) throw error;
+                    return data || [];
+                }, options);
+            }
+        },
+        updateStatus: {
+            useMutation: <TData = any, TError = Error, TVariables = {
+                id: string;
+                restaurantId: string;
+                status: string;
+            }>(options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(async (input: any) => {
+                    const { data, error } = await supabase
+                        .from("Order")
+                        .update({ status: input.status, updatedAt: new Date().toISOString() })
+                        .eq("id", input.id)
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    return data;
+                }, {
+                    ...options,
+                    onSuccess: (data, variables: any, context) => {
+                        queryClient.invalidateQueries(["orders", variables.restaurantId]);
+                        if (options?.onSuccess) options.onSuccess(data, variables, context);
+                    }
+                });
+            }
+        }
+    },
     useContext: (): any => {
         const queryClient = useQueryClient();
         
@@ -2224,6 +2424,9 @@ export const api = {
             }
             if (domain === "analytics") {
                 if (method === "getStats") return ["analyticsStats", variables?.restaurantId || variables];
+            }
+            if (domain === "order") {
+                if (method === "getByRestaurant") return ["orders", variables?.restaurantId || variables];
             }
             return null;
         };

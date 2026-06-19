@@ -169,7 +169,17 @@
             "restaurantLocation": "Location: {location}.",
             "restaurantContactNo": " Contact Number: {contactNo}.",
             "foodler": "This menu was generated using Foodler.com"
-        }
+        },
+        "addToPlate": "Add to Plate",
+        "addedToPlate": "Added",
+        "yourPlate": "Your Plate",
+        "emptyPlate": "Your plate is empty. Add some delicious food!",
+        "orderViaWhatsapp": "Order via WhatsApp",
+        "total": "Total",
+        "specialInstructions": "Special Instructions (optional)",
+        "specialInstructionsPlaceholder": "Add notes (e.g. make it spicy, no onions)...",
+        "quantity": "Quantity",
+        "itemSubtotal": "Subtotal"
     },
     "preview": {
         "seoTitle": "Restaurant Preview",

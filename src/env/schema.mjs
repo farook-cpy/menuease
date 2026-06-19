@@ -7,6 +7,11 @@ import { z } from "zod";
  */
 export const serverSchema = z.object({
     NODE_ENV: z.enum(["development", "test", "production"]),
+    CLOUDINARY_CLOUD_NAME: z.string().optional(),
+    CLOUDINARY_API_KEY: z.string().optional(),
+    CLOUDINARY_API_SECRET: z.string().optional(),
+    IMAGEKIT_PUBLIC_KEY: z.string().optional(),
+    IMAGEKIT_PRIVATE_KEY: z.string().optional(),
 });
 
 /**

@@ -33,11 +33,32 @@ model Restaurant {
     subscriptionExpiresAt DateTime?
     trialEndsAt   DateTime?
     balance       Float    @default(0.0)
+    currency      String?
+    isOrderFeatureEnabled Boolean @default(false)
+    whatsappNo    String?
     billingTransactions BillingTransaction[] @relation("BillingTransactionsOfRestaurant")
     analytics     MenuAnalytics[] @relation("AnalyticsOfRestaurant")
+    isKitchenEnabled Boolean @default(false)
+    orders        Order[]  @relation("OrdersOfRestaurant")
 
     @@id([id, userId])
     @@index([isPublished])
+}
+
+model Order {
+    id           String     @id @default(cuid())
+    restaurantId String
+    restaurant   Restaurant @relation("OrdersOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    table        String?
+    floor        String?
+    items        String     // JSON-serialized string of items
+    status       String     // PENDING, PREPARING, READY, COMPLETED, CANCELLED
+    generalNotes String?
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
+
+    @@index([restaurantId])
+    @@index([status])
 }
 
 model Menu {
@@ -86,22 +107,27 @@ model MenuItem {
     imageId     String?   @unique
     analytics   MenuAnalytics[] @relation("AnalyticsOfMenuItem")
     isVeg       Boolean?
+    videoUrl    String?
+    images      Image[]   @relation("AdditionalImagesOfMenuItem")
 
     @@id([id, userId])
     @@index([categoryId])
 }
 
 model Image {
-    id               String      @unique
-    path             String
-    blurHash         String
-    color            String
-    menuItem         MenuItem?   @relation("ImageOfMenuItem")
-    restaurant       Restaurant? @relation("ImageOfRestaurant")
-    restaurantBanner Restaurant? @relation("BannersOfRestaurant", fields: [restaurantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-    restaurantId     String?
+    id                  String      @unique
+    path                String
+    blurHash            String
+    color               String
+    menuItem            MenuItem?   @relation("ImageOfMenuItem")
+    restaurant          Restaurant? @relation("ImageOfRestaurant")
+    restaurantBanner    Restaurant? @relation("BannersOfRestaurant", fields: [restaurantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+    restaurantId        String?
+    menuItemAdditional  MenuItem?   @relation("AdditionalImagesOfMenuItem", fields: [menuItemId], references: [id], onDelete: Cascade)
+    menuItemId          String?
 
     @@index([restaurantId])
+    @@index([menuItemId])
 }
 
 model AdminUser {

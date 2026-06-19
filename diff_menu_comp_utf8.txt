@@ -1,0 +1,87 @@
+﻿diff --git a/src/components/RestaurantMenu/RestaurantMenu.tsx b/src/components/RestaurantMenu/RestaurantMenu.tsx
+index 5bb4184..bdc7705 100644
+--- a/src/components/RestaurantMenu/RestaurantMenu.tsx
++++ b/src/components/RestaurantMenu/RestaurantMenu.tsx
+@@ -1,8 +1,7 @@
+ import type { FC } from "react";
+-import { useMemo, useRef, useState } from "react";
++import { useMemo, useState } from "react";
+ 
+ import { useAutoAnimate } from "@formkit/auto-animate/react";
+-import { Carousel } from "@mantine/carousel";
+ import {
+     ActionIcon,
+     Box,
+@@ -15,8 +14,12 @@ import {
+     Text,
+ } from "@mantine/core";
+ import { IconMapPin, IconPhone } from "@tabler/icons";
+-import Autoplay from "embla-carousel-autoplay";
+ import { useTranslations } from "next-intl";
++import dynamic from "next/dynamic";
++
++const BannerCarousel = dynamic(() => import("./BannerCarousel").then((mod) => mod.BannerCarousel), {
++    ssr: false,
++});
+ 
+ import type { Category, Image, Menu, MenuItem, Restaurant } from "@prisma/client";
+ 
+@@ -114,7 +117,6 @@ interface Props {
+ /** Component to display all the menus and banners of the restaurant */
+ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
+     const { classes, theme } = useStyles();
+-    const bannerCarousalRef = useRef(Autoplay({ delay: 5000 }));
+     const [menuParent] = useAutoAnimate<HTMLDivElement>();
+     const [selectedMenu, setSelectedMenu] = useState<string | null | undefined>(restaurant?.menus?.[0]?.id);
+     const t = useTranslations("menu");
+@@ -137,34 +139,22 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
+     return (
+         <Box mih="calc(100vh - 100px)">
+             <Box pos="relative">
+-                <Carousel
+-                    className={classes.headerImageBox}
+-                    data-testid="restaurant-banner"
+-                    height="100%"
+-                    loop
+-                    mx="auto"
+-                    onMouseEnter={bannerCarousalRef.current.stop}
+-                    onMouseLeave={bannerCarousalRef.current.reset}
+-                    plugins={[bannerCarousalRef.current]}
+-                    slideGap="md"
+-                    styles={{ indicator: { background: White } }}
+-                    withControls={false}
+-                    withIndicators={images.length > 1}
+-                >
+-                    {images?.map((banner, index) => (
+-                        <Carousel.Slide key={banner.id}>
+-                            <ImageKitImage
+-                                blurhash={banner.blurHash}
+-                                color={banner.color}
+-                                height={400}
+-                                imageAlt={`${restaurant.name}-banner-${index}`}
+-                                imagePath={banner.path}
+-                                width={1000}
+-                            />
+-                            <Box className={classes.carousalOverlay} />
+-                        </Carousel.Slide>
+-                    ))}
+-                </Carousel>
++                {images.length > 1 ? (
++                    <BannerCarousel images={images} restaurantName={restaurant.name} />
++                ) : images.length === 1 ? (
++                    <Box className={classes.headerImageBox}>
++                        <ImageKitImage
++                            blurhash={images[0]?.blurHash}
++                            color={images[0]?.color}
++                            height={400}
++                            imageAlt={`${restaurant.name}-banner`}
++                            imagePath={images[0]?.path}
++                            width={1000}
++                            priority={true}
++                        />
++                        <Box className={classes.carousalOverlay} />
++                    </Box>
++                ) : null}
+                 <MediaQuery smallerThan="xs" styles={{ display: "none" }}>
+                     <Box className={classes.carousalTitle}>
+                         <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
