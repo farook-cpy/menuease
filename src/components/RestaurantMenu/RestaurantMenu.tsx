@@ -14,6 +14,7 @@ import {
     Flex,
     Group,
     MediaQuery,
+    Modal,
     Paper,
     SimpleGrid,
     Stack,
@@ -23,7 +24,15 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { IconBrandWhatsapp, IconMapPin, IconPhone, IconQrcode, IconShoppingCart, IconTrash } from "@tabler/icons";
+import { IconBell, IconBrandWhatsapp } from "@tabler/icons";
+import {
+    CheckIcon,
+    MapPinIcon,
+    PhoneIcon,
+    QrCodeIcon,
+    ShoppingCartIcon,
+    TrashIcon,
+} from "@animateicons/react/lucide";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 
@@ -32,6 +41,7 @@ import type { Category, Image, Menu, MenuItem, Restaurant } from "@prisma/client
 import { Black, White } from "src/styles/theme";
 import { api } from "src/utils/api";
 import { formatPrice, parsePrice, usePlate } from "src/utils/plateContext";
+import { showErrorToast, showSuccessToast } from "src/utils/helpers";
 
 import { MenuItemCard } from "./MenuItemCard";
 import { Empty } from "../Empty";
@@ -144,11 +154,42 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         getPlateCount,
         table,
         floor,
+        clearPlate,
     } = usePlate();
 
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [generalNotes, setGeneralNotes] = useState("");
-    const { mutate: createOrder } = api.order.create.useMutation();
+    const [waiterModalOpened, setWaiterModalOpened] = useState(false);
+
+    const { mutate: callWaiter, isLoading: callingWaiter } = api.waiterCall.create.useMutation({
+        onSuccess: () => {
+            showSuccessToast("Request Sent", "A waiter has been alerted and will arrive shortly!");
+            setWaiterModalOpened(false);
+        },
+        onError: (err: any) => {
+            showErrorToast("Failed to call waiter", err);
+        }
+    });
+
+    const handleCallWaiter = (type: string) => {
+        callWaiter({
+            restaurantId: restaurant.id,
+            table: table || "General",
+            requestType: type,
+        });
+    };
+
+    const { mutate: createOrder, isLoading: isLoadingOrderCreation } = api.order.create.useMutation({
+        onSuccess: () => {
+            showSuccessToast("Order sent to kitchen successfully!");
+            clearPlate();
+            setDrawerOpened(false);
+            setGeneralNotes("");
+        },
+        onError: () => {
+            showErrorToast("Failed to send order to kitchen. Please try again.");
+        }
+    });
 
     useEffect(() => {
         if (restaurant.id && activeRestaurantId !== restaurant.id) {
@@ -193,10 +234,61 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         return encodeURIComponent(msg);
     };
 
-    const menuDetails = useMemo(
-        () => restaurant?.menus?.find((item) => item.id === selectedMenu),
-        [selectedMenu, restaurant?.menus]
-    );
+    const isHappyHourActive = useMemo(() => {
+        const start = (restaurant as any)?.happyHourStart;
+        const end = (restaurant as any)?.happyHourEnd;
+        const discount = (restaurant as any)?.happyHourDiscount;
+        if (!start || !end || !discount) return false;
+
+        try {
+            const now = new Date();
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            return currentTimeStr >= start && currentTimeStr <= end;
+        } catch (e) {
+            return false;
+        }
+    }, [restaurant]);
+
+    const getAdjustedPrice = (originalPrice: string) => {
+        if (!isHappyHourActive) return originalPrice;
+        const discount = (restaurant as any)?.happyHourDiscount || 0;
+        const { number, currency } = parsePrice(originalPrice);
+        const discountedAmount = number * (1 - discount / 100);
+        return formatPrice(discountedAmount, currency || (restaurant as any)?.currency || "₹");
+    };
+
+    const menuDetails = useMemo(() => {
+        const rawMenu = restaurant?.menus?.find((item) => item.id === selectedMenu);
+        if (!rawMenu) return null;
+        if (!isHappyHourActive) return rawMenu;
+
+        return {
+            ...rawMenu,
+            categories: rawMenu.categories?.map((cat) => ({
+                ...cat,
+                items: cat.items?.map((item) => ({
+                    ...item,
+                    price: getAdjustedPrice(item.price),
+                })),
+            })),
+        };
+    }, [selectedMenu, restaurant?.menus, isHappyHourActive]);
+
+    const dailySpecials = useMemo(() => {
+        const list: any[] = [];
+        if (menuDetails?.categories) {
+            menuDetails.categories.forEach((cat) => {
+                if (cat.items) {
+                    cat.items.forEach((item) => {
+                        if ((item as any).isTodaySpecial) {
+                            list.push(item);
+                        }
+                    });
+                }
+            });
+        }
+        return list;
+    }, [menuDetails]);
 
     const images: Image[] = useMemo(() => {
         const banners = restaurant?.banners;
@@ -205,6 +297,61 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         }
         return banners;
     }, [restaurant]);
+
+    const renderFestivalBanner = () => {
+        const themeType = (restaurant as any)?.festivalTheme;
+        if (!themeType || themeType === "NONE") return null;
+
+        let bgGradient = "";
+        let titleText = "";
+        let subtitleText = "";
+        let emoji = "";
+
+        if (themeType === "EID") {
+            bgGradient = "linear-gradient(135deg, #0f2027, #203a43, #2c5364)";
+            titleText = "Eid Mubarak! 🌙";
+            subtitleText = "Celebrate the joy of Eid with our special festive dishes!";
+            emoji = "✨";
+        } else if (themeType === "ONAM") {
+            bgGradient = "linear-gradient(135deg, #ff9933, #ffffff, #138808)";
+            titleText = "Happy Onam! 🌾";
+            subtitleText = "Feast on our authentic traditional Onasadya specials today!";
+            emoji = "🌸";
+        } else if (themeType === "CHRISTMAS") {
+            bgGradient = "linear-gradient(135deg, #c0392b, #8e44ad, #2c3e50)";
+            titleText = "Merry Christmas! 🎄";
+            subtitleText = "Unwrap delicious holiday deals and seasonal delicacies!";
+            emoji = "❄️";
+        } else if (themeType === "RAMADAN") {
+            bgGradient = "linear-gradient(135deg, #1f4037, #99f2c8)";
+            titleText = "Ramadan Kareem! 🕌";
+            subtitleText = "Break your fast with our delicious Iftar meals & drinks!";
+            emoji = "✨";
+        }
+
+        return (
+            <Paper
+                p="xl"
+                mb="lg"
+                radius="lg"
+                sx={{
+                    background: bgGradient,
+                    color: "#ffffff",
+                    textAlign: "center",
+                    boxShadow: theme.shadows.md,
+                    position: "relative",
+                    overflow: "hidden"
+                }}
+            >
+                <Text sx={{ fontSize: "2rem" }} weight={800} style={{ fontFamily: "Outfit, sans-serif" }}>
+                    {emoji} {titleText}
+                </Text>
+                <Text size="sm" mt="xs" weight={500} opacity={0.9}>
+                    {subtitleText}
+                </Text>
+            </Paper>
+        );
+    };
 
     const haveMenuItems = menuDetails?.categories?.some((category) => category?.items?.length > 0);
 
@@ -243,20 +390,20 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                         </Group>
                         <Box className={classes.carousalSubWrap}>
                             <Flex align="center" gap={10}>
-                                <IconMapPin />
+                                <MapPinIcon size={16} />
                                 <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                                         restaurant?.location
                                     )}`}
                                     rel="noopener noreferrer"
                                     target="_blank"
-                                >
+                                  >
                                     <Text className={classes.carousalTitleSubText}>{restaurant?.location}</Text>
                                 </a>
                             </Flex>
                             {restaurant?.contactNo && (
                                 <Flex align="center" gap={10}>
-                                    <IconPhone />
+                                    <PhoneIcon size={16} />
                                     <a href={`tel:${restaurant?.contactNo.replace(/\s/g, "")}`}>
                                         <Text className={classes.carousalTitleSubText}>{restaurant?.contactNo}</Text>
                                     </a>
@@ -282,7 +429,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                         <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
                     </Group>
                     <Flex align="center" gap={10} opacity={0.6}>
-                        <IconMapPin />
+                        <MapPinIcon size={16} />
                         <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                                 restaurant?.location
@@ -295,7 +442,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     </Flex>
                     {restaurant?.contactNo && (
                         <Flex align="center" gap={10} opacity={0.6}>
-                            <IconPhone />
+                            <PhoneIcon size={16} />
                             <a href={`tel:${restaurant?.contactNo.replace(/\s/g, "")}`}>
                                 <Text className={classes.carousalTitleSubText}>{restaurant?.contactNo}</Text>
                             </a>
@@ -303,6 +450,26 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     )}
                 </Stack>
             </MediaQuery>
+            {renderFestivalBanner()}
+
+            {isHappyHourActive && (
+                <Paper
+                    p="xs"
+                    my="md"
+                    radius="md"
+                    bg="yellow.1"
+                    sx={{
+                        border: `1px dashed ${theme.colors.yellow[6]}`,
+                        color: theme.colors.yellow[9],
+                        textAlign: "center",
+                    }}
+                >
+                    <Text size="sm" weight={700}>
+                        ⚡ HAPPY HOUR ACTIVE: {(restaurant as any).happyHourDiscount}% OFF all items! (Runs {(restaurant as any).happyHourStart} - {(restaurant as any).happyHourEnd})
+                    </Text>
+                </Paper>
+            )}
+
             <Tabs my={40} onTabChange={setSelectedMenu} value={selectedMenu}>
                 <Tabs.List>
                     {restaurant?.menus?.map((menu) => (
@@ -318,6 +485,34 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                 </Tabs.List>
             </Tabs>
             <Box ref={menuParent}>
+                {dailySpecials.length > 0 && (
+                    <Box mb="xl">
+                        <Group position="apart" mb="sm">
+                            <Text size="lg" weight={700} color="orange.8">
+                                🔥 Today's Specials
+                            </Text>
+                            <Badge color="orange" variant="filled">Chef Recommended</Badge>
+                        </Group>
+                        <SimpleGrid
+                            breakpoints={[
+                                { cols: 3, minWidth: "lg" },
+                                { cols: 2, minWidth: "sm" },
+                                { cols: 1, minWidth: "xs" },
+                            ]}
+                            mb={20}
+                        >
+                            {dailySpecials.map((item) => (
+                                <MenuItemCard
+                                    key={`special-${item.id}`}
+                                    isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled}
+                                    item={item}
+                                />
+                            ))}
+                        </SimpleGrid>
+                        <Divider my="lg" variant="dashed" />
+                    </Box>
+                )}
+
                 {menuDetails?.categories
                     ?.filter((category) => category?.items.length)
                     ?.map((category) => (
@@ -350,7 +545,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             </Box>
 
             {/* Floating 'View Plate' button */}
-            {(restaurant as any).isOrderFeatureEnabled && getPlateCount() > 0 && (
+            {(restaurant as any).isOrderFeatureEnabled && (
                 <Box
                     sx={{
                         "@media (max-width: 768px)": {
@@ -367,7 +562,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     <Button
                         color="primary"
                         fullWidth
-                        leftIcon={<IconShoppingCart size={20} />}
+                        leftIcon={<ShoppingCartIcon size={20} />}
                         onClick={() => setDrawerOpened(true)}
                         radius="xl"
                         size="lg"
@@ -419,7 +614,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                 }}
                 title={
                     <Group spacing="xs">
-                        <IconShoppingCart color={theme.colors.primary[6]} size={20} />
+                        <ShoppingCartIcon color={theme.colors.primary[6]} size={20} />
                         <Title color="dark.8" order={3} size="1.4rem">
                             Your Plate
                         </Title>
@@ -428,7 +623,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             >
                 {plateItems.length === 0 ? (
                     <Stack align="center" h="75%" justify="center" spacing="sm">
-                        <IconShoppingCart color={theme.colors.gray[4]} size={60} stroke={1} />
+                        <ShoppingCartIcon color={theme.colors.gray[4]} size={60} />
                         <Text color="dimmed" size="lg" weight={600}>
                             Your plate is empty
                         </Text>
@@ -458,7 +653,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                         }}
                                     >
                                         <Group noWrap spacing="xs">
-                                            <IconQrcode color={theme.colors.primary[6]} size={18} />
+                                            <QrCodeIcon color={theme.colors.primary[6]} size={18} />
                                             <Box>
                                                 <Text
                                                     color={theme.colorScheme === "dark" ? "primary.3" : "primary.9"}
@@ -546,7 +741,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                                         size="xs"
                                                         variant="subtle"
                                                     >
-                                                        <IconTrash size={14} />
+                                                        <TrashIcon size={14} />
                                                     </ActionIcon>
                                                 </Stack>
                                             </Flex>
@@ -589,12 +784,13 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                     </Text>
                                 </Group>
 
-                                <Button
-                                    color="green"
-                                    fullWidth
-                                    leftIcon={<IconBrandWhatsapp size={20} />}
-                                    onClick={() => {
-                                        if ((restaurant as any).isKitchenEnabled) {
+                                 {(restaurant as any).isKitchenEnabled ? (
+                                    <Button
+                                        color="primary"
+                                        fullWidth
+                                        loading={isLoadingOrderCreation}
+                                        leftIcon={<CheckIcon size={20} />}
+                                        onClick={() => {
                                             createOrder({
                                                 floor,
                                                 generalNotes,
@@ -610,22 +806,118 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                                 restaurantId: restaurant.id,
                                                 table,
                                             });
-                                        }
-
-                                        const rawPhone = (restaurant as any).whatsappNo || restaurant.contactNo || "";
-                                        const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
-                                        const waUrl = `https://wa.me/${cleanPhone}?text=${generateWhatsappMessage()}`;
-                                        window.open(waUrl, "_blank");
-                                    }}
-                                    size="md"
-                                >
-                                    Order via WhatsApp
-                                </Button>
+                                        }}
+                                        size="md"
+                                    >
+                                        Place Order (Kitchen)
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        color="green"
+                                        fullWidth
+                                        leftIcon={<IconBrandWhatsapp size={20} />}
+                                        onClick={() => {
+                                            const rawPhone = (restaurant as any).whatsappNo || restaurant.contactNo || "";
+                                            const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+                                            const waUrl = `https://wa.me/${cleanPhone}?text=${generateWhatsappMessage()}`;
+                                            window.open(waUrl, "_blank");
+                                        }}
+                                        size="md"
+                                    >
+                                        Order via WhatsApp
+                                    </Button>
+                                )}
                             </Stack>
                         </Box>
                     </Flex>
                 )}
             </Drawer>
+
+            {/* Waiter Calling FAB */}
+            {(restaurant as any).isOrderFeatureEnabled && (
+                <Box
+                    sx={{
+                        bottom: 90,
+                        position: "fixed",
+                        right: 30,
+                        zIndex: 99,
+                        "@media (max-width: 768px)": {
+                            bottom: 80,
+                            right: 20,
+                        },
+                    }}
+                >
+                    <Button
+                        color="orange"
+                        radius="xl"
+                        size="md"
+                        leftIcon={<IconBell size={18} />}
+                        onClick={() => setWaiterModalOpened(true)}
+                        styles={(theme) => ({
+                            root: {
+                                backdropFilter: "blur(4px)",
+                                boxShadow: `0 8px 32px ${theme.fn.rgba(theme.colors.orange[6], 0.35)}`,
+                                height: 44,
+                                transition: "transform 0.2s ease",
+                                "&:hover": {
+                                    transform: "scale(1.03)",
+                                },
+                            },
+                        })}
+                    >
+                        Call Waiter
+                    </Button>
+                </Box>
+            )}
+
+            {/* Waiter Call Modal */}
+            <Modal
+                onClose={() => setWaiterModalOpened(false)}
+                opened={waiterModalOpened}
+                title={
+                    <Group spacing="xs">
+                        <IconBell color={theme.colors.orange[6]} size={20} />
+                        <Title color="dark.8" order={3} size="1.2rem">
+                            Call Table Assistant
+                        </Title>
+                    </Group>
+                }
+                centered
+                radius="md"
+                padding="md"
+            >
+                <Stack spacing="md">
+                    <Text size="sm" color="dimmed">
+                        {table ? `Table: ${table}` : "General area"} - Need assistance? Tap an option below to notify staff.
+                    </Text>
+                    <SimpleGrid cols={1} spacing="xs">
+                        <Button
+                            color="orange"
+                            loading={callingWaiter}
+                            onClick={() => handleCallWaiter("WATER")}
+                            variant="light"
+                        >
+                            💧 Need Water
+                        </Button>
+                        <Button
+                            color="orange"
+                            loading={callingWaiter}
+                            onClick={() => handleCallWaiter("BILL")}
+                            variant="light"
+                        >
+                            🧾 Need Bill
+                        </Button>
+                        <Button
+                            color="orange"
+                            loading={callingWaiter}
+                            onClick={() => handleCallWaiter("WAITER")}
+                            variant="filled"
+                        >
+                            🔔 Need Waiter Assistance
+                        </Button>
+                    </SimpleGrid>
+                </Stack>
+            </Modal>
         </Box>
     );
 

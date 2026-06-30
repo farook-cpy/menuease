@@ -51,14 +51,14 @@ import { useSession } from "src/utils/supabaseAuth";
 
 // ─── Design Tokens ──────────────────────────────────────────────
 const tokens = {
-    accent: "#c8ff00",
-    black: "#0a0a0a",
-    border: "#e2e2dc",
-    muted: "#888880",
-    offWhite: "#f4f4f0",
+    accent: "#D94B5C",
+    black: "#222222",
+    border: "#FCE6DA",
+    muted: "#6b7280",
+    offWhite: "#FCF0F1",
     // single accent color — no gradients
-    surface: "#f9f9f6",
-    white: "#fafafa",
+    surface: "#ffffff",
+    white: "#ffffff",
 } as const;
 
 // ─── Reusable: Section Label ─────────────────────────────────────
@@ -67,23 +67,25 @@ const SectionLabel: FC<{ children: string; index?: string }> = ({ children, inde
         {index && (
             <Text
                 sx={{
-                    color: tokens.muted,
+                    color: tokens.accent,
                     fontFamily: "monospace",
                     fontSize: 11,
                     letterSpacing: "0.08em",
+                    fontWeight: 700,
                 }}
             >
                 {index}
             </Text>
         )}
-        <Box sx={{ background: tokens.muted, height: 1, width: 24 }} />
+        <Box sx={{ background: tokens.accent, height: 1.5, width: 24 }} />
         <Text
             sx={{
-                color: tokens.muted,
+                color: tokens.accent,
                 fontFamily: "monospace",
                 fontSize: 11,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
+                fontWeight: 700,
             }}
         >
             {children}
@@ -104,26 +106,28 @@ const OutlineBtn: FC<{
 
     const style = {
         alignItems: "center",
-        background: filled ? tokens.black : "transparent",
-        border: `1.5px solid ${filled ? tokens.black : tokens.black}`,
-        borderRadius: 0,
-        color: filled ? tokens.white : tokens.black,
+        background: filled ? tokens.accent : "transparent",
+        border: `1.5px solid ${tokens.accent}`,
+        borderRadius: 16,
+        color: filled ? tokens.white : tokens.accent,
         cursor: "pointer",
         display: "inline-flex",
         fontFamily: "inherit",
         fontSize,
-        fontWeight: 500,
+        fontWeight: 600,
         gap: 8,
         letterSpacing: "0.01em",
         lineHeight: 1,
         padding,
         textDecoration: "none",
-        transition: "background 0.15s ease, color 0.15s ease",
+        transition: "all 0.2s ease-in-out",
     } as const;
 
     const hoverStyle = {
-        background: filled ? "#1a1a1a" : tokens.black,
+        background: filled ? "#F16C7A" : tokens.accent,
         color: tokens.white,
+        transform: "translateY(-1px)",
+        boxShadow: "0 4px 12px rgba(217, 75, 92, 0.2)",
     };
 
     if (href) {
@@ -196,11 +200,7 @@ export const Hero: FC = () => {
             >
                 <Container size="xl">
                     <Flex align="center" justify="space-between">
-                        <Text
-                            sx={{ color: tokens.muted, fontFamily: "monospace", fontSize: 11, letterSpacing: "0.08em" }}
-                        >
-                            FREE TIER AVAILABLE — NO CREDIT CARD REQUIRED
-                        </Text>
+                     
                         <Text
                             sx={{ color: tokens.muted, fontFamily: "monospace", fontSize: 11, letterSpacing: "0.08em" }}
                         >
@@ -379,7 +379,7 @@ export const Steps: FC = () => {
         <Box
             id="how-it-works"
             sx={{
-                background: tokens.black,
+                background: "#222222",
                 padding: "100px 0",
             }}
         >
@@ -416,11 +416,12 @@ export const Steps: FC = () => {
                                 {/* Step number */}
                                 <Text
                                     sx={{
-                                        color: tokens.muted,
+                                        color: tokens.accent,
                                         fontFamily: "monospace",
                                         fontSize: 13,
                                         letterSpacing: "0.05em",
                                         paddingTop: 4,
+                                        fontWeight: 700,
                                     }}
                                 >
                                     {String(index + 1).padStart(2, "0")}
@@ -459,13 +460,15 @@ export const Steps: FC = () => {
                     sx={{
                         alignItems: "center",
                         background: tokens.accent,
+                        borderRadius: 16,
                         display: "inline-flex",
                         gap: 24,
                         marginTop: 64,
-                        padding: "24px 32px",
+                        padding: "20px 32px",
+                        boxShadow: "0 8px 24px rgba(217, 75, 92, 0.25)"
                     }}
                 >
-                    <Text sx={{ color: tokens.black, fontSize: 13, fontWeight: 600, letterSpacing: "0.02em" }}>
+                    <Text sx={{ color: tokens.white, fontSize: 13, fontWeight: 600, letterSpacing: "0.02em" }}>
                         Total setup time: under 10 minutes
                     </Text>
                     <OutlineBtn filled href="/auth/signin" size="sm">
@@ -543,17 +546,19 @@ export const Features: FC = () => {
                                         <Box
                                             sx={{
                                                 "&:hover": {
+                                                    background: "rgba(217, 75, 92, 0.03)",
+                                                    paddingLeft: 12,
+                                                    borderRadius: 16,
                                                     "& .feature-title": {
-                                                        textDecoration: "underline",
-                                                        textDecorationColor: tokens.muted,
+                                                        color: tokens.accent,
                                                     },
                                                 },
                                                 alignItems: "start",
                                                 display: "grid",
                                                 gap: isMobile ? 16 : 40,
                                                 gridTemplateColumns: isMobile ? "1fr" : "40px 1fr 2fr",
-                                                padding: "36px 0",
-                                                transition: "background 0.2s ease",
+                                                padding: "36px 12px",
+                                                transition: "all 0.25s ease-in-out",
                                             }}
                                         >
                                             {/* Icon */}
@@ -687,9 +692,15 @@ export const SampleMenu: FC = () => {
                             <Box
                                 sx={{
                                     background: tokens.white,
-                                    border: `1px solid ${tokens.border}`,
+                                    border: `1.5px solid ${tokens.border}`,
+                                    borderRadius: 16,
+                                    boxShadow: "0 10px 30px rgba(217, 75, 92, 0.08)",
                                     display: "inline-block",
                                     padding: 32,
+                                    transition: "transform 0.3s ease",
+                                    "&:hover": {
+                                        transform: "scale(1.02)",
+                                    }
                                 }}
                             >
                                 <QRCode
@@ -794,21 +805,36 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                     </Text>
                 </Flex>
 
-                {/* Pricing grid — table-style, not card-style */}
-                <Grid gutter={1} sx={{ background: tokens.border }}>
+                {/* Pricing grid — premium separate cards */}
+                <Grid gutter={30}>
                     {/* Free */}
                     <Grid.Col md={6} sm={12}>
-                        <Box sx={{ background: tokens.white, height: "100%", padding: "48px 40px" }}>
+                        <Box
+                            sx={{
+                                background: tokens.white,
+                                height: "100%",
+                                padding: "48px 40px",
+                                borderRadius: 16,
+                                border: `1.5px solid ${tokens.border}`,
+                                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.02)",
+                                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                                "&:hover": {
+                                    transform: "translateY(-4px)",
+                                    boxShadow: "0 12px 32px rgba(217, 75, 92, 0.05)",
+                                }
+                            }}
+                        >
                             {/* Price header */}
                             <Box sx={{ marginBottom: 40 }}>
                                 <Text
                                     sx={{
-                                        color: tokens.muted,
+                                        color: tokens.accent,
                                         fontFamily: "monospace",
                                         fontSize: 11,
                                         letterSpacing: "0.1em",
                                         marginBottom: 16,
                                         textTransform: "uppercase",
+                                        fontWeight: 700,
                                     }}
                                 >
                                     {t("freeTier.label")}
@@ -860,6 +886,7 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                                                 fontFamily: "monospace",
                                                 fontSize: 11,
                                                 letterSpacing: "0.05em",
+                                                fontWeight: 600,
                                             }}
                                         >
                                             {value}
@@ -884,29 +911,40 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                                 height: "100%",
                                 padding: "48px 40px",
                                 position: "relative",
+                                borderRadius: 16,
+                                border: `1.5px solid ${tokens.black}`,
+                                boxShadow: "0 12px 32px rgba(217, 75, 92, 0.15)",
+                                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                                "&:hover": {
+                                    transform: "translateY(-4px)",
+                                    boxShadow: "0 16px 40px rgba(217, 75, 92, 0.22)",
+                                }
                             }}
                         >
                             {/* Accent strip */}
                             <Box
                                 sx={{
                                     background: tokens.accent,
-                                    height: 3,
+                                    height: 4,
                                     left: 0,
                                     position: "absolute",
                                     right: 0,
                                     top: 0,
+                                    borderTopLeftRadius: 12,
+                                    borderTopRightRadius: 12,
                                 }}
                             />
 
                             <Box sx={{ marginBottom: 40 }}>
                                 <Text
                                     sx={{
-                                        color: "#555550",
+                                        color: "rgba(255, 255, 255, 0.5)",
                                         fontFamily: "monospace",
                                         fontSize: 11,
                                         letterSpacing: "0.1em",
                                         marginBottom: 16,
                                         textTransform: "uppercase",
+                                        fontWeight: 700,
                                     }}
                                 >
                                     {t("enterpriseTier.label")}
@@ -925,7 +963,7 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                                 </Text>
                                 <Text
                                     sx={{
-                                        color: "#555550",
+                                        color: "rgba(255, 255, 255, 0.5)",
                                         fontFamily: "monospace",
                                         fontSize: 11,
                                         letterSpacing: "0.06em",
@@ -937,7 +975,7 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                                 </Text>
                             </Box>
 
-                            <Box sx={{ borderTop: "1px solid #1a1a1a" }} />
+                            <Box sx={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)" }} />
 
                             <Box sx={{ marginBottom: 40, marginTop: 24 }}>
                                 {enterpriseRows.map(([feature, value]) => (
@@ -946,17 +984,18 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                                         align="center"
                                         justify="space-between"
                                         sx={{
-                                            borderBottom: "1px solid #1a1a1a",
+                                            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
                                             padding: "12px 0",
                                         }}
                                     >
-                                        <Text sx={{ color: "#666660", fontSize: 13 }}>{feature}</Text>
+                                        <Text sx={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 13 }}>{feature}</Text>
                                         <Text
                                             sx={{
                                                 color: tokens.accent,
                                                 fontFamily: "monospace",
                                                 fontSize: 11,
                                                 letterSpacing: "0.05em",
+                                                fontWeight: 600,
                                             }}
                                         >
                                             {value}
@@ -968,26 +1007,30 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                             <button
                                 onClick={() => scrollToContactUs()}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.opacity = "0.85";
+                                    e.currentTarget.style.background = "#F16C7A";
+                                    e.currentTarget.style.transform = "translateY(-1px)";
+                                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(217, 75, 92, 0.2)";
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.opacity = "1";
+                                    e.currentTarget.style.background = tokens.accent;
+                                    e.currentTarget.style.transform = "none";
+                                    e.currentTarget.style.boxShadow = "none";
                                 }}
                                 style={{
                                     alignItems: "center",
                                     background: tokens.accent,
                                     border: `1.5px solid ${tokens.accent}`,
-                                    borderRadius: 0,
-                                    color: tokens.black,
+                                    borderRadius: 16,
+                                    color: tokens.white,
                                     cursor: "pointer",
                                     display: "inline-flex",
                                     fontFamily: "inherit",
                                     fontSize: 13,
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     gap: 8,
                                     letterSpacing: "0.01em",
-                                    padding: "11px 24px",
-                                    transition: "opacity 0.15s ease",
+                                    padding: "12px 28px",
+                                    transition: "all 0.2s ease-in-out",
                                 }}
                             >
                                 {t("enterpriseTier.contactUsButtonLabel")}
@@ -1059,15 +1102,17 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                 color: tokens.muted,
             },
             "&:focus": {
-                border: `1px solid ${tokens.black}`,
+                border: `1.5px solid ${tokens.accent}`,
+                boxShadow: `0 0 0 3px rgba(217, 75, 92, 0.15)`,
                 outline: "none",
             },
             background: tokens.white,
-            border: `1px solid ${tokens.border}`,
-            borderRadius: 0,
+            border: `1.5px solid ${tokens.border}`,
+            borderRadius: 16,
             color: tokens.black,
             fontSize: 14,
             height: 44,
+            transition: "all 0.2s ease-in-out",
         },
         label: {
             color: tokens.muted,
@@ -1199,11 +1244,25 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                             <Flex align="center" gap={16} justify="space-between" wrap="wrap">
                                 <button
                                     disabled={submittingContactUs}
+                                    onMouseEnter={(e) => {
+                                        if (!submittingContactUs) {
+                                            e.currentTarget.style.background = "#F16C7A";
+                                            e.currentTarget.style.transform = "translateY(-1px)";
+                                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(217, 75, 92, 0.2)";
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!submittingContactUs) {
+                                            e.currentTarget.style.background = tokens.accent;
+                                            e.currentTarget.style.transform = "none";
+                                            e.currentTarget.style.boxShadow = "none";
+                                        }
+                                    }}
                                     style={{
                                         alignItems: "center",
-                                        background: tokens.black,
-                                        border: `1.5px solid ${tokens.black}`,
-                                        borderRadius: 0,
+                                        background: tokens.accent,
+                                        border: `1.5px solid ${tokens.accent}`,
+                                        borderRadius: 16,
                                         color: tokens.white,
                                         cursor: submittingContactUs ? "not-allowed" : "pointer",
                                         display: "inline-flex",
@@ -1214,7 +1273,7 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                                         letterSpacing: "0.02em",
                                         opacity: submittingContactUs ? 0.6 : 1,
                                         padding: "12px 32px",
-                                        transition: "opacity 0.15s ease",
+                                        transition: "all 0.2s ease-in-out",
                                     }}
                                     type="submit"
                                 >

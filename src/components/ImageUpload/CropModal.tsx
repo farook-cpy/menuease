@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useCallback, useState } from "react";
 
-import { Box, Button, createStyles, Group, Slider, Stack, Text } from "@mantine/core";
+import { Box, Button, createStyles, Group, Slider, Stack, Text, SegmentedControl } from "@mantine/core";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import Cropper from "react-easy-crop";
@@ -20,6 +20,8 @@ interface Props extends ModalProps {
     imageUrl: string;
     /** Callback to be fired once cropping is complete */
     onCrop: (imageBlob: Blob) => void;
+    /** Whether to show selector for multiple aspect ratios */
+    showAspectSelector?: boolean;
 }
 
 const useStyles = createStyles((theme) => ({
@@ -35,12 +37,13 @@ const useStyles = createStyles((theme) => ({
 }));
 
 /** Modal to allow the user to zoom & crop the uploading image into appropriate aspect ratio */
-export const CropModal: FC<Props> = ({ imageUrl, onCrop, aspect = 1, onClose, ...rest }) => {
+export const CropModal: FC<Props> = ({ imageUrl, onCrop, aspect = 1, showAspectSelector = false, onClose, ...rest }) => {
     const { classes, theme } = useStyles();
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+    const [selectedAspect, setSelectedAspect] = useState<number>(16 / 9);
     const t = useTranslations("dashboard.imageUpload");
     const tCommon = useTranslations("common");
     const { mutate, isLoading: cropping } = useMutation(getCroppedImg, {
@@ -65,9 +68,25 @@ export const CropModal: FC<Props> = ({ imageUrl, onCrop, aspect = 1, onClose, ..
     return (
         <Modal centered loading={cropping} onClose={onClose} size="lg" title={t("cropModalTitle")} {...rest}>
             <Stack spacing="md">
+                {showAspectSelector && (
+                    <Box>
+                        <Text color={theme.black} mb="xs" size="sm" weight={500}>Image Aspect Ratio</Text>
+                        <SegmentedControl
+                            value={String(selectedAspect)}
+                            onChange={(val) => setSelectedAspect(Number(val))}
+                            data={[
+                                { label: "16:9 (Landscape)", value: String(16 / 9) },
+                                { label: "4:5 (Portrait)", value: String(4 / 5) },
+                                { label: "3:4 (Portrait)", value: String(3 / 4) },
+                                { label: "9:16 (Tall)", value: String(9 / 16) },
+                            ]}
+                            fullWidth
+                        />
+                    </Box>
+                )}
                 <Box className={classes.cropAreaWrap}>
                     <Cropper
-                        aspect={aspect}
+                        aspect={showAspectSelector ? selectedAspect : aspect}
                         classes={{ cropAreaClassName: classes.cropArea }}
                         crop={crop}
                         image={imageUrl}

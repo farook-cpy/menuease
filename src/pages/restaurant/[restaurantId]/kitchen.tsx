@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
     ActionIcon,
@@ -23,6 +23,7 @@ import {
 import {
     IconAlertCircle,
     IconArrowLeft,
+    IconBell,
     IconCheck,
     IconClock,
     IconTrash,
@@ -71,10 +72,28 @@ const KitchenScreenPage: NextPage = () => {
         }
     };
 
-    const { data: restaurant, isLoading: restaurantLoading } = api.restaurant.get.useQuery(
+    const { data: restaurant, isLoading: restaurantLoading } = api.restaurant.getDetails.useQuery(
         { id: restaurantId },
         { enabled: !!restaurantId }
     );
+
+    const menuItemMap = useMemo(() => {
+        const map = new Map<string, any>();
+        if (restaurant?.menus) {
+            restaurant.menus.forEach((menu: any) => {
+                if (menu.categories) {
+                    menu.categories.forEach((cat: any) => {
+                        if (cat.items) {
+                            cat.items.forEach((item: any) => {
+                                map.set(item.id, item);
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        return map;
+    }, [restaurant]);
 
     const { data: orders = [], isLoading: ordersLoading } = api.order.getByRestaurant.useQuery(
         { restaurantId },
@@ -84,6 +103,29 @@ const KitchenScreenPage: NextPage = () => {
             staleTime: 0,
         }
     );
+
+    const { data: waiterCalls = [], refetch: refetchCalls } = api.waiterCall.getByRestaurant.useQuery(
+        { restaurantId },
+        {
+            enabled: !!restaurantId,
+            refetchInterval: 5000, // Auto refresh every 5 seconds
+        }
+    );
+
+    const [knownCallIds, setKnownCallIds] = useState<Set<string>>(new Set());
+
+    const { mutate: resolveCall } = api.waiterCall.resolve.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to resolve call", err);
+        },
+        onSuccess: () => {
+            refetchCalls();
+        },
+    });
+
+    const handleResolveCall = (callId: string) => {
+        resolveCall({ id: callId, restaurantId });
+    };
 
     const { mutate: updateStatus } = api.order.updateStatus.useMutation({
         onError: (err: any) => {
@@ -136,6 +178,20 @@ const KitchenScreenPage: NextPage = () => {
             setKnownOrderIds(currentIds);
         }
     }, [orders, isMuted]);
+
+    // Detect new waiter calls and beep
+    useEffect(() => {
+        if (waiterCalls && waiterCalls.length > 0) {
+            const currentIds = new Set(waiterCalls.map((c: any) => c.id));
+            if (knownCallIds.size > 0) {
+                const hasNew = Array.from(currentIds).some((id) => !knownCallIds.has(id));
+                if (hasNew) {
+                    playNewOrderSound();
+                }
+            }
+            setKnownCallIds(currentIds);
+        }
+    }, [waiterCalls, isMuted]);
 
     const isLoading = restaurantLoading || ordersLoading;
 
@@ -266,23 +322,41 @@ const KitchenScreenPage: NextPage = () => {
 
                 {/* Items list */}
                 <Stack my="sm" spacing="xs">
-                    {parsedItems.map((item: any, idx: number) => (
-                        <Box key={idx}>
-                            <Group align="flex-start" noWrap position="apart">
-                                <Text color="dark.8" size="sm" sx={{ flex: 1 }} weight={700}>
-                                    {item.quantity} × {item.name}
-                                </Text>
-                                <Text color="gray.5" size="xs" weight={600}>
-                                    {item.price}
-                                </Text>
-                            </Group>
-                            {item.notes && (
-                                <Text color="red.6" italic mt={2} pl="md" size="xs">
-                                    - {item.notes}
-                                </Text>
-                            )}
-                        </Box>
-                    ))}
+                    {parsedItems.map((item: any, idx: number) => {
+                        const details = menuItemMap.get(item.id);
+                        return (
+                            <Box key={idx}>
+                                <Group align="flex-start" noWrap position="apart">
+                                    <Box sx={{ flex: 1 }}>
+                                        <Text color="dark.8" size="sm" weight={700}>
+                                            {item.quantity} × {item.name}
+                                        </Text>
+                                        {details?.description && (
+                                            <Text color="dimmed" size="xs" pl="xs" mt={2}>
+                                                {details.description}
+                                            </Text>
+                                        )}
+                                    </Box>
+                                    <Group spacing="xs">
+                                        {details?.isVeg === true && (
+                                            <Badge color="green" size="xs" variant="light">Veg</Badge>
+                                        )}
+                                        {details?.isVeg === false && (
+                                            <Badge color="red" size="xs" variant="light">Non-Veg</Badge>
+                                        )}
+                                        <Text color="gray.5" size="xs" weight={600}>
+                                            {item.price}
+                                        </Text>
+                                    </Group>
+                                </Group>
+                                {item.notes && (
+                                    <Text color="red.6" italic mt={2} pl="md" size="xs">
+                                        - {item.notes}
+                                    </Text>
+                                )}
+                            </Box>
+                        );
+                    })}
                 </Stack>
 
                 {/* General Special Instructions */}
@@ -386,6 +460,59 @@ const KitchenScreenPage: NextPage = () => {
                                 />
                             </Group>
                         </Group>
+
+                        {/* Waiter Calls Section */}
+                        {waiterCalls.length > 0 && (
+                            <Paper
+                                p="md"
+                                mb="lg"
+                                radius="md"
+                                sx={{
+                                    border: `1px solid ${theme.colors.orange[2]}`,
+                                    background: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.orange[0],
+                                }}
+                            >
+                                <Group mb="sm">
+                                    <IconBell color={theme.colors.orange[7]} size={20} />
+                                    <Title order={4} color="orange.9">Active Table Assistant Calls ({waiterCalls.length})</Title>
+                                </Group>
+                                <SimpleGrid
+                                    breakpoints={[
+                                        { cols: 4, minWidth: "lg" },
+                                        { cols: 2, minWidth: "sm" },
+                                        { cols: 1, minWidth: "xs" },
+                                    ]}
+                                    spacing="sm"
+                                >
+                                    {waiterCalls.map((call: any) => (
+                                        <Card key={call.id} p="sm" radius="md" withBorder shadow="xs">
+                                            <Group position="apart" align="center" noWrap>
+                                                <Stack spacing={2}>
+                                                    <Badge color="orange" size="xs" variant="filled">
+                                                        {call.table ? `TABLE ${call.table}` : "GENERAL"}
+                                                    </Badge>
+                                                    <Text size="sm" weight={700}>
+                                                        {call.requestType === "WATER" ? "💧 Need Water" : call.requestType === "BILL" ? "🧾 Need Bill" : "🔔 Need Waiter"}
+                                                    </Text>
+                                                    <Text size="xs" color="dimmed">
+                                                        {getElapsedTimeStr(call.createdAt)} ago
+                                                    </Text>
+                                                </Stack>
+                                                <Button
+                                                    color="green"
+                                                    compact
+                                                    onClick={() => handleResolveCall(call.id)}
+                                                    size="xs"
+                                                    variant="light"
+                                                >
+                                                    Dismiss
+                                                </Button>
+                                            </Group>
+                                        </Card>
+                                    ))}
+                                </SimpleGrid>
+                            </Paper>
+                        )}
 
                         {/* Kanban Columns */}
                         <Grid align="flex-start" gutter="md">

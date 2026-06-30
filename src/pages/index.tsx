@@ -1,6 +1,7 @@
 import { useScrollIntoView } from "@mantine/hooks";
 import { type NextPage } from "next";
 import { NextSeo } from "next-seo";
+import Head from "next/head";
 
 import { Footer } from "src/components/Footer";
 import { NavHeader } from "src/components/Header";
@@ -13,6 +14,11 @@ const LandingPage: NextPage = () => {
 
     return (
         <>
+            <Head>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+            </Head>
             <NextSeo
                 description="A digital menu generator that lets you to create the best menu for your restaurant. Foodler is packed with several features that will boost the online presence of your restaurant with ease"
                 title="Digital menu generator"

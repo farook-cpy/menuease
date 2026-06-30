@@ -42,9 +42,41 @@ model Restaurant {
     orders        Order[]  @relation("OrdersOfRestaurant")
     brandColor    String?
     logoUrl       String?
+    googleReviewUrl String?
+    festivalTheme    String  @default("NONE")
+    happyHourStart   String?
+    happyHourEnd     String?
+    happyHourDiscount Int     @default(0)
+    waiterCalls      WaiterCall[] @relation("WaiterCallsOfRestaurant")
+    customerLoyalties CustomerLoyalty[] @relation("CustomerLoyaltiesOfRestaurant")
 
     @@id([id, userId])
     @@index([isPublished])
+}
+
+model WaiterCall {
+    id           String     @id @default(cuid())
+    restaurantId String
+    restaurant   Restaurant @relation("WaiterCallsOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    table        String?
+    requestType  String     // WATER, BILL, WAITER
+    status       String     @default("PENDING") // PENDING, RESOLVED
+    createdAt    DateTime   @default(now())
+
+    @@index([restaurantId])
+}
+
+model CustomerLoyalty {
+    id           String     @id @default(cuid())
+    restaurantId String
+    restaurant   Restaurant @relation("CustomerLoyaltiesOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    phone        String
+    visitCount   Int        @default(1)
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
+
+    @@index([restaurantId])
+    @@index([phone])
 }
 
 model Order {
@@ -113,6 +145,8 @@ model MenuItem {
     images      Image[]   @relation("AdditionalImagesOfMenuItem")
     likes       Int       @default(0)
     dislikes    Int       @default(0)
+    isAvailable  Boolean   @default(true)
+    isTodaySpecial Boolean  @default(false)
 
     @@id([id, userId])
     @@index([categoryId])

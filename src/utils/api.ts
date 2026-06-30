@@ -1835,6 +1835,72 @@ export const api = {
                 );
             },
         },
+        updateAvailability: {
+            useMutation: <
+                TData = any,
+                TError = Error,
+                TVariables = { id: string; isAvailable: boolean }
+            >(
+                options?: any
+            ) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(
+                    async (input: any) => {
+                        const { data, error } = await supabase
+                            .from("MenuItem")
+                            .update({
+                                isAvailable: input.isAvailable,
+                                updatedAt: new Date().toISOString(),
+                            })
+                            .eq("id", input.id)
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["restaurantDetails"]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        },
+                    }
+                );
+            },
+        },
+        updateIsTodaySpecial: {
+            useMutation: <
+                TData = any,
+                TError = Error,
+                TVariables = { id: string; isTodaySpecial: boolean }
+            >(
+                options?: any
+            ) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(
+                    async (input: any) => {
+                        const { data, error } = await supabase
+                            .from("MenuItem")
+                            .update({
+                                isTodaySpecial: input.isTodaySpecial,
+                                updatedAt: new Date().toISOString(),
+                            })
+                            .eq("id", input.id)
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["restaurantDetails"]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        },
+                    }
+                );
+            },
+        },
     },
     order: {
         create: {
@@ -2142,6 +2208,12 @@ export const api = {
                     ownerUsername?: string;
                     ownerPassword?: string;
                     isOwnerDisabled?: boolean;
+                    currency?: string;
+                    isOrderFeatureEnabled?: boolean;
+                    whatsappNo?: string;
+                    isKitchenEnabled?: boolean;
+                    logoBase64?: string;
+                    logoUrl?: string;
                 }
             >(
                 options?: any
@@ -2155,6 +2227,12 @@ export const api = {
                         }
                         const restaurantId = nanoid(24);
                         const isSuper = await isSuperAdmin();
+
+                        let logoUrl = input.logoUrl || null;
+                        if (input.logoBase64) {
+                            const logoUpload = await uploadImage(input.logoBase64, `${restaurantId}/logo`);
+                            logoUrl = logoUpload.filePath;
+                        }
 
                         const [uploaded, blurHash, rawColor] = await Promise.all([
                             uploadImage(input.imageBase64, `${restaurantId}/profile`),
@@ -2181,10 +2259,14 @@ export const api = {
                             balance: 0.0,
                             contactNo: input.contactNo,
                             createdAt: new Date().toISOString(),
+                            currency: input.currency || "₹",
                             id: restaurantId,
                             imageId: imgId,
+                            isKitchenEnabled: input.isKitchenEnabled || false,
+                            isOrderFeatureEnabled: input.isOrderFeatureEnabled || false,
                             isPublished: false,
                             location: input.location,
+                            logoUrl,
                             name: input.name,
                             planName: "Free Trial",
                             subscriptionExpiresAt: trialEndsAt.toISOString(),
@@ -2192,6 +2274,7 @@ export const api = {
                             trialEndsAt: trialEndsAt.toISOString(),
                             updatedAt: new Date().toISOString(),
                             userId,
+                            whatsappNo: input.whatsappNo || null,
                         };
 
                         if (isSuper) {
@@ -2624,6 +2707,12 @@ export const api = {
                     ownerPassword?: string;
                     isOwnerDisabled?: boolean;
                     userId?: string;
+                    currency?: string;
+                    isOrderFeatureEnabled?: boolean;
+                    whatsappNo?: string;
+                    isKitchenEnabled?: boolean;
+                    logoBase64?: string;
+                    logoUrl?: string;
                 }
             >(
                 options?: any
@@ -2633,11 +2722,14 @@ export const api = {
                     async (input: any) => {
                         const userId = await getCurrentUserId();
                         if (userId.startsWith("restaurant:")) {
-                            throw new Error("Restaurant owners are not authorized to update restaurant settings");
+                            const ownerRestId = userId.replace("restaurant:", "");
+                            if (ownerRestId !== input.id) {
+                                throw new Error("Restaurant owners are not authorized to update other restaurants");
+                            }
                         }
                         const { data: current } = await supabase
                             .from("Restaurant")
-                            .select("imageId")
+                            .select("imageId, logoUrl")
                             .eq("id", input.id)
                             .single();
 
@@ -2676,13 +2768,39 @@ export const api = {
                             imageId = imgId;
                         }
 
+                        let logoUrl = input.logoUrl;
+                        // Delete old logo file if replaced
+                        if (input.logoBase64) {
+                            if (current?.logoUrl) {
+                                await deleteFile(current.logoUrl);
+                            }
+                            const logoUpload = await uploadImage(input.logoBase64, `${input.id}/logo`);
+                            logoUrl = logoUpload.filePath;
+                        } else if (input.logoUrl === "") {
+                            if (current?.logoUrl) {
+                                await deleteFile(current.logoUrl);
+                            }
+                            logoUrl = null;
+                        }
+
                         const isSuper = await isSuperAdmin();
                         const updateData: any = {
+                            brandColor: input.brandColor || null,
                             contactNo: input.contactNo,
+                            currency: input.currency || "₹",
+                            festivalTheme: input.festivalTheme || "NONE",
+                            googleReviewUrl: input.googleReviewUrl || null,
+                            happyHourDiscount: input.happyHourDiscount !== undefined ? parseInt(input.happyHourDiscount) : 0,
+                            happyHourEnd: input.happyHourEnd || null,
+                            happyHourStart: input.happyHourStart || null,
                             imageId,
+                            isKitchenEnabled: input.isKitchenEnabled || false,
+                            isOrderFeatureEnabled: input.isOrderFeatureEnabled || false,
                             location: input.location,
+                            logoUrl,
                             name: input.name,
                             updatedAt: new Date().toISOString(),
+                            whatsappNo: input.whatsappNo || null,
                         };
 
                         if (isSuper) {
@@ -2716,6 +2834,165 @@ export const api = {
             },
         },
     },
+    waiterCall: {
+        create: {
+            useMutation: <
+                TData = any,
+                TError = Error,
+                TVariables = {
+                    restaurantId: string;
+                    table: string | null;
+                    requestType: string;
+                }
+            >(
+                options?: any
+            ) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(
+                    async (input: any) => {
+                        const id = nanoid(24);
+                        const newCall = {
+                            createdAt: new Date().toISOString(),
+                            id,
+                            requestType: input.requestType,
+                            restaurantId: input.restaurantId,
+                            status: "PENDING",
+                            table: input.table || null,
+                        };
+                        const { data, error } = await supabase.from("WaiterCall").insert([newCall]).select().single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables: any, context) => {
+                            queryClient.invalidateQueries(["waiterCalls", variables.restaurantId]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        },
+                    }
+                );
+            },
+        },
+        getByRestaurant: {
+            useQuery: (input: { restaurantId: string }, options?: any) => {
+                return useQuery(
+                    ["waiterCalls", input.restaurantId],
+                    async () => {
+                        const { data, error } = await supabase
+                            .from("WaiterCall")
+                            .select("*")
+                            .eq("restaurantId", input.restaurantId)
+                            .eq("status", "PENDING")
+                            .order("createdAt", { ascending: true });
+                        if (error) throw error;
+                        return data || [];
+                    },
+                    options
+                );
+            },
+        },
+        resolve: {
+            useMutation: <
+                TData = any,
+                TError = Error,
+                TVariables = { id: string; restaurantId: string }
+            >(
+                options?: any
+            ) => {
+                const queryClient = useQueryClient();
+                return useMutation<TData, TError, TVariables>(
+                    async (input: any) => {
+                        const { data, error } = await supabase
+                            .from("WaiterCall")
+                            .update({ status: "RESOLVED" })
+                            .eq("id", input.id)
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables: any, context) => {
+                            queryClient.invalidateQueries(["waiterCalls", variables.restaurantId]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        },
+                    }
+                );
+            },
+        },
+    },
+    loyalty: {
+        registerVisit: {
+            useMutation: <
+                TData = any,
+                TError = Error,
+                TVariables = { restaurantId: string; phone: string }
+            >(
+                options?: any
+            ) => {
+                return useMutation<TData, TError, TVariables>(
+                    async (input: any) => {
+                        const { data: current, error: fetchErr } = await supabase
+                            .from("CustomerLoyalty")
+                            .select("*")
+                            .eq("restaurantId", input.restaurantId)
+                            .eq("phone", input.phone)
+                            .maybeSingle();
+
+                        if (fetchErr) throw fetchErr;
+
+                        if (current) {
+                            const { data, error } = await supabase
+                                .from("CustomerLoyalty")
+                                .update({
+                                    visitCount: current.visitCount + 1,
+                                    updatedAt: new Date().toISOString()
+                                })
+                                .eq("id", current.id)
+                                .select()
+                                .single();
+                            if (error) throw error;
+                            return data;
+                        } else {
+                            const id = nanoid(24);
+                            const newLoyalty = {
+                                createdAt: new Date().toISOString(),
+                                id,
+                                phone: input.phone,
+                                restaurantId: input.restaurantId,
+                                updatedAt: new Date().toISOString(),
+                                visitCount: 1,
+                            };
+                            const { data, error } = await supabase.from("CustomerLoyalty").insert([newLoyalty]).select().single();
+                            if (error) throw error;
+                            return data;
+                        }
+                    },
+                    options
+                );
+            },
+        },
+        getByPhone: {
+            useQuery: (input: { restaurantId: string; phone: string }, options?: any) => {
+                return useQuery(
+                    ["customerLoyalty", input.restaurantId, input.phone],
+                    async () => {
+                        if (!input.phone) return null;
+                        const { data, error } = await supabase
+                            .from("CustomerLoyalty")
+                            .select("*")
+                            .eq("restaurantId", input.restaurantId)
+                            .eq("phone", input.phone)
+                            .maybeSingle();
+                        if (error) throw error;
+                        return data || null;
+                    },
+                    options
+                );
+            },
+        },
+    },
     useContext: (): any => {
         const queryClient = useQueryClient();
 
@@ -2744,6 +3021,12 @@ export const api = {
             }
             if (domain === "order") {
                 if (method === "getByRestaurant") return ["orders", variables?.restaurantId || variables];
+            }
+            if (domain === "waiterCall") {
+                if (method === "getByRestaurant") return ["waiterCalls", variables?.restaurantId || variables];
+            }
+            if (domain === "loyalty") {
+                if (method === "getByPhone") return ["customerLoyalty", variables?.restaurantId || variables?.phone || variables];
             }
             return null;
         };

@@ -17,6 +17,7 @@
         "noUncheckedIndexedAccess": true,
         "baseUrl": ".",
         "paths": {
+            "@animateicons/react/lucide": ["node_modules/@animateicons/react/dist/lucide.d.ts"],
             "@prisma/client": ["src/types/prisma-mock.d.ts"]
         }
     },

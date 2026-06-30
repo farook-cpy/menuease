@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useState } from "react";
 
-import { ActionIcon, Box, createStyles, Grid, Text } from "@mantine/core";
+import { ActionIcon, Box, createStyles, Grid, Switch, Text } from "@mantine/core";
 import { IconEdit, IconGripVertical, IconMessage2, IconTrash } from "@tabler/icons";
 import { useTranslations } from "next-intl";
 import { Draggable } from "react-beautiful-dnd";
@@ -47,6 +47,7 @@ const useStyles = createStyles((theme) => ({
         textAlign: "center",
         verticalAlign: "center",
         width: 50,
+        flexShrink: 0,
     },
     itemDragging: { background: theme.colors.dark[1], boxShadow: theme.shadows.sm },
 }));
@@ -57,7 +58,7 @@ interface Props {
     /** Id of the menu to which the item belongs to  */
     menuId: string;
     /** Item which will be represented by the component */
-    menuItem: MenuItem & { image?: Image };
+    menuItem: MenuItem & { image?: Image; isAvailable?: boolean; isTodaySpecial?: boolean };
 }
 
 /** Individual menu item component with an option to edit or delete */
@@ -69,6 +70,39 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
     const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
     const t = useTranslations("dashboard.editMenu.menuItem");
     const tCommon = useTranslations("common");
+
+    const [isAvailable, setIsAvailable] = useState(menuItem.isAvailable !== false);
+    const [isTodaySpecial, setIsTodaySpecial] = useState(menuItem.isTodaySpecial === true);
+
+    const { mutate: toggleAvailability } = api.menuItem.updateAvailability.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to update availability", err);
+            setIsAvailable(!isAvailable);
+        },
+        onSuccess: () => {
+            showSuccessToast("Availability Updated", "Menu item status updated successfully.");
+        },
+    });
+
+    const { mutate: toggleSpecial } = api.menuItem.updateIsTodaySpecial.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to update special", err);
+            setIsTodaySpecial(!isTodaySpecial);
+        },
+        onSuccess: () => {
+            showSuccessToast("Special Updated", "Menu item special status updated successfully.");
+        },
+    });
+
+    const handleToggleAvailability = (checked: boolean) => {
+        setIsAvailable(checked);
+        toggleAvailability({ id: menuItem.id, isAvailable: checked });
+    };
+
+    const handleToggleSpecial = (checked: boolean) => {
+        setIsTodaySpecial(checked);
+        toggleSpecial({ id: menuItem.id, isTodaySpecial: checked });
+    };
 
     const { mutate: deleteMenuItem, isLoading: isDeleting } = api.menuItem.delete.useMutation({
         onError: (err: any) => showErrorToast(t("deleteMenuItemError"), err),
@@ -186,6 +220,21 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
                                 },
                             })}
                         >
+                            <Switch
+                                checked={isAvailable}
+                                label="Available"
+                                size="xs"
+                                color="green"
+                                onChange={(e) => handleToggleAvailability(e.currentTarget.checked)}
+                            />
+                            <Switch
+                                checked={isTodaySpecial}
+                                label="Today's Special"
+                                size="xs"
+                                color="orange"
+                                onChange={(e) => handleToggleSpecial(e.currentTarget.checked)}
+                                sx={{ marginRight: 10 }}
+                            />
                             <ActionIcon
                                 color="gray"
                                 onClick={() => setReviewsModalOpen(true)}

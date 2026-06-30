@@ -3,10 +3,9 @@ import { nanoid } from "nanoid";
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { uploadToCloudinary, uploadToImageKit } from "src/utils/mediaServer";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const config = {
     api: {
@@ -31,7 +30,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: "Unauthorized token" });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        },
+    });
     const {
         data: { user },
         error: authError,
@@ -61,26 +66,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let publicUrl = "";
         let fileId = "";
 
-        if (isVideo) {
-            // Upload to Cloudinary for videos
-            const result = await uploadToCloudinary(buffer, `menufic/${user.id}/${imageFolder}`);
-            publicUrl = result.url;
-            fileId = result.url; // Use URL as the fallback file ID
-        } else {
-            // Upload to ImageKit for images
-            const fileIdGen = nanoid(12);
-            let extension = "jpg";
+        const fileIdGen = nanoid(12);
+        let extension = isVideo ? "mp4" : "jpg";
+        if (!isVideo) {
             if (mimeType === "image/png") extension = "png";
             else if (mimeType === "image/gif") extension = "gif";
             else if (mimeType === "image/webp") extension = "webp";
-
-            const fileName = `${fileIdGen}.${extension}`;
-            const folderPath = `menufic/${user.id}/${imageFolder}`;
-
-            const result = await uploadToImageKit(buffer, fileName, folderPath);
-            publicUrl = result.url;
-            fileId = result.fileId; // Keep ImageKit's unique fileId
         }
+
+        const fileName = `${fileIdGen}.${extension}`;
+        const storagePath = `${user.id}/${imageFolder}/${fileName}`;
+
+        const { error: uploadErr } = await supabase.storage
+            .from("menufic")
+            .upload(storagePath, new Uint8Array(buffer), {
+                contentType: mimeType,
+                upsert: true,
+            });
+        if (uploadErr) throw uploadErr;
+
+        const { data: urlData } = supabase.storage.from("menufic").getPublicUrl(storagePath);
+        publicUrl = urlData.publicUrl;
+        fileId = storagePath;
 
         return res.status(200).json({ data: { fileId, url: publicUrl } });
     } catch (err: any) {

@@ -3,7 +3,6 @@ import { nanoid } from "nanoid";
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { uploadToImageKit } from "src/utils/mediaServer";
 
 // Use service role key server-side to bypass RLS, fallback to anon key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -39,11 +38,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (imageBase64) {
             try {
                 const buffer = Buffer.from(imageBase64.split(",")[1] || imageBase64, "base64");
-                const fileId = nanoid(12);
-                const filePath = `feedback/${menuItemId}/${fileId}.jpeg`;
                 const fileIdGen = nanoid(12);
-                const result = await uploadToImageKit(buffer, `${fileIdGen}.jpeg`, `feedback/${menuItemId}`);
-                imageUrl = result.url;
+                const storagePath = `feedback/${menuItemId}/${fileIdGen}.jpeg`;
+                
+                const { error: uploadErr } = await supabaseAdmin.storage
+                    .from("menufic")
+                    .upload(storagePath, new Uint8Array(buffer), {
+                        contentType: "image/jpeg",
+                        upsert: true,
+                    });
+                if (uploadErr) throw uploadErr;
+
+                const { data: urlData } = supabaseAdmin.storage.from("menufic").getPublicUrl(storagePath);
+                imageUrl = urlData.publicUrl;
             } catch (uploadErr) {
                 console.error("Error processing feedback image:", uploadErr);
             }

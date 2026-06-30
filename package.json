@@ -14,6 +14,7 @@
         "format-rest": "npx prettier --ignore-path .gitignore --write \"**/*.{css,md,json,yml}\" \"!package-lock.json\""
     },
     "dependencies": {
+        "@animateicons/react": "^0.3.4",
         "@aws-sdk/client-s3": "^3.1072.0",
         "@emotion/react": "^11.10.5",
         "@emotion/server": "^11.10.0",

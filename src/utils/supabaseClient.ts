@@ -96,7 +96,7 @@ export const rgba2hex = (rgb1: number, rgb2: number, rgb3: number) => {
     return `#${hex}`;
 };
 
-/** Uploads base64 image/video to ImageKit/Cloudinary via server-side API */
+/** Uploads base64 image/video to Supabase Storage via server-side API */
 export const uploadImage = async (imageBase64: string, imageFolder: string) => {
     const {
         data: { session },
@@ -118,7 +118,7 @@ export const uploadImage = async (imageBase64: string, imageFolder: string) => {
 
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to upload image/video to ImageKit/Cloudinary");
+        throw new Error(errData.error || "Failed to upload image/video to Supabase Storage");
     }
 
     const { data } = await response.json();

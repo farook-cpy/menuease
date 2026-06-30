@@ -189,7 +189,7 @@ const MenuItemDetailPage: NextPage = () => {
         onError: (err: any) => {
             showErrorToast("Failed to submit review", err);
         },
-        onSuccess: () => {
+        onSuccess: (data: any, variables: any) => {
             setReviewerName("");
             setComment("");
             setRating(5);
@@ -197,6 +197,17 @@ const MenuItemDetailPage: NextPage = () => {
             setReviewImageName("");
             showSuccessToast("Review Submitted", "Thank you for your feedback!");
             refetch();
+
+            if (variables.rating >= 4 && restaurant?.googleReviewUrl) {
+                setTimeout(() => {
+                    const proceed = window.confirm(
+                        "We're so glad you had a great experience! Would you mind taking a brief moment to leave us a Google review?"
+                    );
+                    if (proceed) {
+                        window.open(restaurant.googleReviewUrl, "_blank");
+                    }
+                }, 1000);
+            }
         },
     });
 
@@ -217,6 +228,30 @@ const MenuItemDetailPage: NextPage = () => {
         const total = feedbacks.reduce((acc: number, f: any) => acc + f.rating, 0);
         return (total / feedbacks.length).toFixed(1);
     }, [feedbacks]);
+
+    const mediaItems = useMemo(() => {
+        if (!menuItem) return [];
+        const items: { type: "video" | "image"; url?: string; path?: string; blurHash?: string; color?: string }[] = [];
+        
+        if (menuItem.videoUrl) {
+            items.push({ type: "video", url: menuItem.videoUrl });
+        }
+        
+        if (menuItem.image?.path) {
+            items.push({ type: "image", path: menuItem.image.path, blurHash: menuItem.image.blurHash, color: menuItem.image.color });
+        }
+        
+        if (menuItem.images && menuItem.images.length > 0) {
+            menuItem.images.forEach((img: any) => {
+                // Avoid duplicating the cover image if it's already in the images list
+                if (img.path !== menuItem.image?.path) {
+                    items.push({ type: "image", path: img.path, blurHash: img.blurHash, color: img.color });
+                }
+            });
+        }
+        
+        return items;
+    }, [menuItem]);
 
     const renderStars = (count: number, size = 16) => {
         return (
@@ -251,7 +286,7 @@ const MenuItemDetailPage: NextPage = () => {
                         <Text size="lg" weight={600}>
                             Item not found
                         </Text>
-                        <Link href={restaurantId ? `/restaurant/${restaurantId}/menu` : "/restaurant"} passHref>
+                        <Link href={restaurantId ? `/restaurant/${restaurantId}/menu` : "/"} passHref>
                             <Button color="gray" leftIcon={<IconArrowLeft size={16} />} variant="outline">
                                 Back to Menu
                             </Button>
@@ -285,93 +320,94 @@ const MenuItemDetailPage: NextPage = () => {
                         {/* Product Card */}
                         <Paper p="xl" radius="lg" shadow="sm" withBorder>
                             <Stack spacing="md">
-                                {menuItem.videoUrl && (
+                                {mediaItems.length > 0 && (
                                     <Box
                                         sx={{
-                                            borderRadius: theme.radius.md,
-                                            display: "flex",
-                                            justifyContent: "center",
-                                            marginBottom: 15,
-                                            overflow: "hidden",
-                                        }}
-                                    >
-                                        <video
-                                            autoPlay
-                                            controls
-                                            loop
-                                            muted
-                                            playsInline
-                                            src={menuItem.videoUrl}
-                                            style={{
-                                                borderRadius: "8px",
-                                                maxHeight: "350px",
-                                                objectFit: "cover",
-                                                width: "100%",
-                                            }}
-                                        />
-                                    </Box>
-                                )}
-
-                                {menuItem.images && menuItem.images.length > 1 ? (
-                                    <Box
-                                        sx={{
-                                            borderRadius: theme.radius.md,
+                                            borderRadius: 16,
                                             display: "flex",
                                             justifyContent: "center",
                                             overflow: "hidden",
                                             width: "100%",
                                         }}
                                     >
-                                        <Carousel
-                                            height={400}
-                                            loop
-                                            mx="auto"
-                                            style={{ width: "100%" }}
-                                            styles={{ indicator: { background: theme.white } }}
-                                            withIndicators
-                                        >
-                                            {menuItem.images.map((img: any, index: number) => (
-                                                <Carousel.Slide key={img.id}>
-                                                    <Box
-                                                        sx={{
-                                                            display: "flex",
-                                                            height: "100%",
-                                                            justifyContent: "center",
-                                                            width: "100%",
-                                                        }}
-                                                    >
-                                                        <ImageKitImage
-                                                            blurhash={img.blurHash}
-                                                            color={img.color}
-                                                            height={400}
-                                                            imageAlt={`${menuItem.name}-${index}`}
-                                                            imagePath={img.path}
-                                                            priority={index === 0}
-                                                            width={500}
-                                                        />
-                                                    </Box>
-                                                </Carousel.Slide>
-                                            ))}
-                                        </Carousel>
+                                        {mediaItems.length === 1 ? (
+                                            mediaItems[0]?.type === "video" ? (
+                                                <video
+                                                    autoPlay
+                                                    controls
+                                                    loop
+                                                    muted
+                                                    playsInline
+                                                    src={mediaItems[0]?.url || ""}
+                                                    style={{
+                                                        borderRadius: "16px",
+                                                        maxHeight: "350px",
+                                                        objectFit: "cover",
+                                                        width: "100%",
+                                                    }}
+                                                />
+                                            ) : (
+                                                <ImageKitImage
+                                                    blurhash={mediaItems[0]?.blurHash}
+                                                    color={mediaItems[0]?.color}
+                                                    height={400}
+                                                    imageAlt={menuItem.name}
+                                                    imagePath={mediaItems[0]?.path || ""}
+                                                    width={500}
+                                                />
+                                            )
+                                        ) : (
+                                            <Carousel
+                                                height={400}
+                                                loop
+                                                mx="auto"
+                                                style={{ width: "100%" }}
+                                                styles={{ indicator: { background: theme.white } }}
+                                                withIndicators
+                                            >
+                                                {mediaItems.map((item: any, index: number) => (
+                                                    <Carousel.Slide key={index}>
+                                                        <Box
+                                                            sx={{
+                                                                display: "flex",
+                                                                height: "100%",
+                                                                justifyContent: "center",
+                                                                width: "100%",
+                                                            }}
+                                                        >
+                                                            {item.type === "video" ? (
+                                                                <video
+                                                                    autoPlay
+                                                                    controls
+                                                                    loop
+                                                                    muted
+                                                                    playsInline
+                                                                    src={item.url || ""}
+                                                                    style={{
+                                                                        borderRadius: "16px",
+                                                                        height: "100%",
+                                                                        objectFit: "cover",
+                                                                        width: "100%",
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <ImageKitImage
+                                                                    blurhash={item.blurHash}
+                                                                    color={item.color}
+                                                                    height={400}
+                                                                    imageAlt={`${menuItem.name}-${index}`}
+                                                                    imagePath={item.path || ""}
+                                                                    priority={index === 0}
+                                                                    width={500}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    </Carousel.Slide>
+                                                ))}
+                                            </Carousel>
+                                        )}
                                     </Box>
-                                ) : menuItem.image?.path ? (
-                                    <Box
-                                        sx={{
-                                            borderRadius: theme.radius.md,
-                                            display: "flex",
-                                            justifyContent: "center",
-                                            overflow: "hidden",
-                                        }}
-                                    >
-                                        <ImageKitImage
-                                            blurhash={menuItem.image.blurHash}
-                                            height={400}
-                                            imageAlt={menuItem.name}
-                                            imagePath={menuItem.image.path}
-                                            width={500}
-                                        />
-                                    </Box>
-                                ) : null}
+                                )}
 
                                 <Stack mt="sm" spacing={4}>
                                     <Group align="center" spacing="md">

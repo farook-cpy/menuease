@@ -5,6 +5,7 @@ import { Box, Breadcrumbs, Button, Center, Group, Loader, SimpleGrid, Text, useM
 import {
     IconChartDots,
     IconClipboardList,
+    IconMessage2,
     IconQrcode,
     IconSlideshow,
     IconStars,
@@ -124,6 +125,12 @@ const RestaurantManagePage: NextPage = () => {
                                         href={`/restaurant/${router.query?.restaurantId}/stats`}
                                         subTitle={t("statsCardSubTitle")}
                                         title={t("statsCardTitle")}
+                                    />
+                                    <IconCard
+                                        Icon={IconMessage2}
+                                        href={`/restaurant/${router.query?.restaurantId}/billing`}
+                                        subTitle="Register customer visits and send bills via WhatsApp"
+                                        title="WhatsApp Billing & Loyalty"
                                     />
                                     {(restaurant as any).isKitchenEnabled && (
                                         <IconCard

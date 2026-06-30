@@ -2,8 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { deleteFromCloudinary, deleteFromImageKit, getCloudinaryPublicId } from "src/utils/mediaServer";
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -39,34 +37,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        if (path.startsWith("http")) {
-            if (path.includes("cloudinary.com")) {
-                // Cloudinary Video Deletion
-                const publicId = getCloudinaryPublicId(path);
-                if (publicId) {
-                    await deleteFromCloudinary(publicId);
-                }
-            } else {
-                // ImageKit Image Deletion
-                // Query Supabase to find the Image record by path (since we store ImageKit fileId in Image.id)
-                const { data: imgRecord } = await supabase.from("Image").select("id").eq("path", path).single();
+        let relativePath = path;
+        if (path.includes("supabase.co/storage/v1/object/public/menufic/")) {
+            relativePath = path.split("/public/menufic/")[1] || path;
+        }
 
-                if (imgRecord?.id) {
-                    await deleteFromImageKit(imgRecord.id);
-                } else {
-                    console.warn(`No DB record found for ImageKit path: ${path}. Attempting filename fallback.`);
-                    // Fallback: extract filename without extension and try to delete,
-                    // or just skip if we don't have the fileId.
-                }
-            }
-        } else {
-            // Delete from Supabase Storage (compatibility with old images)
-            const { error: deleteErr } = await supabase.storage.from("menufic").remove([path]);
+        const { error: deleteErr } = await supabase.storage.from("menufic").remove([relativePath]);
 
-            if (deleteErr) {
-                console.error("Supabase Storage deletion error:", deleteErr);
-                throw deleteErr;
-            }
+        if (deleteErr) {
+            console.error("Supabase Storage deletion error:", deleteErr);
+            throw deleteErr;
         }
 
         return res.status(200).json({ success: true });

@@ -31,6 +31,8 @@ interface Props {
     onImageDeleteClick: () => void;
     /** Width of the image */
     width: number;
+    /** Whether to show the selector for multiple aspect ratios */
+    showAspectSelector?: boolean;
 }
 
 /** Image dropzone component to allow users to upload image within forms */
@@ -44,6 +46,7 @@ export const ImageUpload: FC<Props> = ({
     disabled,
     onImageCrop,
     onImageDeleteClick,
+    showAspectSelector = false,
 }) => {
     const theme = useMantineTheme();
     const [imageCropModalOpen, setImageCropModalOpen] = useState(false);
@@ -144,6 +147,7 @@ export const ImageUpload: FC<Props> = ({
             </Box>
             <CropModal
                 aspect={width / height}
+                showAspectSelector={showAspectSelector}
                 imageUrl={newUploadedImageUrl}
                 onClose={() => setImageCropModalOpen(false)}
                 onCrop={onCropComplete}

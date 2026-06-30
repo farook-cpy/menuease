@@ -60,6 +60,11 @@ export const restaurantInput = z.object({
         .or(z.literal("")),
     userId: z.string().optional().or(z.literal("")),
     whatsappNo: z.string().optional().nullable(),
+    googleReviewUrl: z.string().optional().nullable(),
+    festivalTheme: z.string().optional().nullable(),
+    happyHourStart: z.string().optional().nullable(),
+    happyHourEnd: z.string().optional().nullable(),
+    happyHourDiscount: z.union([z.number(), z.string()]).optional().nullable(),
 });
 export const bannerInput = z.object({
     imageBase64: z.string().min(1, "Image is required"),

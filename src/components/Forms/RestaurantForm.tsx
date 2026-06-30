@@ -58,8 +58,14 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
 
     const { getInputProps, onSubmit, setValues, isDirty, resetDirty, values, errors } = useForm({
         initialValues: {
+            brandColor: (restaurant as any)?.brandColor || "#7048e8",
             contactNo: restaurant?.contactNo || "",
             currency: (restaurant as any)?.currency || "₹",
+            festivalTheme: (restaurant as any)?.festivalTheme || "NONE",
+            googleReviewUrl: (restaurant as any)?.googleReviewUrl || "",
+            happyHourDiscount: (restaurant as any)?.happyHourDiscount || 0,
+            happyHourEnd: (restaurant as any)?.happyHourEnd || "",
+            happyHourStart: (restaurant as any)?.happyHourStart || "",
             imageBase64: "",
             imagePath: restaurant?.image?.path || "",
             isKitchenEnabled: (restaurant as any)?.isKitchenEnabled || false,
@@ -80,8 +86,14 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
     useEffect(() => {
         if (opened) {
             const formValues = {
+                brandColor: (restaurant as any)?.brandColor || "#7048e8",
                 contactNo: restaurant?.contactNo || "",
                 currency: (restaurant as any)?.currency || "₹",
+                festivalTheme: (restaurant as any)?.festivalTheme || "NONE",
+                googleReviewUrl: (restaurant as any)?.googleReviewUrl || "",
+                happyHourDiscount: (restaurant as any)?.happyHourDiscount || 0,
+                happyHourEnd: (restaurant as any)?.happyHourEnd || "",
+                happyHourStart: (restaurant as any)?.happyHourStart || "",
                 imageBase64: "",
                 imagePath: restaurant?.image?.path || "",
                 isKitchenEnabled: (restaurant as any)?.isKitchenEnabled || false,
@@ -113,14 +125,14 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
         >
             <form
                 onSubmit={onSubmit((formValues) => {
-                    if (isDirty()) {
-                        if (restaurant) {
+                    if (restaurant) {
+                        if (isDirty()) {
                             updatedRestaurant({ ...formValues, id: restaurant?.id });
                         } else {
-                            createRestaurant(formValues);
+                            onClose();
                         }
                     } else {
-                        onClose();
+                        createRestaurant(formValues);
                     }
                 })}
             >
@@ -232,6 +244,55 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                         label="Enable Kitchen Screen (Table Orders display)"
                         {...getInputProps("isKitchenEnabled", { type: "checkbox" })}
                         mt="xs"
+                    />
+
+                    <TextInput
+                        disabled={loading}
+                        label="Google Review URL (Review Booster redirection link)"
+                        placeholder="https://g.page/r/your-restaurant/review"
+                        {...getInputProps("googleReviewUrl")}
+                    />
+
+                    <Select
+                        data={[
+                            { label: "None (Default)", value: "NONE" },
+                            { label: "Eid Al-Fitr / Eid Al-Adha 🌙", value: "EID" },
+                            { label: "Onam 🌾", value: "ONAM" },
+                            { label: "Christmas 🎄", value: "CHRISTMAS" },
+                            { label: "Ramadan 🕌", value: "RAMADAN" },
+                        ]}
+                        disabled={loading}
+                        label="Active Festival Theme (Themed Header Banner)"
+                        {...getInputProps("festivalTheme")}
+                    />
+
+                    <Group grow>
+                        <TextInput
+                            disabled={loading}
+                            label="Happy Hour Start Time (e.g. 15:00)"
+                            placeholder="15:00"
+                            {...getInputProps("happyHourStart")}
+                        />
+                        <TextInput
+                            disabled={loading}
+                            label="Happy Hour End Time (e.g. 18:00)"
+                            placeholder="18:00"
+                            {...getInputProps("happyHourEnd")}
+                        />
+                    </Group>
+                    <TextInput
+                        disabled={loading}
+                        label="Happy Hour Discount Rate (%)"
+                        placeholder="20"
+                        type="number"
+                        {...getInputProps("happyHourDiscount")}
+                    />
+
+                    <TextInput
+                        disabled={loading}
+                        label="Brand Accent Color (HEX code)"
+                        placeholder="#7048e8"
+                        {...getInputProps("brandColor")}
                     />
 
                     <Text mb={-10} size="sm" weight={500}>

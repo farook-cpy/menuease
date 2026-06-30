@@ -2,7 +2,7 @@ import type { FC } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ActionIcon, Badge, Box, Button, createStyles, Group, Paper, Stack, Text } from "@mantine/core";
-import { IconThumbDown, IconThumbUp } from "@tabler/icons";
+import { ThumbsDownIcon, ThumbsUpIcon } from "@animateicons/react/lucide";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -15,9 +15,10 @@ import { ImageKitImage } from "../ImageKitImage";
 
 export interface StyleProps {
     imageColor?: string;
+    isOutOfStock?: boolean;
 }
 
-const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
+const useStyles = createStyles((theme, { imageColor, isOutOfStock }: StyleProps, getRef) => {
     const image = getRef("image");
 
     const bgColor = useMemo(() => {
@@ -41,7 +42,7 @@ const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
             width: 150,
         },
         cardItem: {
-            "&:hover": {
+            "&:hover": isOutOfStock ? {} : {
                 backgroundColor:
                     theme.colorScheme === "light" ? theme.fn.darken(bgColor, 0.05) : theme.fn.lighten(bgColor, 0.05),
                 boxShadow: theme.shadows.xs,
@@ -49,12 +50,14 @@ const useStyles = createStyles((theme, { imageColor }: StyleProps, getRef) => {
             backgroundColor: bgColor,
             border: `1px solid ${theme.colors.dark[3]}`,
             color: theme.colors.dark[8],
-            cursor: "pointer",
+            cursor: isOutOfStock ? "not-allowed" : "pointer",
             display: "flex",
             overflow: "hidden",
             padding: "0 !important",
             transition: "all 500ms ease",
-            [`&:hover .${image}`]: { transform: "scale(1.05)" },
+            opacity: isOutOfStock ? 0.6 : 1,
+            filter: isOutOfStock ? "grayscale(0.7)" : "none",
+            [`&:hover .${image}`]: isOutOfStock ? {} : { transform: "scale(1.05)" },
         },
         cardItemDesc: { WebkitLineClamp: 3 },
         cardItemTitle: { WebkitLineClamp: 1 },
@@ -77,7 +80,8 @@ interface Props {
 
 /** Display each menu item as a card in the full restaurant menu */
 export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
-    const { classes, cx } = useStyles({ imageColor: item?.image?.color });
+    const isOutOfStock = item.isAvailable === false;
+    const { classes, cx } = useStyles({ imageColor: item?.image?.color, isOutOfStock });
     const router = useRouter();
     const restaurantId = router.query?.restaurantId as string;
     const { addToPlate } = usePlate();
@@ -152,19 +156,20 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
         }
     };
 
-    const handleClick = () => {
-        // Analytics are tracked on the item detail page when it loads
+    const handleClick = (e: React.MouseEvent) => {
+        if (isOutOfStock) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     };
 
     const itemUrl = `/restaurant/${restaurantId}/item/${item.id}`;
 
     return (
         <Link
-            href={itemUrl}
+            href={isOutOfStock ? "#" : itemUrl}
             passHref
-            rel="noopener noreferrer"
-            style={{ color: "inherit", display: "block", textDecoration: "none" }}
-            target="_blank"
+            style={{ color: "inherit", display: "block", textDecoration: isOutOfStock ? "none" : undefined, cursor: isOutOfStock ? "not-allowed" : "pointer" }}
         >
             <Paper className={classes.cardItem} data-testid="menu-item-card" h={150} onClick={handleClick}>
                 {item?.image?.path && (
@@ -192,6 +197,11 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                         >
                             {item.name}
                         </Text>
+                        {isOutOfStock && (
+                            <Badge color="gray" size="xs" sx={{ minWidth: "fit-content" }} variant="filled">
+                                Out of Stock
+                            </Badge>
+                        )}
                         {item.isVeg === true && (
                             <Badge color="green" size="xs" sx={{ minWidth: "fit-content" }} variant="light">
                                 Veg
@@ -211,6 +221,7 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                             <Group spacing={6}>
                                 <Group spacing={2}>
                                     <ActionIcon
+                                        disabled={isOutOfStock}
                                         size="xs"
                                         variant={reaction === "like" ? "filled" : "subtle"}
                                         color={reaction === "like" ? "blue" : "gray"}
@@ -220,12 +231,13 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                                             color: reaction === "like" ? "#228be6 !important" : "gray",
                                         }}
                                     >
-                                        <IconThumbUp size={12} />
+                                        <ThumbsUpIcon size={12} />
                                     </ActionIcon>
                                     <Text size="xs" color="dimmed">{item.likes || 0}</Text>
                                 </Group>
                                 <Group spacing={2}>
                                     <ActionIcon
+                                        disabled={isOutOfStock}
                                         size="xs"
                                         variant={reaction === "dislike" ? "filled" : "subtle"}
                                         color={reaction === "dislike" ? "red" : "gray"}
@@ -235,7 +247,7 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                                             color: reaction === "dislike" ? "#fa5252 !important" : "gray",
                                         }}
                                     >
-                                        <IconThumbDown size={12} />
+                                        <ThumbsDownIcon size={12} />
                                     </ActionIcon>
                                     <Text size="xs" color="dimmed">{item.dislikes || 0}</Text>
                                 </Group>
@@ -243,10 +255,12 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                         </Group>
                         {isOrderFeatureEnabled && (
                             <Button
-                                color="primary"
+                                color={isOutOfStock ? "gray" : "primary"}
+                                disabled={isOutOfStock}
                                 onClick={(e: React.MouseEvent) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    if (isOutOfStock) return;
                                     addToPlate({
                                         id: item.id,
                                         isVeg: item.isVeg,
@@ -259,7 +273,7 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                                 sx={{ fontSize: 11, height: 26, paddingLeft: 10, paddingRight: 10 }}
                                 variant="light"
                             >
-                                Add +
+                                {isOutOfStock ? "Sold Out" : "Add +"}
                             </Button>
                         )}
                     </Group>
