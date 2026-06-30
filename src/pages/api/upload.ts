@@ -1,7 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { uploadToImageKit, uploadToCloudinary } from "src/utils/mediaServer";
 import { nanoid } from "nanoid";
+
+import type { NextApiRequest, NextApiResponse } from "next";
+
+import { uploadToCloudinary, uploadToImageKit } from "src/utils/mediaServer";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -30,7 +32,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+        data: { user },
+        error: authError,
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
         return res.status(401).json({ error: "Unauthorized session" });
@@ -52,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const buffer = Buffer.from(base64Data, "base64");
 
         const isVideo = mimeType.startsWith("video/");
-        
+
         let publicUrl = "";
         let fileId = "";
 
@@ -68,16 +73,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (mimeType === "image/png") extension = "png";
             else if (mimeType === "image/gif") extension = "gif";
             else if (mimeType === "image/webp") extension = "webp";
-            
+
             const fileName = `${fileIdGen}.${extension}`;
             const folderPath = `menufic/${user.id}/${imageFolder}`;
-            
+
             const result = await uploadToImageKit(buffer, fileName, folderPath);
             publicUrl = result.url;
             fileId = result.fileId; // Keep ImageKit's unique fileId
         }
 
-        return res.status(200).json({ data: { url: publicUrl, fileId } });
+        return res.status(200).json({ data: { fileId, url: publicUrl } });
     } catch (err: any) {
         console.error("Upload endpoint error:", err);
         return res.status(500).json({ error: err.message || "Upload failed" });

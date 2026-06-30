@@ -40,9 +40,9 @@ export const MenuElement: FC<Props> = ({ item, selectedMenu, restaurantId, setSe
         onError: (err: any) => showErrorToast(t("deleteMenuError"), err),
         onSettled: () => setDeleteMenuModalOpen(false),
         onSuccess: (data: any) => {
-            const filteredMenuData = (trpcCtx.menu.getAll
-                .getData({ restaurantId }) as any[] | undefined)
-                ?.filter((menuItem: any) => menuItem.id !== data.id);
+            const filteredMenuData = (trpcCtx.menu.getAll.getData({ restaurantId }) as any[] | undefined)?.filter(
+                (menuItem: any) => menuItem.id !== data.id
+            );
             trpcCtx.menu.getAll.setData({ restaurantId }, filteredMenuData);
 
             if (data.id === selectedMenu?.id && filteredMenuData) {

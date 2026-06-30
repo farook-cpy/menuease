@@ -1,14 +1,17 @@
 import type { FC } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Box, createStyles, Paper, Stack, Text, Badge, Group, Button } from "@mantine/core";
+import { ActionIcon, Badge, Box, Button, createStyles, Group, Paper, Stack, Text } from "@mantine/core";
+import { IconThumbDown, IconThumbUp } from "@tabler/icons";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 import type { Image, MenuItem } from "@prisma/client";
 
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { ImageKitImage } from "../ImageKitImage";
+import { api } from "src/utils/api";
 import { usePlate } from "src/utils/plateContext";
+
+import { ImageKitImage } from "../ImageKitImage";
 
 export interface StyleProps {
     imageColor?: string;
@@ -79,6 +82,76 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
     const restaurantId = router.query?.restaurantId as string;
     const { addToPlate } = usePlate();
 
+    const [reaction, setReaction] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setReaction(localStorage.getItem(`menuease_reaction_${item.id}`));
+        }
+    }, [item.id]);
+
+    const { mutate: updateLikes } = api.menuItem.updateLikes.useMutation();
+
+    const handleLike = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let likesDelta = 0;
+        let dislikesDelta = 0;
+        let newReaction: string | null = null;
+
+        if (reaction === "like") {
+            likesDelta = -1;
+            newReaction = null;
+        } else {
+            likesDelta = 1;
+            if (reaction === "dislike") {
+                dislikesDelta = -1;
+            }
+            newReaction = "like";
+        }
+
+        updateLikes({ dislikesDelta, id: item.id, likesDelta });
+        setReaction(newReaction);
+        if (typeof window !== "undefined") {
+            if (newReaction) {
+                localStorage.setItem(`menuease_reaction_${item.id}`, newReaction);
+            } else {
+                localStorage.removeItem(`menuease_reaction_${item.id}`);
+            }
+        }
+    };
+
+    const handleDislike = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let likesDelta = 0;
+        let dislikesDelta = 0;
+        let newReaction: string | null = null;
+
+        if (reaction === "dislike") {
+            dislikesDelta = -1;
+            newReaction = null;
+        } else {
+            dislikesDelta = 1;
+            if (reaction === "like") {
+                likesDelta = -1;
+            }
+            newReaction = "dislike";
+        }
+
+        updateLikes({ dislikesDelta, id: item.id, likesDelta });
+        setReaction(newReaction);
+        if (typeof window !== "undefined") {
+            if (newReaction) {
+                localStorage.setItem(`menuease_reaction_${item.id}`, newReaction);
+            } else {
+                localStorage.removeItem(`menuease_reaction_${item.id}`);
+            }
+        }
+    };
+
     const handleClick = () => {
         // Analytics are tracked on the item detail page when it loads
     };
@@ -89,16 +162,11 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
         <Link
             href={itemUrl}
             passHref
-            target="_blank"
             rel="noopener noreferrer"
-            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+            style={{ color: "inherit", display: "block", textDecoration: "none" }}
+            target="_blank"
         >
-            <Paper
-                className={classes.cardItem}
-                data-testid="menu-item-card"
-                h={150}
-                onClick={handleClick}
-            >
+            <Paper className={classes.cardItem} data-testid="menu-item-card" h={150} onClick={handleClick}>
                 {item?.image?.path && (
                     <Box className={classes.cardImageWrap}>
                         <Box className={classes.cardImage}>
@@ -115,38 +183,81 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                 )}
 
                 <Stack className={classes.cardDescWrap} spacing={4}>
-                    <Group position="apart" align="center" noWrap style={{ width: '100%' }}>
-                        <Text className={cx(classes.cardText, classes.cardItemTitle)} size="lg" weight={700} sx={{ flex: 1 }}>
+                    <Group align="center" noWrap position="apart" style={{ width: "100%" }}>
+                        <Text
+                            className={cx(classes.cardText, classes.cardItemTitle)}
+                            size="lg"
+                            sx={{ flex: 1 }}
+                            weight={700}
+                        >
                             {item.name}
                         </Text>
                         {item.isVeg === true && (
-                            <Badge color="green" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Veg</Badge>
+                            <Badge color="green" size="xs" sx={{ minWidth: "fit-content" }} variant="light">
+                                Veg
+                            </Badge>
                         )}
                         {item.isVeg === false && (
-                            <Badge color="red" variant="light" size="xs" sx={{ minWidth: 'fit-content' }}>Non-Veg</Badge>
+                            <Badge color="red" size="xs" sx={{ minWidth: "fit-content" }} variant="light">
+                                Non-Veg
+                            </Badge>
                         )}
                     </Group>
-                    <Group position="apart" align="center" noWrap style={{ width: '100%' }} mt={2}>
-                        <Text color="red" size="sm" weight={600}>
-                            {item.price}
-                        </Text>
+                    <Group align="center" mt={2} noWrap position="apart" style={{ width: "100%" }}>
+                        <Group spacing="xs">
+                            <Text color="red" size="sm" weight={600}>
+                                {item.price}
+                            </Text>
+                            <Group spacing={6}>
+                                <Group spacing={2}>
+                                    <ActionIcon
+                                        size="xs"
+                                        variant={reaction === "like" ? "filled" : "subtle"}
+                                        color={reaction === "like" ? "blue" : "gray"}
+                                        onClick={handleLike}
+                                        sx={{
+                                            backgroundColor: reaction === "like" ? "rgba(34, 139, 230, 0.15) !important" : "transparent",
+                                            color: reaction === "like" ? "#228be6 !important" : "gray",
+                                        }}
+                                    >
+                                        <IconThumbUp size={12} />
+                                    </ActionIcon>
+                                    <Text size="xs" color="dimmed">{item.likes || 0}</Text>
+                                </Group>
+                                <Group spacing={2}>
+                                    <ActionIcon
+                                        size="xs"
+                                        variant={reaction === "dislike" ? "filled" : "subtle"}
+                                        color={reaction === "dislike" ? "red" : "gray"}
+                                        onClick={handleDislike}
+                                        sx={{
+                                            backgroundColor: reaction === "dislike" ? "rgba(250, 82, 82, 0.15) !important" : "transparent",
+                                            color: reaction === "dislike" ? "#fa5252 !important" : "gray",
+                                        }}
+                                    >
+                                        <IconThumbDown size={12} />
+                                    </ActionIcon>
+                                    <Text size="xs" color="dimmed">{item.dislikes || 0}</Text>
+                                </Group>
+                            </Group>
+                        </Group>
                         {isOrderFeatureEnabled && (
                             <Button
-                                size="xs"
-                                variant="light"
                                 color="primary"
-                                radius="md"
                                 onClick={(e: React.MouseEvent) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     addToPlate({
                                         id: item.id,
+                                        isVeg: item.isVeg,
                                         name: item.name,
                                         price: item.price,
-                                        isVeg: item.isVeg,
                                     });
                                 }}
-                                sx={{ height: 26, fontSize: 11, paddingLeft: 10, paddingRight: 10 }}
+                                radius="md"
+                                size="xs"
+                                sx={{ fontSize: 11, height: 26, paddingLeft: 10, paddingRight: 10 }}
+                                variant="light"
                             >
                                 Add +
                             </Button>

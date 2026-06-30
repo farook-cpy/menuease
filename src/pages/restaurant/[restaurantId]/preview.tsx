@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Alert, Container, Text, useMantineTheme, Center, Loader } from "@mantine/core";
+
+import { Alert, Center, Container, Loader, Text, useMantineTheme } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";

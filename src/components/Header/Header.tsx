@@ -21,9 +21,9 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconEyeglass2, IconHome, IconLogin, IconLogout, IconPizza } from "@tabler/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { signOut, useSession, exitImpersonation } from "src/utils/supabaseAuth";
 import { useTranslations } from "next-intl";
 
+import { exitImpersonation, signOut, useSession } from "src/utils/supabaseAuth";
 
 import { Logo } from "../Logo";
 
@@ -191,8 +191,8 @@ export const NavHeader: FC<Props> = ({
                                     <Button
                                         color="primary"
                                         onClick={() => exitImpersonation()}
-                                        variant="outline"
                                         size="xs"
+                                        variant="outline"
                                     >
                                         Exit Impersonation
                                     </Button>

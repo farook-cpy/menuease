@@ -1,7 +1,16 @@
 import type { FC } from "react";
 
 import { ActionIcon, Loader, Menu, useMantineTheme } from "@mantine/core";
-import { IconDotsVertical, IconEdit, IconTrash, IconCopy, IconBan, IconCircleCheck, IconUser } from "@tabler/icons";
+import {
+    IconBan,
+    IconCircleCheck,
+    IconCopy,
+    IconDotsVertical,
+    IconEdit,
+    IconSettings,
+    IconTrash,
+    IconUser,
+} from "@tabler/icons";
 import { useTranslations } from "next-intl";
 
 export interface EditDeleteOptionsProps {
@@ -15,6 +24,8 @@ export interface EditDeleteOptionsProps {
     onDeleteClick?: () => void;
     /** Event handler when edit option is clicked in the menu */
     onEditClick?: () => void;
+    /** Event handler when settings option is clicked in the menu */
+    onSettingsClick?: () => void;
     /** Event handler when clone option is clicked in the menu */
     onCloneClick?: () => void;
     /** Event handler when impersonate option is clicked in the menu */
@@ -29,6 +40,7 @@ export interface EditDeleteOptionsProps {
 export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
     loading,
     onEditClick,
+    onSettingsClick,
     onDeleteClick,
     onCloneClick,
     onImpersonateClick,
@@ -39,6 +51,17 @@ export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
 }) => {
     const theme = useMantineTheme();
     const t = useTranslations("common");
+
+    console.log("EditDeleteOptions render props:", {
+        loading,
+        onEditClick: !!onEditClick,
+        onSettingsClick: !!onSettingsClick,
+        onDeleteClick: !!onDeleteClick,
+        onCloneClick: !!onCloneClick,
+        onImpersonateClick: !!onImpersonateClick,
+        isSuspended,
+        onSuspendClick: !!onSuspendClick,
+    });
 
     if (loading) {
         return <Loader size="sm" variant="oval" />;
@@ -64,6 +87,19 @@ export const EditDeleteOptions: FC<EditDeleteOptionsProps> = ({
                 </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+                {onSettingsClick && (
+                    <Menu.Item
+                        color={theme.black}
+                        icon={<IconSettings size={14} />}
+                        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            onSettingsClick();
+                        }}
+                    >
+                        Settings
+                    </Menu.Item>
+                )}
                 {onEditClick && (
                     <Menu.Item
                         color={theme.black}

@@ -1,44 +1,45 @@
 import type { FC } from "react";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
     ActionIcon,
+    Avatar,
+    Badge,
     Box,
+    Button,
     createStyles,
+    Divider,
+    Drawer,
     Flex,
+    Group,
     MediaQuery,
+    Paper,
     SimpleGrid,
     Stack,
     Tabs,
     Text,
-    Drawer,
-    Button,
     Textarea,
     TextInput,
-    Divider,
-    Group,
-    Badge,
-    Paper,
     Title,
 } from "@mantine/core";
-import { IconMapPin, IconPhone, IconBrandWhatsapp, IconTrash, IconShoppingCart, IconQrcode } from "@tabler/icons";
-import { useTranslations } from "next-intl";
+import { IconBrandWhatsapp, IconMapPin, IconPhone, IconQrcode, IconShoppingCart, IconTrash } from "@tabler/icons";
 import dynamic from "next/dynamic";
-import { usePlate, parsePrice, formatPrice } from "src/utils/plateContext";
-import { api } from "src/utils/api";
-
-const BannerCarousel = dynamic(() => import("./BannerCarousel").then((mod) => mod.BannerCarousel), {
-    ssr: false,
-});
+import { useTranslations } from "next-intl";
 
 import type { Category, Image, Menu, MenuItem, Restaurant } from "@prisma/client";
 
 import { Black, White } from "src/styles/theme";
+import { api } from "src/utils/api";
+import { formatPrice, parsePrice, usePlate } from "src/utils/plateContext";
 
 import { MenuItemCard } from "./MenuItemCard";
 import { Empty } from "../Empty";
 import { ImageKitImage } from "../ImageKitImage";
+
+const BannerCarousel = dynamic(() => import("./BannerCarousel").then((mod) => mod.BannerCarousel), {
+    ssr: false,
+});
 
 const useStyles = createStyles((theme) => ({
     carousalOverlay: {
@@ -167,7 +168,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             msg += `----------------------------------\n`;
         }
         msg += `*Order Details:*\n`;
-        
+
         plateItems.forEach((item) => {
             const { number, currency } = parsePrice(item.price);
             const subtotal = number * item.quantity;
@@ -177,17 +178,17 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             }
             msg += `  - Subtotal: ${formatPrice(subtotal, currency)}\n`;
         });
-        
+
         msg += `----------------------------------\n`;
         msg += `*Total Items:* ${getPlateCount()}\n`;
         msg += `*Total Price:* ${getPlateTotal()}\n`;
         msg += `----------------------------------\n`;
-        
+
         if (generalNotes.trim()) {
             msg += `*Special Instructions / Address:*\n${generalNotes.trim()}\n`;
             msg += `----------------------------------\n`;
         }
-        
+
         msg += `Thank you!`;
         return encodeURIComponent(msg);
     };
@@ -207,7 +208,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
 
     const haveMenuItems = menuDetails?.categories?.some((category) => category?.items?.length > 0);
 
-    return (
+    const menuContent = (
         <Box mih="calc(100vh - 100px)">
             <Box pos="relative">
                 {images.length > 1 ? (
@@ -220,15 +221,26 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                             height={400}
                             imageAlt={`${restaurant.name}-banner`}
                             imagePath={images[0]?.path}
+                            priority
                             width={1000}
-                            priority={true}
                         />
                         <Box className={classes.carousalOverlay} />
                     </Box>
                 ) : null}
                 <MediaQuery smallerThan="xs" styles={{ display: "none" }}>
                     <Box className={classes.carousalTitle}>
-                        <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
+                        <Group align="center" mb="xs" spacing="md">
+                            {(restaurant as any).logoUrl && (
+                                <Avatar
+                                    alt={`${restaurant.name} logo`}
+                                    radius="xl"
+                                    size="lg"
+                                    src={(restaurant as any).logoUrl}
+                                    styles={{ root: { border: `2px solid ${White}`, boxShadow: theme.shadows.md } }}
+                                />
+                            )}
+                            <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
+                        </Group>
                         <Box className={classes.carousalSubWrap}>
                             <Flex align="center" gap={10}>
                                 <IconMapPin />
@@ -257,7 +269,18 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
 
             <MediaQuery largerThan="xs" styles={{ display: "none" }}>
                 <Stack className={classes.mobileTitleWrap}>
-                    <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
+                    <Group align="center" spacing="sm">
+                        {(restaurant as any).logoUrl && (
+                            <Avatar
+                                alt={`${restaurant.name} logo`}
+                                radius="xl"
+                                size="md"
+                                src={(restaurant as any).logoUrl}
+                                styles={{ root: { border: `1px solid ${theme.colors.gray[3]}` } }}
+                            />
+                        )}
+                        <Text className={classes.carousalTitleText}>{restaurant?.name}</Text>
+                    </Group>
                     <Flex align="center" gap={10} opacity={0.6}>
                         <IconMapPin />
                         <a
@@ -311,7 +334,11 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                 mb={30}
                             >
                                 {category.items?.map((item) => (
-                                    <MenuItemCard key={item.id} item={item} isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled} />
+                                    <MenuItemCard
+                                        key={item.id}
+                                        isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled}
+                                        item={item}
+                                    />
                                 ))}
                             </SimpleGrid>
                         </Box>
@@ -326,43 +353,53 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             {(restaurant as any).isOrderFeatureEnabled && getPlateCount() > 0 && (
                 <Box
                     sx={{
-                        position: "fixed",
-                        bottom: 30,
-                        right: 30,
-                        zIndex: 99,
-                        '@media (max-width: 768px)': {
+                        "@media (max-width: 768px)": {
+                            bottom: 20,
                             left: 20,
                             right: 20,
-                            bottom: 20,
-                        }
+                        },
+                        bottom: 30,
+                        position: "fixed",
+                        right: 30,
+                        zIndex: 99,
                     }}
                 >
                     <Button
-                        size="lg"
                         color="primary"
-                        radius="xl"
                         fullWidth
                         leftIcon={<IconShoppingCart size={20} />}
                         onClick={() => setDrawerOpened(true)}
+                        radius="xl"
+                        size="lg"
                         styles={(theme) => ({
                             root: {
+                                "&:hover": {
+                                    transform: "scale(1.03)",
+                                },
+                                backdropFilter: "blur(4px)",
+                                boxShadow: `0 8px 32px ${theme.fn.rgba(theme.colors.primary[6], 0.3)}`,
                                 height: 50,
-                                boxShadow: '0 8px 32px ' + theme.fn.rgba(theme.colors.primary[6], 0.3),
-                                backdropFilter: 'blur(4px)',
-                                transition: 'transform 0.2s ease',
-                                '&:hover': {
-                                    transform: 'scale(1.03)',
-                                }
-                            }
+                                transition: "transform 0.2s ease",
+                            },
                         })}
                     >
-                        <Group spacing="xs" noWrap>
-                            <Text size="md" weight={700}>View Plate</Text>
-                            <Badge color="red" variant="filled" size="sm" radius="xl" sx={{ height: 20, minWidth: 20, padding: 0 }}>
+                        <Group noWrap spacing="xs">
+                            <Text size="md" weight={700}>
+                                View Plate
+                            </Text>
+                            <Badge
+                                color="red"
+                                radius="xl"
+                                size="sm"
+                                sx={{ height: 20, minWidth: 20, padding: 0 }}
+                                variant="filled"
+                            >
                                 {getPlateCount()}
                             </Badge>
-                            <Divider orientation="vertical" color="primary.4" />
-                            <Text size="md" weight={700}>{getPlateTotal()}</Text>
+                            <Divider color="primary.4" orientation="vertical" />
+                            <Text size="md" weight={700}>
+                                {getPlateTotal()}
+                            </Text>
                         </Group>
                     </Button>
                 </Box>
@@ -370,49 +407,71 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
 
             {/* Cart Drawer */}
             <Drawer
-                opened={drawerOpened}
                 onClose={() => setDrawerOpened(false)}
-                title={
-                    <Group spacing="xs">
-                        <IconShoppingCart size={20} color={theme.colors.primary[6]} />
-                        <Title order={3} size="1.4rem" color="dark.8">Your Plate</Title>
-                    </Group>
-                }
+                opened={drawerOpened}
                 padding="md"
-                size="md"
                 position="right"
+                size="md"
                 styles={{
                     drawer: {
-                        backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white,
-                    }
+                        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.white,
+                    },
                 }}
+                title={
+                    <Group spacing="xs">
+                        <IconShoppingCart color={theme.colors.primary[6]} size={20} />
+                        <Title color="dark.8" order={3} size="1.4rem">
+                            Your Plate
+                        </Title>
+                    </Group>
+                }
             >
                 {plateItems.length === 0 ? (
-                    <Stack align="center" justify="center" h="75%" spacing="sm">
-                        <IconShoppingCart size={60} stroke={1} color={theme.colors.gray[4]} />
-                        <Text size="lg" weight={600} color="dimmed">Your plate is empty</Text>
-                        <Text size="sm" color="dimmed" align="center">Add some delicious dishes from the menu to get started!</Text>
+                    <Stack align="center" h="75%" justify="center" spacing="sm">
+                        <IconShoppingCart color={theme.colors.gray[4]} size={60} stroke={1} />
+                        <Text color="dimmed" size="lg" weight={600}>
+                            Your plate is empty
+                        </Text>
+                        <Text align="center" color="dimmed" size="sm">
+                            Add some delicious dishes from the menu to get started!
+                        </Text>
                     </Stack>
                 ) : (
-                    <Flex direction="column" justify="space-between" h="calc(100vh - 100px)">
-                        <Box sx={{ flex: 1, overflowY: "auto" }} pb="md">
+                    <Flex direction="column" h="calc(100vh - 100px)" justify="space-between">
+                        <Box pb="md" sx={{ flex: 1, overflowY: "auto" }}>
                             <Stack spacing="md">
                                 {(table || floor) && (
                                     <Paper
+                                        bg={
+                                            theme.colorScheme === "dark"
+                                                ? theme.colors.dark[6]
+                                                : theme.colors.primary[0]
+                                        }
                                         p="sm"
-                                        bg={theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.primary[0]}
                                         sx={{
-                                            border: `1px solid ${theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.primary[1]}`,
-                                            borderRadius: theme.radius.md
+                                            border: `1px solid ${
+                                                theme.colorScheme === "dark"
+                                                    ? theme.colors.dark[4]
+                                                    : theme.colors.primary[1]
+                                            }`,
+                                            borderRadius: theme.radius.md,
                                         }}
                                     >
-                                        <Group spacing="xs" noWrap>
-                                            <IconQrcode size={18} color={theme.colors.primary[6]} />
+                                        <Group noWrap spacing="xs">
+                                            <IconQrcode color={theme.colors.primary[6]} size={18} />
                                             <Box>
-                                                <Text size="xs" color={theme.colorScheme === 'dark' ? "primary.3" : "primary.9"} weight={700}>
+                                                <Text
+                                                    color={theme.colorScheme === "dark" ? "primary.3" : "primary.9"}
+                                                    size="xs"
+                                                    weight={700}
+                                                >
                                                     SEATING LOCATION
                                                 </Text>
-                                                <Text size="sm" color={theme.colorScheme === 'dark' ? "primary.2" : "primary.7"} weight={600}>
+                                                <Text
+                                                    color={theme.colorScheme === "dark" ? "primary.2" : "primary.7"}
+                                                    size="sm"
+                                                    weight={600}
+                                                >
                                                     {table ? `Table: ${table}` : ""}
                                                     {table && floor ? " • " : ""}
                                                     {floor ? `Floor/Section: ${floor}` : ""}
@@ -425,92 +484,131 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                     const { number, currency } = parsePrice(item.price);
                                     const subtotal = number * item.quantity;
                                     return (
-                                        <Paper key={item.id} p="sm" withBorder radius="md">
+                                        <Paper key={item.id} p="sm" radius="md" withBorder>
                                             <Flex align="flex-start" justify="space-between">
                                                 <Stack spacing={2} sx={{ flex: 1 }}>
-                                                    <Group spacing="xs" align="center">
-                                                        <Text weight={600} size="sm" color="dark.8">{item.name}</Text>
+                                                    <Group align="center" spacing="xs">
+                                                        <Text color="dark.8" size="sm" weight={600}>
+                                                            {item.name}
+                                                        </Text>
                                                         {item.isVeg === true && (
-                                                            <Badge color="green" variant="light" size="xs">Veg</Badge>
+                                                            <Badge color="green" size="xs" variant="light">
+                                                                Veg
+                                                            </Badge>
                                                         )}
                                                         {item.isVeg === false && (
-                                                            <Badge color="red" variant="light" size="xs">Non-Veg</Badge>
+                                                            <Badge color="red" size="xs" variant="light">
+                                                                Non-Veg
+                                                            </Badge>
                                                         )}
                                                     </Group>
-                                                    <Text color="dimmed" size="xs">{item.price}</Text>
-                                                    <Text weight={600} size="xs" color="primary.6" mt={2}>
+                                                    <Text color="dimmed" size="xs">
+                                                        {item.price}
+                                                    </Text>
+                                                    <Text color="primary.6" mt={2} size="xs" weight={600}>
                                                         Subtotal: {formatPrice(subtotal, currency)}
                                                     </Text>
                                                 </Stack>
-                                                
+
                                                 <Stack align="flex-end" spacing="xs">
-                                                    <Group spacing={4} sx={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: '2px 4px' }}>
-                                                        <ActionIcon size="xs" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                                                    <Group
+                                                        spacing={4}
+                                                        sx={{
+                                                            border: `1px solid ${theme.colors.gray[3]}`,
+                                                            borderRadius: theme.radius.md,
+                                                            padding: "2px 4px",
+                                                        }}
+                                                    >
+                                                        <ActionIcon
+                                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                            size="xs"
+                                                        >
                                                             -
                                                         </ActionIcon>
-                                                        <Text size="xs" weight={600} sx={{ width: 16, textAlign: 'center', color: theme.black }}>
+                                                        <Text
+                                                            size="xs"
+                                                            sx={{ color: theme.black, textAlign: "center", width: 16 }}
+                                                            weight={600}
+                                                        >
                                                             {item.quantity}
                                                         </Text>
-                                                        <ActionIcon size="xs" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                                                        <ActionIcon
+                                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                            size="xs"
+                                                        >
                                                             +
                                                         </ActionIcon>
                                                     </Group>
-                                                    
-                                                    <ActionIcon color="red" variant="subtle" size="xs" onClick={() => removeFromPlate(item.id)}>
+
+                                                    <ActionIcon
+                                                        color="red"
+                                                        onClick={() => removeFromPlate(item.id)}
+                                                        size="xs"
+                                                        variant="subtle"
+                                                    >
                                                         <IconTrash size={14} />
                                                     </ActionIcon>
                                                 </Stack>
                                             </Flex>
-                                            
+
                                             <TextInput
+                                                mt="xs"
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                    updateNotes(item.id, e.target.value)
+                                                }
                                                 placeholder="Add notes (e.g. spicy, extra sauce)"
                                                 size="xs"
-                                                mt="xs"
-                                                variant="filled"
                                                 value={item.notes || ""}
-                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateNotes(item.id, e.target.value)}
+                                                variant="filled"
                                             />
                                         </Paper>
                                     );
                                 })}
                             </Stack>
                         </Box>
-                        
+
                         <Box pt="md" sx={{ borderTop: `1px solid ${theme.colors.gray[2]}` }}>
                             <Stack spacing="xs">
                                 <Textarea
                                     label="General Instructions / Delivery Address"
-                                    placeholder="Enter your name, phone, table number, or delivery address..."
                                     minRows={2}
-                                    value={generalNotes}
-                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setGeneralNotes(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                                        setGeneralNotes(e.target.value)
+                                    }
+                                    placeholder="Enter your name, phone, table number, or delivery address..."
                                     size="sm"
+                                    value={generalNotes}
                                 />
-                                
-                                <Group position="apart" my="xs">
-                                    <Text weight={700} size="lg">Total:</Text>
-                                    <Text weight={700} size="lg" color="red.6">{getPlateTotal()}</Text>
+
+                                <Group my="xs" position="apart">
+                                    <Text size="lg" weight={700}>
+                                        Total:
+                                    </Text>
+                                    <Text color="red.6" size="lg" weight={700}>
+                                        {getPlateTotal()}
+                                    </Text>
                                 </Group>
-                                
+
                                 <Button
-                                    size="md"
                                     color="green"
-                                    leftIcon={<IconBrandWhatsapp size={20} />}
                                     fullWidth
+                                    leftIcon={<IconBrandWhatsapp size={20} />}
                                     onClick={() => {
                                         if ((restaurant as any).isKitchenEnabled) {
                                             createOrder({
+                                                floor,
+                                                generalNotes,
+                                                items: JSON.stringify(
+                                                    plateItems.map((item) => ({
+                                                        id: item.id,
+                                                        name: item.name,
+                                                        notes: item.notes || "",
+                                                        price: item.price,
+                                                        quantity: item.quantity,
+                                                    }))
+                                                ),
                                                 restaurantId: restaurant.id,
-                                                table: table,
-                                                floor: floor,
-                                                items: JSON.stringify(plateItems.map(item => ({
-                                                    id: item.id,
-                                                    name: item.name,
-                                                    price: item.price,
-                                                    quantity: item.quantity,
-                                                    notes: item.notes || ""
-                                                }))),
-                                                generalNotes: generalNotes,
+                                                table,
                                             });
                                         }
 
@@ -519,6 +617,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                         const waUrl = `https://wa.me/${cleanPhone}?text=${generateWhatsappMessage()}`;
                                         window.open(waUrl, "_blank");
                                     }}
+                                    size="md"
                                 >
                                     Order via WhatsApp
                                 </Button>
@@ -529,4 +628,6 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             </Drawer>
         </Box>
     );
+
+    return menuContent;
 };

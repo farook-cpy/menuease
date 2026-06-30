@@ -157,5 +157,4 @@ const BannersPage: NextPage = () => {
     );
 };
 
-
 export default BannersPage;

@@ -92,7 +92,11 @@ export const Categories: FC<Props> = ({ menuId }) => {
                         onBeforeDragStart={() => enableAutoAnimate(false)}
                         onDragEnd={({ destination, source }) => {
                             if (source.index !== destination?.index) {
-                                const reorderedList = reorderList(categories as any[], source.index, destination?.index || 0);
+                                const reorderedList = reorderList(
+                                    categories as any[],
+                                    source.index,
+                                    destination?.index || 0
+                                );
                                 updateCategoryPositions(
                                     reorderedList.map((item: any, index: number) => ({
                                         id: item.id,

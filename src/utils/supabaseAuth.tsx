@@ -1,6 +1,8 @@
-import { useRouter } from "next/router";
 import type { FC, PropsWithChildren } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
+
+import { useRouter } from "next/router";
+
 import { supabase } from "./supabaseClient";
 
 interface SupabaseSession {
@@ -38,7 +40,7 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
                     if (currentSession?.user) {
                         setSession(currentSession);
                         setStatus("authenticated");
-                        return;
+                        return () => {};
                     }
                 } catch (e) {
                     console.error("Failed to parse owner_session on mount", e);
@@ -50,10 +52,13 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
             if (currentSession) {
                 setSession({
                     user: {
-                        id: currentSession.user.id,
                         email: currentSession.user.email,
-                        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split("@")[0] || "User",
+                        id: currentSession.user.id,
                         image: currentSession.user.user_metadata?.avatar_url || "",
+                        name:
+                            currentSession.user.user_metadata?.name ||
+                            currentSession.user.email?.split("@")[0] ||
+                            "User",
                     },
                 });
                 setStatus("authenticated");
@@ -64,25 +69,28 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
         });
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((event, currentSession) => {
             const hasOwnerSession = typeof window !== "undefined" && localStorage.getItem("owner_session") !== null;
-            if (hasOwnerSession) {
-                return;
-            }
-
-            if (currentSession) {
-                setSession({
-                    user: {
-                        id: currentSession.user.id,
-                        email: currentSession.user.email,
-                        name: currentSession.user.user_metadata?.name || currentSession.user.email?.split("@")[0] || "User",
-                        image: currentSession.user.user_metadata?.avatar_url || "",
-                    },
-                });
-                setStatus("authenticated");
-            } else {
-                setSession(null);
-                setStatus("unauthenticated");
+            if (!hasOwnerSession) {
+                if (currentSession) {
+                    setSession({
+                        user: {
+                            email: currentSession.user.email,
+                            id: currentSession.user.id,
+                            image: currentSession.user.user_metadata?.avatar_url || "",
+                            name:
+                                currentSession.user.user_metadata?.name ||
+                                currentSession.user.email?.split("@")[0] ||
+                                "User",
+                        },
+                    });
+                    setStatus("authenticated");
+                } else {
+                    setSession(null);
+                    setStatus("unauthenticated");
+                }
             }
         });
 
@@ -93,11 +101,7 @@ export const SupabaseAuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
     const contextValue = React.useMemo(() => ({ session, status }), [session, status]);
 
-    return (
-        <SupabaseAuthContext.Provider value={contextValue}>
-            {children}
-        </SupabaseAuthContext.Provider>
-    );
+    return <SupabaseAuthContext.Provider value={contextValue}>{children}</SupabaseAuthContext.Provider>;
 };
 
 export const useSession = (options?: { required?: boolean }) => {
@@ -139,22 +143,24 @@ export const signIn = async (
 
             const sessionData = {
                 user: {
-                    id: "restaurant:" + restaurant.id,
                     email: restaurant.ownerUsername,
+                    id: `restaurant:${restaurant.id}`,
                     name: restaurant.name,
-                    role: "restaurant-owner",
                     restaurantId: restaurant.id,
-                }
+                    role: "restaurant-owner",
+                },
             };
 
             // Log to LoginLog
             try {
-                await supabase.from("LoginLog").insert([{
-                    id: Math.random().toString(36).substring(2, 15),
-                    username: restaurant.ownerUsername,
-                    role: "Restaurant Owner",
-                    createdAt: new Date().toISOString(),
-                }]);
+                await supabase.from("LoginLog").insert([
+                    {
+                        createdAt: new Date().toISOString(),
+                        id: Math.random().toString(36).substring(2, 15),
+                        role: "Restaurant Owner",
+                        username: restaurant.ownerUsername,
+                    },
+                ]);
             } catch (e) {
                 console.error("Failed to insert LoginLog", e);
             }
@@ -163,7 +169,7 @@ export const signIn = async (
                 localStorage.setItem("owner_session", JSON.stringify(sessionData));
                 window.location.href = options.callbackUrl || "/restaurant";
             }
-            return { ok: true, error: null, url: options.callbackUrl || "/restaurant" };
+            return { error: null, ok: true, url: options.callbackUrl || "/restaurant" };
         }
     }
     if (provider === "credentials" || provider === "email") {
@@ -189,20 +195,22 @@ export const signIn = async (
                         role = admin.role;
                     }
                 }
-                await supabase.from("LoginLog").insert([{
-                    id: Math.random().toString(36).substring(2, 15),
-                    username: options.email,
-                    role: role,
-                    createdAt: new Date().toISOString(),
-                }]);
+                await supabase.from("LoginLog").insert([
+                    {
+                        createdAt: new Date().toISOString(),
+                        id: Math.random().toString(36).substring(2, 15),
+                        role,
+                        username: options.email,
+                    },
+                ]);
             } catch (e) {
                 console.error("Failed to insert LoginLog", e);
             }
 
-            return { ok: true, error: null, url: options.callbackUrl || "/restaurant" };
+            return { error: null, ok: true, url: options.callbackUrl || "/restaurant" };
         }
     }
-    return { ok: false, error: "Unsupported sign-in options" };
+    return { error: "Unsupported sign-in options", ok: false };
 };
 
 export const signUp = async (email: string, password: string) => {
@@ -230,12 +238,12 @@ export const impersonate = (restaurantId: string, restaurantName: string, ownerU
         localStorage.setItem("admin_session", "true");
         const sessionData = {
             user: {
-                id: "restaurant:" + restaurantId,
                 email: ownerUsername,
+                id: `restaurant:${restaurantId}`,
                 name: restaurantName,
+                restaurantId,
                 role: "restaurant-owner",
-                restaurantId: restaurantId,
-            }
+            },
         };
         localStorage.setItem("owner_session", JSON.stringify(sessionData));
         window.location.href = "/restaurant";

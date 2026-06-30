@@ -1,21 +1,37 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 
-import { Button, Group, Stack, Textarea, TextInput, Select, Progress, ActionIcon, Grid, Card, AspectRatio, Loader, useMantineTheme, Box, Text } from "@mantine/core";
-import { useForm, zodResolver } from "@mantine/form";
-import { useTranslations } from "next-intl";
+import {
+    ActionIcon,
+    AspectRatio,
+    Box,
+    Button,
+    Card,
+    Grid,
+    Group,
+    Loader,
+    Progress,
+    Select,
+    Stack,
+    Text,
+    Textarea,
+    TextInput,
+    useMantineTheme,
+} from "@mantine/core";
 import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
-import { IconVideo, IconPhoto, IconTrash } from "@tabler/icons";
+import { useForm, zodResolver } from "@mantine/form";
+import { IconPhoto, IconTrash, IconVideo } from "@tabler/icons";
+import { useTranslations } from "next-intl";
 
 import type { ModalProps } from "@mantine/core";
 
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast, toBase64 } from "src/utils/helpers";
+import { encodeImageToBlurhash, getColor, rgba2hex, supabase, uploadFileWithProgress } from "src/utils/supabaseClient";
 import { menuItemInput } from "src/utils/validators";
-import { supabase, uploadFileWithProgress, encodeImageToBlurhash, getColor, rgba2hex } from "src/utils/supabaseClient";
 
-import { ImageUpload } from "../ImageUpload";
 import { ImageKitImage } from "../ImageKitImage";
+import { ImageUpload } from "../ImageUpload";
 import { Modal } from "../Modal";
 
 interface Props extends ModalProps {
@@ -38,7 +54,9 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
         onSuccess: (data: any) => {
             onClose();
             trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) =>
-                categories?.map((item: any) => (item.id === categoryId ? { ...item, items: [...(item.items || []), data] } : item))
+                categories?.map((item: any) =>
+                    item.id === categoryId ? { ...item, items: [...(item.items || []), data] } : item
+                )
             );
             showSuccessToast(tCommon("createSuccess"), t("createSuccessDesc", { name: data.name }));
         },
@@ -69,16 +87,16 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
     const { getInputProps, onSubmit, setValues, isDirty, resetDirty, values } = useForm({
         initialValues: {
+            additionalImages: (menuItem?.images?.filter((img: any) => img.id !== menuItem?.imageId) || []) as any[],
+            deletedImageIds: [] as string[],
             description: menuItem?.description || "",
             imageBase64: "",
             imagePath: menuItem?.image?.path || "",
-            name: menuItem?.name || "",
-            price: menuItem?.price || "",
             isVeg: menuItem?.isVeg ?? null,
-            videoUrl: menuItem?.videoUrl || "",
-            additionalImages: (menuItem?.images?.filter((img: any) => img.id !== menuItem?.imageId) || []) as any[],
+            name: menuItem?.name || "",
             newAdditionalImages: [] as any[],
-            deletedImageIds: [] as string[],
+            price: menuItem?.price || "",
+            videoUrl: menuItem?.videoUrl || "",
         },
         validate: zodResolver(menuItemInput),
     });
@@ -92,14 +110,13 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
         try {
             const base64 = await toBase64(file);
-            const { data: { session } } = await supabase.auth.getSession();
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
             const token = session?.access_token || "";
 
-            const result = await uploadFileWithProgress(
-                base64 as string,
-                "menu/videos",
-                token,
-                (progress) => setVideoProgress(progress)
+            const result = await uploadFileWithProgress(base64 as string, "menu/videos", token, (progress) =>
+                setVideoProgress(progress)
             );
 
             setValues({ videoUrl: result.url });
@@ -112,63 +129,64 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
     };
 
     const handleAdditionalImageDrop = async (files: File[]) => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
         const token = session?.access_token || "";
 
-        await Promise.all(files.map(async (file, index) => {
-            const tempId = `temp-${Date.now()}-${index}`;
-            setImageProgress(prev => ({ ...prev, [tempId]: 0 }));
+        await Promise.all(
+            files.map(async (file, index) => {
+                const tempId = `temp-${Date.now()}-${index}`;
+                setImageProgress((prev) => ({ ...prev, [tempId]: 0 }));
 
-            try {
-                const base64 = await toBase64(file);
-                const [uploaded, blurHash, rawColor] = await Promise.all([
-                    uploadFileWithProgress(
-                        base64 as string,
-                        "menu/additional",
-                        token,
-                        (progress) => setImageProgress(prev => ({ ...prev, [tempId]: progress }))
-                    ),
-                    encodeImageToBlurhash(base64 as string),
-                    getColor(base64 as string),
-                ]);
+                try {
+                    const base64 = await toBase64(file);
+                    const [uploaded, blurHash, rawColor] = await Promise.all([
+                        uploadFileWithProgress(base64 as string, "menu/additional", token, (progress) =>
+                            setImageProgress((prev) => ({ ...prev, [tempId]: progress }))
+                        ),
+                        encodeImageToBlurhash(base64 as string),
+                        getColor(base64 as string),
+                    ]);
 
-                const colorHex = rgba2hex(rawColor[0] ?? 240, rawColor[1] ?? 240, rawColor[2] ?? 240);
-                
-                const newImg = {
-                    id: uploaded.fileId,
-                    path: uploaded.url,
-                    blurHash,
-                    color: colorHex
-                };
+                    const colorHex = rgba2hex(rawColor[0] ?? 240, rawColor[1] ?? 240, rawColor[2] ?? 240);
 
-                setValues({
-                    newAdditionalImages: [...values.newAdditionalImages, newImg]
-                });
-            } catch (err: any) {
-                showErrorToast("Image Upload Failed", err);
-            } finally {
-                setImageProgress(prev => {
-                    const next = { ...prev };
-                    delete next[tempId];
-                    return next;
-                });
-            }
-        }));
+                    const newImg = {
+                        blurHash,
+                        color: colorHex,
+                        id: uploaded.fileId,
+                        path: uploaded.url,
+                    };
+
+                    setValues({
+                        newAdditionalImages: [...values.newAdditionalImages, newImg],
+                    });
+                } catch (err: any) {
+                    showErrorToast("Image Upload Failed", err);
+                } finally {
+                    setImageProgress((prev) => {
+                        const next = { ...prev };
+                        delete next[tempId];
+                        return next;
+                    });
+                }
+            })
+        );
     };
 
     useEffect(() => {
         if (opened) {
             const newValues = {
+                additionalImages: (menuItem?.images?.filter((img: any) => img.id !== menuItem?.imageId) || []) as any[],
+                deletedImageIds: [] as string[],
                 description: menuItem?.description || "",
                 imageBase64: "",
                 imagePath: menuItem?.image?.path || "",
-                name: menuItem?.name || "",
-                price: menuItem?.price || "",
                 isVeg: menuItem?.isVeg ?? null,
-                videoUrl: menuItem?.videoUrl || "",
-                additionalImages: (menuItem?.images?.filter((img: any) => img.id !== menuItem?.imageId) || []) as any[],
+                name: menuItem?.name || "",
                 newAdditionalImages: [] as any[],
-                deletedImageIds: [] as string[],
+                price: menuItem?.price || "",
+                videoUrl: menuItem?.videoUrl || "",
             };
             setValues(newValues);
             resetDirty(newValues);
@@ -231,16 +249,16 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         {...getInputProps("description")}
                     />
                     <Select
+                        data={[
+                            { label: "🟢 Vegetarian", value: "veg" },
+                            { label: "🔴 Non-Vegetarian", value: "nonveg" },
+                            { label: "Not Specified", value: "none" },
+                        ]}
                         disabled={loading}
                         label="Food Type"
-                        placeholder="Select food type"
-                        data={[
-                            { value: "veg", label: "🟢 Vegetarian" },
-                            { value: "nonveg", label: "🔴 Non-Vegetarian" },
-                            { value: "none", label: "Not Specified" }
-                        ]}
-                        value={values.isVeg === true ? "veg" : values.isVeg === false ? "nonveg" : "none"}
                         onChange={(val) => setValues({ isVeg: val === "veg" ? true : val === "nonveg" ? false : null })}
+                        placeholder="Select food type"
+                        value={values.isVeg === true ? "veg" : values.isVeg === false ? "nonveg" : "none"}
                     />
                     <ImageUpload
                         disabled={loading}
@@ -252,10 +270,18 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         width={400}
                     />
 
-                    <Group position="apart" mt="md">
-                        <Text size="sm" weight={500}>Dish Video (Optional)</Text>
+                    <Group mt="md" position="apart">
+                        <Text size="sm" weight={500}>
+                            Dish Video (Optional)
+                        </Text>
                         {values.videoUrl && (
-                            <Button size="xs" variant="light" color="red" leftIcon={<IconTrash size={14} />} onClick={() => setValues({ videoUrl: "" })}>
+                            <Button
+                                color="red"
+                                leftIcon={<IconTrash size={14} />}
+                                onClick={() => setValues({ videoUrl: "" })}
+                                size="xs"
+                                variant="light"
+                            >
                                 Remove Video
                             </Button>
                         )}
@@ -263,53 +289,85 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
                     {videoProgress !== null && (
                         <Stack spacing={4}>
-                            <Progress value={videoProgress} label={`${videoProgress}%`} size="xl" radius="xl" striped animate />
-                            <Text size="xs" color="dimmed" align="center">Uploading video, please wait...</Text>
+                            <Progress
+                                animate
+                                label={`${videoProgress}%`}
+                                radius="xl"
+                                size="xl"
+                                striped
+                                value={videoProgress}
+                            />
+                            <Text align="center" color="dimmed" size="xs">
+                                Uploading video, please wait...
+                            </Text>
                         </Stack>
                     )}
 
-                    {!videoProgress && (
-                        values.videoUrl ? (
-                            <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", border: `1px solid ${theme.colors.gray[3]}` }}>
-                                <video src={values.videoUrl} controls style={{ width: "100%", maxHeight: "200px", objectFit: "cover" }} />
+                    {!videoProgress &&
+                        (values.videoUrl ? (
+                            <Box
+                                sx={{
+                                    border: `1px solid ${theme.colors.gray[3]}`,
+                                    borderRadius: theme.radius.md,
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <video
+                                    controls
+                                    src={values.videoUrl}
+                                    style={{ maxHeight: "200px", objectFit: "cover", width: "100%" }}
+                                />
                             </Box>
                         ) : (
                             <Dropzone
-                                accept={['video/mp4', 'video/quicktime', 'video/webm']}
-                                onDrop={handleVideoDrop}
-                                multiple={false}
+                                accept={["video/mp4", "video/quicktime", "video/webm"]}
                                 disabled={loading || videoUploading}
+                                multiple={false}
+                                onDrop={handleVideoDrop}
                             >
-                                <Stack align="center" spacing="xs" py="md">
-                                    <IconVideo size={40} color={theme.colors.gray[5]} />
-                                    <Text size="sm" color="dimmed">Drag video here or click to select file</Text>
-                                    <Text size="xs" color="dimmed">Supported formats: MP4, MOV, WEBM (Max 10MB)</Text>
+                                <Stack align="center" py="md" spacing="xs">
+                                    <IconVideo color={theme.colors.gray[5]} size={40} />
+                                    <Text color="dimmed" size="sm">
+                                        Drag video here or click to select file
+                                    </Text>
+                                    <Text color="dimmed" size="xs">
+                                        Supported formats: MP4, MOV, WEBM (Max 10MB)
+                                    </Text>
                                 </Stack>
                             </Dropzone>
-                        )
-                    )}
+                        ))}
 
-                    <Text size="sm" weight={500} mt="md">Additional Images (Optional)</Text>
-                    
+                    <Text mt="md" size="sm" weight={500}>
+                        Additional Images (Optional)
+                    </Text>
+
                     <Grid gutter="xs">
                         {/* Saved Additional Images */}
                         {values.additionalImages.map((img: any) => (
-                            <Grid.Col span={4} key={img.id}>
-                                <Card p={4} withBorder sx={{ position: "relative" }}>
+                            <Grid.Col key={img.id} span={4}>
+                                <Card p={4} sx={{ position: "relative" }} withBorder>
                                     <AspectRatio ratio={1}>
-                                        <ImageKitImage blurhash={img.blurHash} color={img.color} height={100} imagePath={img.path} width={100} />
+                                        <ImageKitImage
+                                            blurhash={img.blurHash}
+                                            color={img.color}
+                                            height={100}
+                                            imagePath={img.path}
+                                            width={100}
+                                        />
                                     </AspectRatio>
                                     <ActionIcon
                                         color="red"
-                                        variant="filled"
-                                        size="xs"
-                                        sx={{ position: "absolute", top: 6, right: 6, zIndex: 5 }}
                                         onClick={() => {
                                             setValues({
-                                                additionalImages: values.additionalImages.filter((i: any) => i.id !== img.id),
-                                                deletedImageIds: [...values.deletedImageIds, img.id]
+                                                additionalImages: values.additionalImages.filter(
+                                                    (i: any) => i.id !== img.id
+                                                ),
+                                                deletedImageIds: [...values.deletedImageIds, img.id],
                                             });
                                         }}
+                                        size="xs"
+                                        sx={{ position: "absolute", right: 6, top: 6, zIndex: 5 }}
+                                        variant="filled"
                                     >
                                         <IconTrash size={12} />
                                     </ActionIcon>
@@ -319,21 +377,29 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
                         {/* Newly Uploaded Images */}
                         {values.newAdditionalImages.map((img: any) => (
-                            <Grid.Col span={4} key={img.id}>
-                                <Card p={4} withBorder sx={{ position: "relative" }}>
+                            <Grid.Col key={img.id} span={4}>
+                                <Card p={4} sx={{ position: "relative" }} withBorder>
                                     <AspectRatio ratio={1}>
-                                        <ImageKitImage blurhash={img.blurHash} color={img.color} height={100} imagePath={img.path} width={100} />
+                                        <ImageKitImage
+                                            blurhash={img.blurHash}
+                                            color={img.color}
+                                            height={100}
+                                            imagePath={img.path}
+                                            width={100}
+                                        />
                                     </AspectRatio>
                                     <ActionIcon
                                         color="red"
-                                        variant="filled"
-                                        size="xs"
-                                        sx={{ position: "absolute", top: 6, right: 6, zIndex: 5 }}
                                         onClick={() => {
                                             setValues({
-                                                newAdditionalImages: values.newAdditionalImages.filter((i: any) => i.id !== img.id)
+                                                newAdditionalImages: values.newAdditionalImages.filter(
+                                                    (i: any) => i.id !== img.id
+                                                ),
                                             });
                                         }}
+                                        size="xs"
+                                        sx={{ position: "absolute", right: 6, top: 6, zIndex: 5 }}
+                                        variant="filled"
                                     >
                                         <IconTrash size={12} />
                                     </ActionIcon>
@@ -343,12 +409,18 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
                         {/* Uploading progress slots */}
                         {Object.entries(imageProgress).map(([key, progress]) => (
-                            <Grid.Col span={4} key={key}>
-                                <Card p={4} withBorder sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Grid.Col key={key} span={4}>
+                                <Card
+                                    p={4}
+                                    sx={{ alignItems: "center", display: "flex", justifyContent: "center" }}
+                                    withBorder
+                                >
                                     <AspectRatio ratio={1} sx={{ width: "100%" }}>
-                                        <Stack spacing={4} align="center" justify="center">
+                                        <Stack align="center" justify="center" spacing={4}>
                                             <Loader size="sm" />
-                                            <Text size="xs" weight={700}>{progress}%</Text>
+                                            <Text size="xs" weight={700}>
+                                                {progress}%
+                                            </Text>
                                         </Stack>
                                     </AspectRatio>
                                 </Card>
@@ -356,15 +428,12 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         ))}
                     </Grid>
 
-                    <Dropzone
-                        accept={IMAGE_MIME_TYPE}
-                        onDrop={handleAdditionalImageDrop}
-                        disabled={loading}
-                        mt="xs"
-                    >
-                        <Stack align="center" spacing="xs" py="xs">
-                            <IconPhoto size={30} color={theme.colors.gray[5]} />
-                            <Text size="xs" color="dimmed">Drag additional images here or click to select files</Text>
+                    <Dropzone accept={IMAGE_MIME_TYPE} disabled={loading} mt="xs" onDrop={handleAdditionalImageDrop}>
+                        <Stack align="center" py="xs" spacing="xs">
+                            <IconPhoto color={theme.colors.gray[5]} size={30} />
+                            <Text color="dimmed" size="xs">
+                                Drag additional images here or click to select files
+                            </Text>
                         </Stack>
                     </Dropzone>
                     <Group mt="md" position="right">

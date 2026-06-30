@@ -1,28 +1,29 @@
 import type { FC } from "react";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import {
+    ActionIcon,
+    Badge,
     Box,
+    Button,
+    Divider,
+    Flex,
+    Group,
+    Loader,
     Stack,
     Text,
-    useMantineTheme,
-    Divider,
     Textarea,
-    Button,
-    Group,
-    ActionIcon,
-    Loader,
-    Flex,
-    Badge
+    useMantineTheme,
 } from "@mantine/core";
-import { IconStar, IconTrash, IconCornerDownRight, IconSend, IconMessage2 } from "@tabler/icons";
+import { IconCornerDownRight, IconMessage2, IconSend, IconStar, IconTrash } from "@tabler/icons";
 
 import type { ModalProps } from "@mantine/core";
 import type { MenuItem } from "@prisma/client";
 
-import { Modal } from "../../Modal";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+
+import { Modal } from "../../Modal";
 
 interface Props extends ModalProps {
     menuItem: MenuItem;
@@ -40,22 +41,22 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
 
     // Save reply mutation
     const { mutate: saveReply, isLoading: isReplying } = api.feedback.reply.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to save reply", err);
+        },
         onSuccess: (data: any) => {
             showSuccessToast("Reply Saved", "Your response has been published.");
         },
-        onError: (err: any) => {
-            showErrorToast("Failed to save reply", err);
-        }
     });
 
     // Delete review mutation
     const { mutate: deleteReview, isLoading: isDeleting } = api.feedback.delete.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to delete review", err);
+        },
         onSuccess: () => {
             showSuccessToast("Review Deleted", "The review was successfully deleted.");
         },
-        onError: (err: any) => {
-            showErrorToast("Failed to delete review", err);
-        }
     });
 
     const handleSaveReply = (feedbackId: string) => {
@@ -64,14 +65,14 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
         saveReply({
             feedbackId,
             menuItemId: menuItem.id,
-            ownerResponse: responseText
+            ownerResponse: responseText,
         });
     };
 
     const handleDeleteReview = (feedbackId: string) => {
         deleteReview({
             id: feedbackId,
-            menuItemId: menuItem.id
+            menuItemId: menuItem.id,
         });
     };
 
@@ -87,9 +88,9 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
                 {[1, 2, 3, 4, 5].map((i) => (
                     <IconStar
                         key={i}
-                        size={14}
-                        fill={i <= count ? theme.colors.gray[6] : "none"}
                         color={i <= count ? theme.colors.gray[6] : theme.colors.gray[3]}
+                        fill={i <= count ? theme.colors.gray[6] : "none"}
+                        size={14}
                     />
                 ))}
             </Group>
@@ -99,8 +100,8 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
     return (
         <Modal
             centered
-            opened={opened}
             onClose={onClose}
+            opened={opened}
             title={
                 <Stack spacing={4}>
                     <Text size="lg" weight="bold">
@@ -109,7 +110,7 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
                     {feedbacks.length > 0 && (
                         <Group spacing={6}>
                             {renderStars(Math.round(Number(averageRating)))}
-                            <Text size="sm" weight={500} opacity={0.8}>
+                            <Text opacity={0.8} size="sm" weight={500}>
                                 {averageRating} / 5.0 ({feedbacks.length} total)
                             </Text>
                         </Group>
@@ -120,22 +121,26 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
         >
             <Stack spacing="md" sx={{ maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
                 {feedbacksLoading ? (
-                    <Loader size="sm" mx="auto" my="xl" />
+                    <Loader mx="auto" my="xl" size="sm" />
                 ) : feedbacks.length === 0 ? (
-                    <Text align="center" color="dimmed" size="sm" py="xl">
+                    <Text align="center" color="dimmed" py="xl" size="sm">
                         No reviews have been left for this item yet.
                     </Text>
                 ) : (
                     feedbacks.map((fb: any) => {
-                        const currentReplyText = replyInputs[fb.id] !== undefined ? replyInputs[fb.id] : (fb.ownerResponse || "");
+                        const currentReplyText =
+                            replyInputs[fb.id] !== undefined ? replyInputs[fb.id] : fb.ownerResponse || "";
                         return (
                             <Box
                                 key={fb.id}
                                 p="sm"
                                 sx={{
-                                    backgroundColor: theme.colorScheme === "light" ? theme.colors.gray[0] : theme.colors.dark[6],
+                                    backgroundColor:
+                                        theme.colorScheme === "light" ? theme.colors.gray[0] : theme.colors.dark[6],
+                                    border: `1px solid ${
+                                        theme.colorScheme === "light" ? theme.colors.gray[2] : theme.colors.dark[5]
+                                    }`,
                                     borderRadius: theme.radius.md,
-                                    border: `1px solid ${theme.colorScheme === "light" ? theme.colors.gray[2] : theme.colors.dark[5]}`
                                 }}
                             >
                                 <Flex align="center" justify="space-between" mb={6}>
@@ -143,23 +148,23 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
                                         {fb.reviewerName}
                                     </Text>
                                     <Group spacing="xs">
-                                        <Text size="xs" color="dimmed">
+                                        <Text color="dimmed" size="xs">
                                             {new Date(fb.createdAt).toLocaleDateString()}
                                         </Text>
                                         <ActionIcon
                                             color="red"
-                                            size="sm"
                                             onClick={() => handleDeleteReview(fb.id)}
+                                            size="sm"
                                             title="Delete Review"
                                         >
                                             <IconTrash size={14} />
                                         </ActionIcon>
                                     </Group>
                                 </Flex>
-                                
+
                                 <Box mb={6}>{renderStars(fb.rating)}</Box>
-                                
-                                <Text size="sm" opacity={0.9} style={{ wordBreak: "break-word" }} mb="md">
+
+                                <Text mb="md" opacity={0.9} size="sm" style={{ wordBreak: "break-word" }}>
                                     {fb.comment}
                                 </Text>
 
@@ -167,18 +172,20 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
                                 <Box
                                     pt="xs"
                                     sx={{
-                                        borderTop: `1px solid ${theme.colorScheme === "light" ? theme.colors.gray[2] : theme.colors.dark[4]}`
+                                        borderTop: `1px solid ${
+                                            theme.colorScheme === "light" ? theme.colors.gray[2] : theme.colors.dark[4]
+                                        }`,
                                     }}
                                 >
                                     {fb.ownerResponse ? (
                                         <Box mb="xs">
                                             <Flex align="center" gap={4} mb={2}>
-                                                <IconCornerDownRight size={14} color={theme.colors.gray[6]} />
-                                                <Text size="xs" weight={700} color="gray.6">
+                                                <IconCornerDownRight color={theme.colors.gray[6]} size={14} />
+                                                <Text color="gray.6" size="xs" weight={700}>
                                                     Your Reply
                                                 </Text>
                                             </Flex>
-                                            <Text size="sm" italic opacity={0.8} mb="xs">
+                                            <Text italic mb="xs" opacity={0.8} size="sm">
                                                 "{fb.ownerResponse}"
                                             </Text>
                                         </Box>
@@ -186,21 +193,31 @@ export const MenuItemReviewsModal: FC<Props> = ({ menuItem, opened, onClose, ...
 
                                     <Group align="flex-end" spacing="xs">
                                         <Textarea
-                                            placeholder={fb.ownerResponse ? "Update your reply..." : "Write a response to this review..."}
-                                            value={currentReplyText}
-                                            onChange={(e) => setReplyInputs(prev => ({ ...prev, [fb.id]: e.currentTarget.value }))}
+                                            autosize
                                             disabled={isReplying}
                                             minRows={1}
-                                            autosize
+                                            onChange={(e) =>
+                                                setReplyInputs((prev) => ({ ...prev, [fb.id]: e.currentTarget.value }))
+                                            }
+                                            placeholder={
+                                                fb.ownerResponse
+                                                    ? "Update your reply..."
+                                                    : "Write a response to this review..."
+                                            }
                                             size="xs"
                                             sx={{ flex: 1 }}
+                                            value={currentReplyText}
                                         />
                                         <Button
-                                            size="xs"
                                             color="gray"
-                                            onClick={() => handleSaveReply(fb.id)}
-                                            disabled={isReplying || !currentReplyText.trim() || currentReplyText.trim() === fb.ownerResponse}
+                                            disabled={
+                                                isReplying ||
+                                                !currentReplyText.trim() ||
+                                                currentReplyText.trim() === fb.ownerResponse
+                                            }
                                             leftIcon={<IconSend size={12} />}
+                                            onClick={() => handleSaveReply(fb.id)}
+                                            size="xs"
                                         >
                                             {fb.ownerResponse ? "Update" : "Reply"}
                                         </Button>

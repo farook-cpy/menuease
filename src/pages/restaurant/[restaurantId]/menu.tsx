@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { Container, Center, Loader } from "@mantine/core";
+
+import { Center, Container, Loader } from "@mantine/core";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 import { NextSeo } from "next-seo";
-import messagesEn from "src/lang/en.json";
 
 import type { NextPage } from "next";
 
@@ -11,14 +11,18 @@ import { Empty } from "src/components/Empty";
 import { Footer } from "src/components/Footer";
 import { RestaurantMenu } from "src/components/RestaurantMenu";
 import { env } from "src/env/client.mjs";
+import messagesEn from "src/lang/en.json";
 import { api, fetchRestaurantDetails } from "src/utils/api";
+
 const getDeviceType = () => {
     if (typeof window === "undefined") return "Desktop";
     const ua = navigator.userAgent;
     if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
         return "Tablet";
     }
-    if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
+    if (
+        /Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)
+    ) {
         return "Mobile";
     }
     return "Desktop";
@@ -35,7 +39,7 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
 
     const { data: restaurant, isLoading } = api.restaurant.getDetails.useQuery(
         { id: restaurantId },
-        { 
+        {
             enabled: !!restaurantId,
             initialData: initialRestaurant || undefined,
         }
@@ -45,7 +49,7 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
 
     useEffect(() => {
         if (restaurantId && restaurant) {
-            logPageView({ restaurantId, type: "page_view", deviceType: getDeviceType() });
+            logPageView({ deviceType: getDeviceType(), restaurantId, type: "page_view" });
         }
     }, [restaurantId, restaurant, logPageView]);
 
@@ -58,9 +62,9 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
     }
 
     const imageUrl = restaurant?.image?.path
-        ? (restaurant.image.path.startsWith("http")
+        ? restaurant.image.path.startsWith("http")
             ? restaurant.image.path
-            : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${restaurant.image.path}`)
+            : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${restaurant.image.path}`
         : "";
 
     return (
@@ -86,9 +90,13 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
                     {restaurant && restaurant?.isPublished === true && !(restaurant as any)?.isSuspended ? (
                         <RestaurantMenu restaurant={restaurant} />
                     ) : (
-                        <Empty 
-                            height="calc(100vh - 100px)" 
-                            text={(restaurant as any)?.isSuspended ? "This restaurant has been suspended by the administrator." : t("noDetailsAvailable")} 
+                        <Empty
+                            height="calc(100vh - 100px)"
+                            text={
+                                (restaurant as any)?.isSuspended
+                                    ? "This restaurant has been suspended by the administrator."
+                                    : t("noDetailsAvailable")
+                            }
                         />
                     )}
                 </Container>
@@ -100,8 +108,8 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
 
 export const getStaticPaths = async () => {
     return {
-        paths: [],
         fallback: "blocking",
+        paths: [],
     };
 };
 
@@ -111,8 +119,8 @@ export const getStaticProps = async (context: any) => {
         const restaurant = await fetchRestaurantDetails(restaurantId);
         return {
             props: {
-                restaurant: restaurant || null,
                 messages: messagesEn,
+                restaurant: restaurant || null,
             },
             revalidate: 10,
         };
@@ -120,8 +128,8 @@ export const getStaticProps = async (context: any) => {
         console.error("Failed to fetch restaurant details for SSG:", e);
         return {
             props: {
-                restaurant: null,
                 messages: messagesEn,
+                restaurant: null,
             },
             revalidate: 10,
         };

@@ -1,7 +1,15 @@
 import { useState } from "react";
+
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Box, Breadcrumbs, Center, Loader, SimpleGrid, Text, useMantineTheme, Button, Group } from "@mantine/core";
-import { IconChartDots, IconSlideshow, IconStars, IconToolsKitchen, IconQrcode, IconClipboardList } from "@tabler/icons";
+import { Box, Breadcrumbs, Button, Center, Group, Loader, SimpleGrid, Text, useMantineTheme } from "@mantine/core";
+import {
+    IconChartDots,
+    IconClipboardList,
+    IconQrcode,
+    IconSlideshow,
+    IconStars,
+    IconToolsKitchen,
+} from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -10,10 +18,10 @@ import { NextSeo } from "next-seo";
 
 import { AppShell } from "src/components/AppShell";
 import { IconCard } from "src/components/Cards";
+import { TableQrModal } from "src/components/Modal";
 import { PublishButton } from "src/components/PublishButton";
 import { api } from "src/utils/api";
 import { showErrorToast } from "src/utils/helpers";
-import { TableQrModal } from "src/components/Modal";
 
 /** Page to manage all the options under the restaurant */
 const RestaurantManagePage: NextPage = () => {
@@ -49,19 +57,19 @@ const RestaurantManagePage: NextPage = () => {
                             <>
                                 <Box
                                     sx={(theme) => ({
+                                        alignItems: "flex-start",
                                         display: "flex",
                                         flexDirection: "column",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
                                         gap: theme.spacing.md,
+                                        justifyContent: "space-between",
                                         width: "100%",
                                         [`@media (min-width: ${theme.breakpoints.sm}px)`]: {
-                                            flexDirection: "row",
                                             alignItems: "center",
+                                            flexDirection: "row",
                                         },
                                     })}
                                 >
-                                    <Box sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }} py="xs">
+                                    <Box py="xs" sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }}>
                                         <Breadcrumbs color={theme.black}>
                                             <Link href="/restaurant">{t("breadcrumb")}</Link>
                                             <Text>{restaurant?.name}</Text>
@@ -71,10 +79,10 @@ const RestaurantManagePage: NextPage = () => {
                                         <Group spacing="sm">
                                             {(restaurant as any).isOrderFeatureEnabled && (
                                                 <Button
-                                                    leftIcon={<IconQrcode size={16} />}
-                                                    variant="outline"
                                                     color="primary"
+                                                    leftIcon={<IconQrcode size={16} />}
                                                     onClick={() => setQrModalOpen(true)}
+                                                    variant="outline"
                                                 >
                                                     Table QR Code
                                                 </Button>
@@ -84,11 +92,11 @@ const RestaurantManagePage: NextPage = () => {
                                     )}
                                 </Box>
                                 <SimpleGrid
-                                    cols={1}
                                     breakpoints={[
                                         { cols: 2, minWidth: "sm" },
                                         { cols: 3, minWidth: "md" },
                                     ]}
+                                    cols={1}
                                     mt="xl"
                                 >
                                     <IconCard
@@ -131,8 +139,8 @@ const RestaurantManagePage: NextPage = () => {
                     </Box>
                     {restaurant && (restaurant as any).isOrderFeatureEnabled && (
                         <TableQrModal
-                            opened={qrModalOpen}
                             onClose={() => setQrModalOpen(false)}
+                            opened={qrModalOpen}
                             restaurantId={restaurantId}
                             restaurantName={restaurant.name}
                         />
@@ -142,6 +150,5 @@ const RestaurantManagePage: NextPage = () => {
         </>
     );
 };
-
 
 export default RestaurantManagePage;

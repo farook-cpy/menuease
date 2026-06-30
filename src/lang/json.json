@@ -1,0 +1,246 @@
+{
+  "menuName": "Main Menu",
+  "availableTime": "All Day",
+  "categories": [
+    {
+      "name": "Signature Meals",
+      "items": [
+        {
+          "name": "Signature Meal",
+          "description": "",
+          "price": "250",
+          "imageUrl": ""
+        },
+        {
+          "name": "Doner Box Meal",
+          "description": "",
+          "price": "300",
+          "imageUrl": ""
+        },
+        {
+          "name": "Polski Power Combo",
+          "description": "",
+          "price": "620",
+          "imageUrl": ""
+        },
+        {
+          "name": "Premium Feast",
+          "description": "",
+          "price": "590",
+          "imageUrl": ""
+        },
+        {
+          "name": "Friends Combo",
+          "description": "",
+          "price": "720",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Rolls",
+      "items": [
+        {
+          "name": "Signature Roll",
+          "description": "",
+          "price": "200",
+          "imageUrl": ""
+        },
+        {
+          "name": "Polski Roll",
+          "description": "",
+          "price": "150",
+          "imageUrl": ""
+        },
+        {
+          "name": "Full Load Roll",
+          "description": "",
+          "price": "190",
+          "imageUrl": ""
+        },
+        {
+          "name": "Mega Doner Roll",
+          "description": "",
+          "price": "310",
+          "imageUrl": ""
+        },
+        {
+          "name": "Fitness Roll",
+          "description": "",
+          "price": "210",
+          "imageUrl": ""
+        },
+        {
+          "name": "Falafel Roll",
+          "description": "",
+          "price": "170",
+          "imageUrl": ""
+        },
+        {
+          "name": "Hot Dog Roll",
+          "description": "",
+          "price": "180",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Doner Boxes & Plates",
+      "items": [
+        {
+          "name": "Doner Box",
+          "description": "",
+          "price": "250",
+          "imageUrl": ""
+        },
+        {
+          "name": "Doner Dania",
+          "description": "",
+          "price": "310",
+          "imageUrl": ""
+        },
+        {
+          "name": "Doner Sizzler",
+          "description": "",
+          "price": "350",
+          "imageUrl": ""
+        },
+        {
+          "name": "Doner Pasta Box",
+          "description": "",
+          "price": "250",
+          "imageUrl": ""
+        },
+        {
+          "name": "Polski Sheekh Plate",
+          "description": "",
+          "price": "350",
+          "imageUrl": ""
+        },
+        {
+          "name": "Doner Grubym",
+          "description": "",
+          "price": "240",
+          "imageUrl": ""
+        },
+        {
+          "name": "Lays Blast",
+          "description": "",
+          "price": "170",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Sides",
+      "items": [
+        {
+          "name": "French Fries",
+          "description": "",
+          "price": "100",
+          "imageUrl": ""
+        },
+        {
+          "name": "Cheese French Fries",
+          "description": "",
+          "price": "140",
+          "imageUrl": ""
+        },
+        {
+          "name": "Chicken Nuggets",
+          "description": "",
+          "price": "160",
+          "imageUrl": ""
+        },
+        {
+          "name": "Crab Leg",
+          "description": "",
+          "price": "250",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Add Ons",
+      "items": [
+        {
+          "name": "Extra Meat",
+          "description": "",
+          "price": "40",
+          "imageUrl": ""
+        },
+        {
+          "name": "Boiled Egg",
+          "description": "",
+          "price": "15",
+          "imageUrl": ""
+        },
+        {
+          "name": "Extra Cheese",
+          "description": "",
+          "price": "30",
+          "imageUrl": ""
+        },
+        {
+          "name": "White / Red Sauce",
+          "description": "",
+          "price": "25",
+          "imageUrl": ""
+        },
+        {
+          "name": "Cheese Dip",
+          "description": "",
+          "price": "50",
+          "imageUrl": ""
+        },
+        {
+          "name": "Garlic Paste",
+          "description": "",
+          "price": "30",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "name": "Drinks",
+      "items": [
+        {
+          "name": "Soft Drink (M)",
+          "description": "",
+          "price": "40",
+          "imageUrl": ""
+        },
+        {
+          "name": "Soft Drink (L)",
+          "description": "",
+          "price": "50",
+          "imageUrl": ""
+        },
+        {
+          "name": "Polski Chai",
+          "description": "",
+          "price": "30",
+          "imageUrl": ""
+        },
+        {
+          "name": "Coffee",
+          "description": "",
+          "price": "70",
+          "imageUrl": ""
+        },
+        {
+          "name": "Mojito",
+          "description": "",
+          "price": "120",
+          "imageUrl": ""
+        },
+        {
+          "name": "Yogurt Drink",
+          "description": "",
+          "price": "110",
+          "imageUrl": ""
+        }
+      ]
+    }
+  ]
+}

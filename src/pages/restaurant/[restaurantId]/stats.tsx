@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import {
     Box,
     Breadcrumbs,
@@ -11,15 +12,25 @@ import {
     Group,
     Loader,
     Paper,
+    Progress,
+    SimpleGrid,
     Stack,
+    Table,
     Text,
     Title,
-    SimpleGrid,
     useMantineTheme,
-    Table,
-    Progress
 } from "@mantine/core";
-import { IconArrowLeft, IconEye, IconClick, IconFlame, IconTrendingUp, IconCalendar, IconClock, IconDevices, IconList } from "@tabler/icons";
+import {
+    IconArrowLeft,
+    IconCalendar,
+    IconClick,
+    IconClock,
+    IconDevices,
+    IconEye,
+    IconFlame,
+    IconList,
+    IconTrendingUp,
+} from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -48,19 +59,16 @@ const StatsPage: NextPage = () => {
     const isLoading = restaurantLoading || statsLoading;
 
     // Engagement score (clicks per view)
-    const engagementRate = stats && stats.totalPageViews > 0
-        ? ((stats.totalItemClicks / stats.totalPageViews) * 100).toFixed(1)
-        : "0.0";
+    const engagementRate =
+        stats && stats.totalPageViews > 0 ? ((stats.totalItemClicks / stats.totalPageViews) * 100).toFixed(1) : "0.0";
 
     // Find max views for chart scaling
-    const maxDailyViews = stats && stats.dailyViews.length > 0
-        ? Math.max(...stats.dailyViews.map(d => d.count), 1)
-        : 1;
+    const maxDailyViews =
+        stats && stats.dailyViews.length > 0 ? Math.max(...stats.dailyViews.map((d) => d.count), 1) : 1;
 
     // Find max click count for items bar scaling
-    const maxItemClicks = stats && stats.popularItems.length > 0
-        ? Math.max(...stats.popularItems.map(item => item.count), 1)
-        : 1;
+    const maxItemClicks =
+        stats && stats.popularItems.length > 0 ? Math.max(...stats.popularItems.map((item) => item.count), 1) : 1;
 
     // Peak viewing hour format
     const peakHourInfo = useMemo(() => {
@@ -86,14 +94,14 @@ const StatsPage: NextPage = () => {
 
     // Device distribution percentages
     const devicePercentages = useMemo(() => {
-        if (!stats || !stats.deviceStats) return { Mobile: 0, Tablet: 0, Desktop: 0, Unknown: 0 };
+        if (!stats || !stats.deviceStats) return { Desktop: 0, Mobile: 0, Tablet: 0, Unknown: 0 };
         const { Mobile, Tablet, Desktop, Unknown } = stats.deviceStats;
         const total = Mobile + Tablet + Desktop + Unknown;
-        if (total === 0) return { Mobile: 0, Tablet: 0, Desktop: 0, Unknown: 0 };
+        if (total === 0) return { Desktop: 0, Mobile: 0, Tablet: 0, Unknown: 0 };
         return {
+            Desktop: Math.round((Desktop / total) * 100),
             Mobile: Math.round((Mobile / total) * 100),
             Tablet: Math.round((Tablet / total) * 100),
-            Desktop: Math.round((Desktop / total) * 100),
             Unknown: Math.round((Unknown / total) * 100),
         };
     }, [stats]);
@@ -110,7 +118,7 @@ const StatsPage: NextPage = () => {
                             </Center>
                         ) : (
                             <Stack spacing="xl">
-                                <Box sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }} py="xs">
+                                <Box py="xs" sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }}>
                                     <Breadcrumbs color={theme.black}>
                                         <Link href="/restaurant">{tRestaurant("breadcrumb")}</Link>
                                         <Link href={`/restaurant/${restaurant?.id}`}>{restaurant?.name}</Link>
@@ -120,34 +128,36 @@ const StatsPage: NextPage = () => {
 
                                 <Box
                                     sx={(theme) => ({
+                                        alignItems: "flex-start",
                                         display: "flex",
                                         flexDirection: "column",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
                                         gap: theme.spacing.md,
+                                        justifyContent: "space-between",
                                         width: "100%",
                                         [`@media (min-width: ${theme.breakpoints.sm}px)`]: {
-                                            flexDirection: "row",
                                             alignItems: "center",
+                                            flexDirection: "row",
                                         },
                                     })}
                                 >
                                     <Stack spacing={4}>
-                                        <Title order={2} color="dark.8">Menu Analytics</Title>
-                                        <Text size="sm" color="dimmed">
+                                        <Title color="dark.8" order={2}>
+                                            Menu Analytics
+                                        </Title>
+                                        <Text color="dimmed" size="sm">
                                             Monitor performance, menu engagement, and popular products.
                                         </Text>
                                     </Stack>
                                     <Button
-                                        leftIcon={<IconArrowLeft size={16} />}
-                                        variant="outline"
                                         color="gray"
+                                        leftIcon={<IconArrowLeft size={16} />}
                                         onClick={() => router.push(`/restaurant/${restaurantId}`)}
                                         sx={(theme) => ({
                                             [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
-                                                alignSelf: "flex-start"
-                                            }
+                                                alignSelf: "flex-start",
+                                            },
                                         })}
+                                        variant="outline"
                                     >
                                         Back to Dashboard
                                     </Button>
@@ -156,46 +166,85 @@ const StatsPage: NextPage = () => {
                                 {/* Core Metrics Grid */}
                                 <SimpleGrid
                                     breakpoints={[
-                                        { maxWidth: "md", cols: 2 },
-                                        { maxWidth: "sm", cols: 1 },
+                                        { cols: 2, maxWidth: "md" },
+                                        { cols: 1, maxWidth: "sm" },
                                     ]}
                                     cols={3}
                                     spacing="lg"
                                 >
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Total Page Views</Text>
-                                                <Title order={1} size="2.5rem">{stats?.totalPageViews || 0}</Title>
-                                                <Text size="xs" color="dimmed">Visitor traffic to your public menu.</Text>
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Total Page Views
+                                                </Text>
+                                                <Title order={1} size="2.5rem">
+                                                    {stats?.totalPageViews || 0}
+                                                </Title>
+                                                <Text color="dimmed" size="xs">
+                                                    Visitor traffic to your public menu.
+                                                </Text>
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconEye size={24} />
                                             </Paper>
                                         </Group>
                                     </Card>
 
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Item Detail Clicks</Text>
-                                                <Title order={1} size="2.5rem">{stats?.totalItemClicks || 0}</Title>
-                                                <Text size="xs" color="dimmed">Total interactions with items.</Text>
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Item Detail Clicks
+                                                </Text>
+                                                <Title order={1} size="2.5rem">
+                                                    {stats?.totalItemClicks || 0}
+                                                </Title>
+                                                <Text color="dimmed" size="xs">
+                                                    Total interactions with items.
+                                                </Text>
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconClick size={24} />
                                             </Paper>
                                         </Group>
                                     </Card>
 
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Engagement Rate</Text>
-                                                <Title order={1} size="2.5rem">{engagementRate}%</Title>
-                                                <Text size="xs" color="dimmed">Percentage of page views clicked.</Text>
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Engagement Rate
+                                                </Text>
+                                                <Title order={1} size="2.5rem">
+                                                    {engagementRate}%
+                                                </Title>
+                                                <Text color="dimmed" size="xs">
+                                                    Percentage of page views clicked.
+                                                </Text>
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconTrendingUp size={24} />
                                             </Paper>
                                         </Group>
@@ -205,60 +254,92 @@ const StatsPage: NextPage = () => {
                                 {/* Additional Analytics Grid */}
                                 <SimpleGrid
                                     breakpoints={[
-                                        { maxWidth: "md", cols: 2 },
-                                        { maxWidth: "sm", cols: 1 },
+                                        { cols: 2, maxWidth: "md" },
+                                        { cols: 1, maxWidth: "sm" },
                                     ]}
                                     cols={3}
                                     spacing="lg"
                                 >
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Most Viewed Dish</Text>
-                                                <Title order={2} size="1.5rem" color="dark.8">
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Most Viewed Dish
+                                                </Text>
+                                                <Title color="dark.8" order={2} size="1.5rem">
                                                     {stats?.mostViewedDish ? stats.mostViewedDish.name : "No data yet"}
                                                 </Title>
                                                 {stats?.mostViewedDish && (
-                                                    <Text size="xs" color="dimmed">
-                                                        {stats.mostViewedDish.count} clicks • {stats.mostViewedDish.price}
+                                                    <Text color="dimmed" size="xs">
+                                                        {stats.mostViewedDish.count} clicks •{" "}
+                                                        {stats.mostViewedDish.price}
                                                     </Text>
                                                 )}
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconFlame size={24} />
                                             </Paper>
                                         </Group>
                                     </Card>
 
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Most Clicked Category</Text>
-                                                <Title order={2} size="1.5rem" color="dark.8">
-                                                    {stats?.mostClickedCategory ? stats.mostClickedCategory.name : "No data yet"}
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Most Clicked Category
+                                                </Text>
+                                                <Title color="dark.8" order={2} size="1.5rem">
+                                                    {stats?.mostClickedCategory
+                                                        ? stats.mostClickedCategory.name
+                                                        : "No data yet"}
                                                 </Title>
                                                 {stats?.mostClickedCategory && (
-                                                    <Text size="xs" color="dimmed">
+                                                    <Text color="dimmed" size="xs">
                                                         {stats.mostClickedCategory.count} total item clicks
                                                     </Text>
                                                 )}
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconList size={24} />
                                             </Paper>
                                         </Group>
                                     </Card>
 
-                                    <Card shadow="sm" radius="md" p="xl" withBorder>
-                                        <Group position="apart" align="flex-start" noWrap>
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
                                             <Stack spacing={4}>
-                                                <Text size="xs" color="dimmed" weight={600} transform="uppercase">Peak Viewing Hour</Text>
-                                                <Title order={2} size="1.5rem" color="dark.8">
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Peak Viewing Hour
+                                                </Text>
+                                                <Title color="dark.8" order={2} size="1.5rem">
                                                     {peakHourInfo}
                                                 </Title>
-                                                <Text size="xs" color="dimmed">Hour when public menu gets most views.</Text>
+                                                <Text color="dimmed" size="xs">
+                                                    Hour when public menu gets most views.
+                                                </Text>
                                             </Stack>
-                                            <Paper p="xs" radius="md" sx={{ backgroundColor: theme.colors.gray[1], color: theme.colors.gray[6] }}>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
                                                 <IconClock size={24} />
                                             </Paper>
                                         </Group>
@@ -267,57 +348,82 @@ const StatsPage: NextPage = () => {
 
                                 <Grid gutter="lg" mt="md">
                                     {/* Daily Views Bar Chart */}
-                                    <Grid.Col xs={12} md={7}>
-                                        <Card shadow="sm" radius="md" p="lg" withBorder h="100%">
-                                            <Group position="apart" mb="xl">
+                                    <Grid.Col md={7} xs={12}>
+                                        <Card h="100%" p="lg" radius="md" shadow="sm" withBorder>
+                                            <Group mb="xl" position="apart">
                                                 <Group spacing="xs">
-                                                    <IconCalendar size={18} color={theme.colors.gray[5]} />
+                                                    <IconCalendar color={theme.colors.gray[5]} size={18} />
                                                     <Text weight={600}>Views (Last 7 Days)</Text>
                                                 </Group>
                                             </Group>
-                                            
+
                                             <Box
                                                 h={200}
                                                 sx={(theme) => ({
-                                                    display: 'flex',
-                                                    alignItems: 'flex-end',
+                                                    alignItems: "flex-end",
+                                                    display: "flex",
                                                     gap: 6,
-                                                    justifyContent: 'space-between',
+                                                    justifyContent: "space-between",
                                                     paddingBottom: 20,
                                                     [`@media (min-width: ${theme.breakpoints.sm}px)`]: {
-                                                        gap: 12
-                                                    }
+                                                        gap: 12,
+                                                    },
                                                 })}
                                             >
                                                 {stats?.dailyViews.map((day) => {
-                                                    const heightPercent = maxDailyViews > 0 ? (day.count / maxDailyViews) * 100 : 0;
+                                                    const heightPercent =
+                                                        maxDailyViews > 0 ? (day.count / maxDailyViews) * 100 : 0;
                                                     // Extract friendly day format
                                                     const dateObj = new Date(day.date);
-                                                    const formattedDay = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                                                    
+                                                    const formattedDay = dateObj.toLocaleDateString("en-US", {
+                                                        weekday: "short",
+                                                    });
+
                                                     return (
-                                                        <Box key={day.date} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                                        <Box
+                                                            key={day.date}
+                                                            sx={{
+                                                                alignItems: "center",
+                                                                display: "flex",
+                                                                flex: 1,
+                                                                flexDirection: "column",
+                                                                gap: 8,
+                                                            }}
+                                                        >
                                                             {/* Count label above bar */}
-                                                            <Text size="xs" weight={700} color={day.count > 0 ? "gray.7" : "gray.4"}>
+                                                            <Text
+                                                                color={day.count > 0 ? "gray.7" : "gray.4"}
+                                                                size="xs"
+                                                                weight={700}
+                                                            >
                                                                 {day.count}
                                                             </Text>
                                                             {/* Vertical Bar */}
-                                                            <Box sx={{
-                                                                width: '100%',
-                                                                maxWidth: 40,
-                                                                height: `${heightPercent * 1.5}px`, // scaled for display
-                                                                minHeight: 4,
-                                                                background: day.count > 0 
-                                                                    ? `linear-gradient(180deg, ${theme.colors.gray[4]} 0%, ${theme.colors.gray[6]} 100%)` 
-                                                                    : theme.colors.gray[2],
-                                                                borderRadius: '4px 4px 0 0',
-                                                                transition: 'height 0.5s ease',
-                                                                '&:hover': {
-                                                                    opacity: 0.85
-                                                                }
-                                                            }} />
+                                                            <Box
+                                                                sx={{
+                                                                    "&:hover": {
+                                                                        opacity: 0.85,
+                                                                    },
+                                                                    background:
+                                                                        day.count > 0
+                                                                            ? `linear-gradient(180deg, ${theme.colors.gray[4]} 0%, ${theme.colors.gray[6]} 100%)`
+                                                                            : theme.colors.gray[2],
+                                                                    borderRadius: "4px 4px 0 0",
+                                                                    height: `${heightPercent * 1.5}px`,
+
+                                                                    maxWidth: 40,
+
+                                                                    // scaled for display
+                                                                    minHeight: 4,
+
+                                                                    transition: "height 0.5s ease",
+                                                                    width: "100%",
+                                                                }}
+                                                            />
                                                             {/* Day label */}
-                                                            <Text size="xs" color="dimmed" weight={500}>{formattedDay}</Text>
+                                                            <Text color="dimmed" size="xs" weight={500}>
+                                                                {formattedDay}
+                                                            </Text>
                                                         </Box>
                                                     );
                                                 })}
@@ -326,87 +432,142 @@ const StatsPage: NextPage = () => {
                                     </Grid.Col>
 
                                     {/* Right Side Stats Column */}
-                                    <Grid.Col xs={12} md={5}>
+                                    <Grid.Col md={5} xs={12}>
                                         <Stack spacing="lg">
                                             {/* Device Type Distribution Card */}
-                                            <Card shadow="sm" radius="md" p="lg" withBorder>
-                                                <Group spacing="xs" mb="lg">
-                                                    <IconDevices size={18} color={theme.colors.gray[5]} />
+                                            <Card p="lg" radius="md" shadow="sm" withBorder>
+                                                <Group mb="lg" spacing="xs">
+                                                    <IconDevices color={theme.colors.gray[5]} size={18} />
                                                     <Text weight={600}>Device Type Stats</Text>
                                                 </Group>
                                                 <Stack spacing="sm">
                                                     <Box>
-                                                        <Group position="apart" mb={4}>
-                                                            <Text size="xs" weight={600}>Mobile</Text>
-                                                            <Text size="xs" weight={700}>{devicePercentages.Mobile}% ({stats?.deviceStats?.Mobile || 0})</Text>
+                                                        <Group mb={4} position="apart">
+                                                            <Text size="xs" weight={600}>
+                                                                Mobile
+                                                            </Text>
+                                                            <Text size="xs" weight={700}>
+                                                                {devicePercentages.Mobile}% (
+                                                                {stats?.deviceStats?.Mobile || 0})
+                                                            </Text>
                                                         </Group>
-                                                        <Progress value={devicePercentages.Mobile} color="gray" size="sm" radius="xl" />
+                                                        <Progress
+                                                            color="gray"
+                                                            radius="xl"
+                                                            size="sm"
+                                                            value={devicePercentages.Mobile}
+                                                        />
                                                     </Box>
                                                     <Box>
-                                                        <Group position="apart" mb={4}>
-                                                            <Text size="xs" weight={600}>Desktop</Text>
-                                                            <Text size="xs" weight={700}>{devicePercentages.Desktop}% ({stats?.deviceStats?.Desktop || 0})</Text>
+                                                        <Group mb={4} position="apart">
+                                                            <Text size="xs" weight={600}>
+                                                                Desktop
+                                                            </Text>
+                                                            <Text size="xs" weight={700}>
+                                                                {devicePercentages.Desktop}% (
+                                                                {stats?.deviceStats?.Desktop || 0})
+                                                            </Text>
                                                         </Group>
-                                                        <Progress value={devicePercentages.Desktop} color="gray" size="sm" radius="xl" />
+                                                        <Progress
+                                                            color="gray"
+                                                            radius="xl"
+                                                            size="sm"
+                                                            value={devicePercentages.Desktop}
+                                                        />
                                                     </Box>
                                                     <Box>
-                                                        <Group position="apart" mb={4}>
-                                                            <Text size="xs" weight={600}>Tablet</Text>
-                                                            <Text size="xs" weight={700}>{devicePercentages.Tablet}% ({stats?.deviceStats?.Tablet || 0})</Text>
+                                                        <Group mb={4} position="apart">
+                                                            <Text size="xs" weight={600}>
+                                                                Tablet
+                                                            </Text>
+                                                            <Text size="xs" weight={700}>
+                                                                {devicePercentages.Tablet}% (
+                                                                {stats?.deviceStats?.Tablet || 0})
+                                                            </Text>
                                                         </Group>
-                                                        <Progress value={devicePercentages.Tablet} color="gray" size="sm" radius="xl" />
+                                                        <Progress
+                                                            color="gray"
+                                                            radius="xl"
+                                                            size="sm"
+                                                            value={devicePercentages.Tablet}
+                                                        />
                                                     </Box>
                                                     {devicePercentages.Unknown > 0 && (
                                                         <Box>
-                                                            <Group position="apart" mb={4}>
-                                                                <Text size="xs" weight={600}>Unknown</Text>
-                                                                <Text size="xs" weight={700}>{devicePercentages.Unknown}% ({stats?.deviceStats?.Unknown || 0})</Text>
+                                                            <Group mb={4} position="apart">
+                                                                <Text size="xs" weight={600}>
+                                                                    Unknown
+                                                                </Text>
+                                                                <Text size="xs" weight={700}>
+                                                                    {devicePercentages.Unknown}% (
+                                                                    {stats?.deviceStats?.Unknown || 0})
+                                                                </Text>
                                                             </Group>
-                                                            <Progress value={devicePercentages.Unknown} color="gray" size="sm" radius="xl" />
+                                                            <Progress
+                                                                color="gray"
+                                                                radius="xl"
+                                                                size="sm"
+                                                                value={devicePercentages.Unknown}
+                                                            />
                                                         </Box>
                                                     )}
                                                 </Stack>
                                             </Card>
 
                                             {/* Popular Products Card */}
-                                            <Card shadow="sm" radius="md" p="lg" withBorder>
-                                                <Group spacing="xs" mb="lg">
-                                                    <IconFlame size={18} color={theme.colors.gray[5]} />
+                                            <Card p="lg" radius="md" shadow="sm" withBorder>
+                                                <Group mb="lg" spacing="xs">
+                                                    <IconFlame color={theme.colors.gray[5]} size={18} />
                                                     <Text weight={600}>Popular Products</Text>
                                                 </Group>
 
                                                 {stats?.popularItems.length === 0 ? (
                                                     <Center h={180}>
-                                                        <Text color="dimmed" size="sm" italic>No menu items clicked yet.</Text>
+                                                        <Text color="dimmed" italic size="sm">
+                                                            No menu items clicked yet.
+                                                        </Text>
                                                     </Center>
                                                 ) : (
-                                                    <Table verticalSpacing="sm" horizontalSpacing="xs">
+                                                    <Table horizontalSpacing="xs" verticalSpacing="sm">
                                                         <thead>
                                                             <tr>
                                                                 <th>Item</th>
-                                                                <th style={{ textAlign: 'right' }}>Clicks</th>
+                                                                <th style={{ textAlign: "right" }}>Clicks</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {stats?.popularItems.map((item, index) => {
-                                                                const percent = maxItemClicks > 0 ? (item.count / maxItemClicks) * 100 : 0;
+                                                                const percent =
+                                                                    maxItemClicks > 0
+                                                                        ? (item.count / maxItemClicks) * 100
+                                                                        : 0;
                                                                 return (
                                                                     <tr key={item.id}>
-                                                                        <td style={{ width: '70%' }}>
+                                                                        <td style={{ width: "70%" }}>
                                                                             <Stack spacing={2}>
-                                                                                <Text size="sm" weight={600} color="dark.8">
+                                                                                <Text
+                                                                                    color="dark.8"
+                                                                                    size="sm"
+                                                                                    weight={600}
+                                                                                >
                                                                                     {index + 1}. {item.name}
                                                                                 </Text>
-                                                                                <Progress 
-                                                                                    value={percent} 
-                                                                                    color="gray" 
-                                                                                    size="xs" 
+                                                                                <Progress
+                                                                                    color="gray"
                                                                                     radius="xl"
+                                                                                    size="xs"
+                                                                                    value={percent}
                                                                                 />
                                                                             </Stack>
                                                                         </td>
-                                                                        <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'middle' }}>
-                                                                            <Text size="sm" weight={700} color="dark.7">
+                                                                        <td
+                                                                            style={{
+                                                                                textAlign: "right",
+                                                                                verticalAlign: "middle",
+                                                                                width: "30%",
+                                                                            }}
+                                                                        >
+                                                                            <Text color="dark.7" size="sm" weight={700}>
                                                                                 {item.count} views
                                                                             </Text>
                                                                         </td>
@@ -430,7 +591,7 @@ const StatsPage: NextPage = () => {
 };
 
 export const getStaticPaths = () => {
-    return { paths: [], fallback: "blocking" };
+    return { fallback: "blocking", paths: [] };
 };
 
 export const getStaticProps = async () => ({

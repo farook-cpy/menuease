@@ -6,12 +6,12 @@ import { z } from "zod";
  * This way you can ensure the app isn't built with invalid env vars.
  */
 export const serverSchema = z.object({
-    NODE_ENV: z.enum(["development", "test", "production"]),
-    CLOUDINARY_CLOUD_NAME: z.string().optional(),
     CLOUDINARY_API_KEY: z.string().optional(),
     CLOUDINARY_API_SECRET: z.string().optional(),
-    IMAGEKIT_PUBLIC_KEY: z.string().optional(),
+    CLOUDINARY_CLOUD_NAME: z.string().optional(),
     IMAGEKIT_PRIVATE_KEY: z.string().optional(),
+    IMAGEKIT_PUBLIC_KEY: z.string().optional(),
+    NODE_ENV: z.enum(["development", "test", "production"]),
 });
 
 /**
@@ -31,8 +31,8 @@ export const clientSchema = z.object({
     NEXT_PUBLIC_PROD_URL: z.string().optional().default("https://menufic.com"),
     NEXT_PUBLIC_SAMPLE_MENU_ID: z.string().optional(),
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
-    NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default(""),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional().default(""),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default(""),
 });
 
 /**
@@ -53,6 +53,6 @@ export const clientEnv = {
     NEXT_PUBLIC_PROD_URL: process.env.NEXT_PUBLIC_PROD_URL,
     NEXT_PUBLIC_SAMPLE_MENU_ID: process.env.NEXT_PUBLIC_SAMPLE_MENU_ID,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
 };

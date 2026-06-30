@@ -1,36 +1,46 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { Carousel } from "@mantine/carousel";
 import {
+    ActionIcon,
+    Badge,
     Box,
+    Button,
+    Center,
+    Container,
+    Divider,
+    FileButton,
+    Flex,
+    Group,
+    Image,
+    Loader,
+    Paper,
     Stack,
     Text,
-    useMantineTheme,
-    Divider,
-    TextInput,
     Textarea,
-    Button,
-    Group,
-    ActionIcon,
-    Loader,
-    Flex,
-    Container,
-    Paper,
+    TextInput,
     Title,
-    Center,
-    Badge,
-    FileButton,
-    Image
+    useMantineTheme,
 } from "@mantine/core";
-import { IconStar, IconMessage2, IconCornerDownRight, IconArrowLeft, IconPhoto, IconTrash } from "@tabler/icons";
-import { useRouter } from "next/router";
-import { Carousel } from "@mantine/carousel";
-import Link from "next/link";
+import {
+    IconArrowLeft,
+    IconCornerDownRight,
+    IconMessage2,
+    IconPhoto,
+    IconStar,
+    IconThumbDown,
+    IconThumbUp,
+    IconTrash,
+} from "@tabler/icons";
 import { type NextPage } from "next";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 
 import { ImageKitImage } from "src/components/ImageKitImage";
+import { env } from "src/env/client.mjs";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
-import { env } from "src/env/client.mjs";
 import { usePlate } from "src/utils/plateContext";
 
 const getDeviceType = () => {
@@ -39,7 +49,9 @@ const getDeviceType = () => {
     if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
         return "Tablet";
     }
-    if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
+    if (
+        /Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)
+    ) {
         return "Mobile";
     }
     return "Desktop";
@@ -48,7 +60,7 @@ const getDeviceType = () => {
 const MenuItemDetailPage: NextPage = () => {
     const router = useRouter();
     const theme = useMantineTheme();
-    
+
     const restaurantId = router.query.restaurantId as string;
     const menuItemId = router.query.menuItemId as string;
 
@@ -57,9 +69,73 @@ const MenuItemDetailPage: NextPage = () => {
     const [rating, setRating] = useState(5);
     const [reviewImageBase64, setReviewImageBase64] = useState<string | null>(null);
     const [reviewImageName, setReviewImageName] = useState<string>("");
-    
+
     const { activeRestaurantId, setActiveRestaurantId, addToPlate } = usePlate();
     const [detailQty, setDetailQty] = useState(1);
+
+    const [reaction, setReaction] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (menuItemId && typeof window !== "undefined") {
+            setReaction(localStorage.getItem(`menuease_reaction_${menuItemId}`));
+        }
+    }, [menuItemId]);
+
+    const { mutate: updateLikes } = api.menuItem.updateLikes.useMutation();
+
+    const handleLike = () => {
+        let likesDelta = 0;
+        let dislikesDelta = 0;
+        let newReaction: string | null = null;
+
+        if (reaction === "like") {
+            likesDelta = -1;
+            newReaction = null;
+        } else {
+            likesDelta = 1;
+            if (reaction === "dislike") {
+                dislikesDelta = -1;
+            }
+            newReaction = "like";
+        }
+
+        updateLikes({ dislikesDelta, id: menuItemId, likesDelta });
+        setReaction(newReaction);
+        if (typeof window !== "undefined") {
+            if (newReaction) {
+                localStorage.setItem(`menuease_reaction_${menuItemId}`, newReaction);
+            } else {
+                localStorage.removeItem(`menuease_reaction_${menuItemId}`);
+            }
+        }
+    };
+
+    const handleDislike = () => {
+        let likesDelta = 0;
+        let dislikesDelta = 0;
+        let newReaction: string | null = null;
+
+        if (reaction === "dislike") {
+            dislikesDelta = -1;
+            newReaction = null;
+        } else {
+            dislikesDelta = 1;
+            if (reaction === "like") {
+                likesDelta = -1;
+            }
+            newReaction = "dislike";
+        }
+
+        updateLikes({ dislikesDelta, id: menuItemId, likesDelta });
+        setReaction(newReaction);
+        if (typeof window !== "undefined") {
+            if (newReaction) {
+                localStorage.setItem(`menuease_reaction_${menuItemId}`, newReaction);
+            } else {
+                localStorage.removeItem(`menuease_reaction_${menuItemId}`);
+            }
+        }
+    };
 
     useEffect(() => {
         if (restaurantId && activeRestaurantId !== restaurantId) {
@@ -67,6 +143,11 @@ const MenuItemDetailPage: NextPage = () => {
         }
     }, [restaurantId, activeRestaurantId, setActiveRestaurantId]);
 
+    // Fetch restaurant details
+    const { data: restaurant, isLoading: restaurantLoading } = api.restaurant.getDetails.useQuery(
+        { id: restaurantId },
+        { enabled: !!restaurantId }
+    );
     const handleFileChange = (file: File | null) => {
         if (!file) {
             setReviewImageBase64(null);
@@ -81,12 +162,6 @@ const MenuItemDetailPage: NextPage = () => {
         reader.readAsDataURL(file);
     };
 
-    // Fetch restaurant details
-    const { data: restaurant, isLoading: restaurantLoading } = api.restaurant.getDetails.useQuery(
-        { id: restaurantId },
-        { enabled: !!restaurantId }
-    );
-
     // Fetch menuItem details
     const { data: menuItem, isLoading: menuItemLoading } = api.menuItem.get.useQuery<any>(
         { id: menuItemId },
@@ -94,22 +169,26 @@ const MenuItemDetailPage: NextPage = () => {
     );
 
     // Fetch feedbacks/reviews
-    const { data: feedbacks = [], isLoading: feedbacksLoading, refetch } = api.feedback.getByMenuItem.useQuery(
-        { menuItemId: menuItemId || "" },
-        { enabled: !!menuItemId }
-    );
+    const {
+        data: feedbacks = [],
+        isLoading: feedbacksLoading,
+        refetch,
+    } = api.feedback.getByMenuItem.useQuery({ menuItemId: menuItemId || "" }, { enabled: !!menuItemId });
 
     // Track item click analytics when this page loads
     const { mutate: logClick } = api.analytics.logView.useMutation();
     useEffect(() => {
         if (restaurantId && menuItemId && menuItem) {
-            logClick({ restaurantId, type: "item_click", menuItemId, deviceType: getDeviceType() });
+            logClick({ deviceType: getDeviceType(), menuItemId, restaurantId, type: "item_click" });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [restaurantId, menuItemId, menuItem?.id]);
 
     // Submit review mutation
     const { mutate: createFeedback, isLoading: isSubmitting } = api.feedback.create.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to submit review", err);
+        },
         onSuccess: () => {
             setReviewerName("");
             setComment("");
@@ -119,20 +198,17 @@ const MenuItemDetailPage: NextPage = () => {
             showSuccessToast("Review Submitted", "Thank you for your feedback!");
             refetch();
         },
-        onError: (err: any) => {
-            showErrorToast("Failed to submit review", err);
-        }
     });
 
     const handleSubmitReview = (e: React.FormEvent) => {
         e.preventDefault();
         if (!comment.trim()) return;
         createFeedback({
+            comment,
+            imageBase64: reviewImageBase64 || undefined,
             menuItemId: menuItemId || "",
             rating,
-            comment,
             reviewerName: reviewerName.trim() || "Anonymous",
-            imageBase64: reviewImageBase64 || undefined
         });
     };
 
@@ -148,9 +224,9 @@ const MenuItemDetailPage: NextPage = () => {
                 {[1, 2, 3, 4, 5].map((i) => (
                     <IconStar
                         key={i}
-                        size={size}
-                        fill={i <= count ? "#f59e0b" : "none"}
                         color={i <= count ? "#f59e0b" : theme.colors.gray[3]}
+                        fill={i <= count ? "#f59e0b" : "none"}
+                        size={size}
                     />
                 ))}
             </Group>
@@ -170,11 +246,13 @@ const MenuItemDetailPage: NextPage = () => {
     if (!menuItem) {
         return (
             <Container py="xl" size="sm">
-                <Paper p="xl" withBorder radius="md">
+                <Paper p="xl" radius="md" withBorder>
                     <Stack align="center" spacing="md">
-                        <Text weight={600} size="lg">Item not found</Text>
+                        <Text size="lg" weight={600}>
+                            Item not found
+                        </Text>
                         <Link href={restaurantId ? `/restaurant/${restaurantId}/menu` : "/restaurant"} passHref>
-                            <Button variant="outline" color="gray" leftIcon={<IconArrowLeft size={16} />}>
+                            <Button color="gray" leftIcon={<IconArrowLeft size={16} />} variant="outline">
                                 Back to Menu
                             </Button>
                         </Link>
@@ -186,11 +264,11 @@ const MenuItemDetailPage: NextPage = () => {
 
     const menuUrl = `/restaurant/${restaurantId}/menu`;
 
-    return (
+    const detailContent = (
         <>
             <NextSeo
-                title={`${menuItem.name} - ${restaurant?.name || "Menu Item"}`}
                 description={menuItem.description || `View details and reviews for ${menuItem.name}`}
+                title={`${menuItem.name} - ${restaurant?.name || "Menu Item"}`}
             />
             <main>
                 <Container py="xl" size="sm">
@@ -198,55 +276,78 @@ const MenuItemDetailPage: NextPage = () => {
                         {/* Back navigation */}
                         <Group>
                             <Link href={menuUrl} passHref>
-                                <Button
-                                    variant="subtle"
-                                    color="gray"
-                                    leftIcon={<IconArrowLeft size={16} />}
-                                    compact
-                                >
+                                <Button color="gray" compact leftIcon={<IconArrowLeft size={16} />} variant="subtle">
                                     Back to Menu
                                 </Button>
                             </Link>
                         </Group>
 
                         {/* Product Card */}
-                        <Paper p="xl" withBorder radius="lg" shadow="sm">
+                        <Paper p="xl" radius="lg" shadow="sm" withBorder>
                             <Stack spacing="md">
                                 {menuItem.videoUrl && (
-                                    <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center", marginBottom: 15 }}>
+                                    <Box
+                                        sx={{
+                                            borderRadius: theme.radius.md,
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            marginBottom: 15,
+                                            overflow: "hidden",
+                                        }}
+                                    >
                                         <video
-                                            src={menuItem.videoUrl}
-                                            controls
                                             autoPlay
-                                            muted
+                                            controls
                                             loop
+                                            muted
                                             playsInline
-                                            style={{ width: "100%", maxHeight: "350px", objectFit: "cover", borderRadius: "8px" }}
+                                            src={menuItem.videoUrl}
+                                            style={{
+                                                borderRadius: "8px",
+                                                maxHeight: "350px",
+                                                objectFit: "cover",
+                                                width: "100%",
+                                            }}
                                         />
                                     </Box>
                                 )}
 
                                 {menuItem.images && menuItem.images.length > 1 ? (
-                                    <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center", width: "100%" }}>
+                                    <Box
+                                        sx={{
+                                            borderRadius: theme.radius.md,
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            overflow: "hidden",
+                                            width: "100%",
+                                        }}
+                                    >
                                         <Carousel
+                                            height={400}
                                             loop
                                             mx="auto"
-                                            withIndicators
-                                            height={400}
-                                            styles={{ indicator: { background: theme.white } }}
                                             style={{ width: "100%" }}
+                                            styles={{ indicator: { background: theme.white } }}
+                                            withIndicators
                                         >
                                             {menuItem.images.map((img: any, index: number) => (
                                                 <Carousel.Slide key={img.id}>
-                                                    <Box sx={{ display: "flex", justifyContent: "center", height: "100%", width: "100%" }}>
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            height: "100%",
+                                                            justifyContent: "center",
+                                                            width: "100%",
+                                                        }}
+                                                    >
                                                         <ImageKitImage
                                                             blurhash={img.blurHash}
                                                             color={img.color}
                                                             height={400}
                                                             imageAlt={`${menuItem.name}-${index}`}
                                                             imagePath={img.path}
-                                                            width={500}
                                                             priority={index === 0}
+                                                            width={500}
                                                         />
                                                     </Box>
                                                 </Carousel.Slide>
@@ -254,7 +355,14 @@ const MenuItemDetailPage: NextPage = () => {
                                         </Carousel>
                                     </Box>
                                 ) : menuItem.image?.path ? (
-                                    <Box sx={{ borderRadius: theme.radius.md, overflow: "hidden", display: "flex", justifyContent: "center" }}>
+                                    <Box
+                                        sx={{
+                                            borderRadius: theme.radius.md,
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            overflow: "hidden",
+                                        }}
+                                    >
                                         <ImageKitImage
                                             blurhash={menuItem.image.blurHash}
                                             height={400}
@@ -265,60 +373,133 @@ const MenuItemDetailPage: NextPage = () => {
                                     </Box>
                                 ) : null}
 
-                                <Stack spacing={4} mt="sm">
+                                <Stack mt="sm" spacing={4}>
                                     <Group align="center" spacing="md">
-                                        <Title order={1} size="1.8rem" color="dark.8">
+                                        <Title color="dark.8" order={1} size="1.8rem">
                                             {menuItem.name}
                                         </Title>
                                         {menuItem.isVeg === true && (
-                                            <Badge color="green" variant="light" size="md">Veg</Badge>
+                                            <Badge color="green" size="md" variant="light">
+                                                Veg
+                                            </Badge>
                                         )}
                                         {menuItem.isVeg === false && (
-                                            <Badge color="red" variant="light" size="md">Non-Veg</Badge>
+                                            <Badge color="red" size="md" variant="light">
+                                                Non-Veg
+                                            </Badge>
                                         )}
                                     </Group>
-                                    
+
                                     {feedbacks.length > 0 ? (
                                         <Group spacing={6}>
                                             {renderStars(Math.round(Number(averageRating)), 18)}
                                             <Text color="dimmed" size="sm" weight={500}>
-                                                {averageRating} / 5.0 ({feedbacks.length} {feedbacks.length === 1 ? "review" : "reviews"})
+                                                {averageRating} / 5.0 ({feedbacks.length}{" "}
+                                                {feedbacks.length === 1 ? "review" : "reviews"})
                                             </Text>
                                         </Group>
                                     ) : (
-                                        <Text color="dimmed" size="xs" italic>No reviews yet</Text>
+                                        <Text color="dimmed" italic size="xs">
+                                            No reviews yet
+                                        </Text>
                                     )}
                                 </Stack>
 
-                                <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "flex-start", sm: "center" }} gap="md">
-                                    <Text color="red" size="xl" weight={700}>
-                                        {menuItem.price}
-                                    </Text>
+                                <Flex
+                                    align={{ base: "flex-start", sm: "center" }}
+                                    direction={{ base: "column", sm: "row" }}
+                                    gap="md"
+                                    justify="space-between"
+                                >
+                                    <Group spacing="md">
+                                        <Text color="red" size="xl" weight={700}>
+                                            {menuItem.price}
+                                        </Text>
+                                        <Group spacing="xs">
+                                            <Group spacing={4}>
+                                                <ActionIcon
+                                                    size="md"
+                                                    variant={reaction === "like" ? "filled" : "light"}
+                                                    color={reaction === "like" ? "blue" : "gray"}
+                                                    onClick={handleLike}
+                                                    sx={{
+                                                        backgroundColor: reaction === "like" ? "rgba(34, 139, 230, 0.15) !important" : "transparent",
+                                                        color: reaction === "like" ? "#228be6 !important" : "gray",
+                                                    }}
+                                                >
+                                                    <IconThumbUp size={16} />
+                                                </ActionIcon>
+                                                <Text size="sm" color="dimmed" weight={500}>{menuItem.likes || 0}</Text>
+                                            </Group>
+                                            <Group spacing={4}>
+                                                <ActionIcon
+                                                    size="md"
+                                                    variant={reaction === "dislike" ? "filled" : "light"}
+                                                    color={reaction === "dislike" ? "red" : "gray"}
+                                                    onClick={handleDislike}
+                                                    sx={{
+                                                        backgroundColor: reaction === "dislike" ? "rgba(250, 82, 82, 0.15) !important" : "transparent",
+                                                        color: reaction === "dislike" ? "#fa5252 !important" : "gray",
+                                                    }}
+                                                >
+                                                    <IconThumbDown size={16} />
+                                                </ActionIcon>
+                                                <Text size="sm" color="dimmed" weight={500}>{menuItem.dislikes || 0}</Text>
+                                            </Group>
+                                        </Group>
+                                    </Group>
                                     {restaurant?.isOrderFeatureEnabled && (
                                         <Group spacing="sm">
-                                            <Group spacing={4} sx={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: '2px 4px', backgroundColor: theme.colors.gray[0] }}>
-                                                <ActionIcon size="sm" variant="transparent" onClick={() => setDetailQty(Math.max(1, detailQty - 1))} disabled={detailQty <= 1}>
+                                            <Group
+                                                spacing={4}
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[0],
+                                                    border: `1px solid ${theme.colors.gray[3]}`,
+                                                    borderRadius: theme.radius.md,
+                                                    padding: "2px 4px",
+                                                }}
+                                            >
+                                                <ActionIcon
+                                                    disabled={detailQty <= 1}
+                                                    onClick={() => setDetailQty(Math.max(1, detailQty - 1))}
+                                                    size="sm"
+                                                    variant="transparent"
+                                                >
                                                     -
                                                 </ActionIcon>
-                                                <Text size="sm" weight={600} sx={{ width: 24, textAlign: 'center', color: theme.black }}>
+                                                <Text
+                                                    size="sm"
+                                                    sx={{ color: theme.black, textAlign: "center", width: 24 }}
+                                                    weight={600}
+                                                >
                                                     {detailQty}
                                                 </Text>
-                                                <ActionIcon size="sm" variant="transparent" onClick={() => setDetailQty(detailQty + 1)}>
+                                                <ActionIcon
+                                                    onClick={() => setDetailQty(detailQty + 1)}
+                                                    size="sm"
+                                                    variant="transparent"
+                                                >
                                                     +
                                                 </ActionIcon>
                                             </Group>
                                             <Button
                                                 color="primary"
-                                                radius="md"
                                                 onClick={() => {
-                                                    addToPlate({
-                                                        id: menuItem.id,
-                                                        name: menuItem.name,
-                                                        price: menuItem.price,
-                                                        isVeg: menuItem.isVeg,
-                                                    }, detailQty);
-                                                    showSuccessToast("Added to Plate", `${detailQty}x ${menuItem.name} added to your plate!`);
+                                                    addToPlate(
+                                                        {
+                                                            id: menuItem.id,
+                                                            isVeg: menuItem.isVeg,
+                                                            name: menuItem.name,
+                                                            price: menuItem.price,
+                                                        },
+                                                        detailQty
+                                                    );
+                                                    showSuccessToast(
+                                                        "Added to Plate",
+                                                        `${detailQty}x ${menuItem.name} added to your plate!`
+                                                    );
                                                 }}
+                                                radius="md"
                                             >
                                                 Add to Plate
                                             </Button>
@@ -335,19 +516,21 @@ const MenuItemDetailPage: NextPage = () => {
                         </Paper>
 
                         {/* Reviews & Feedback Section */}
-                        <Paper p="xl" withBorder radius="lg" shadow="sm">
+                        <Paper p="xl" radius="lg" shadow="sm" withBorder>
                             <Stack spacing="md">
-                                <Group spacing={4} mb="xs">
-                                    <IconMessage2 size={20} color={theme.colors.gray[5]} />
-                                    <Text weight={700} size="md">Customer Reviews</Text>
+                                <Group mb="xs" spacing={4}>
+                                    <IconMessage2 color={theme.colors.gray[5]} size={20} />
+                                    <Text size="md" weight={700}>
+                                        Customer Reviews
+                                    </Text>
                                 </Group>
 
                                 {/* Reviews List */}
                                 <Stack spacing="sm">
                                     {feedbacksLoading ? (
-                                        <Loader size="sm" mx="auto" />
+                                        <Loader mx="auto" size="sm" />
                                     ) : feedbacks.length === 0 ? (
-                                        <Text align="center" color="dimmed" size="sm" py="md">
+                                        <Text align="center" color="dimmed" py="md" size="sm">
                                             No reviews yet. Be the first to leave feedback!
                                         </Text>
                                     ) : (
@@ -357,29 +540,40 @@ const MenuItemDetailPage: NextPage = () => {
                                                 p="sm"
                                                 sx={{
                                                     backgroundColor: theme.colors.gray[0],
+                                                    border: `1px solid ${theme.colors.gray[2]}`,
                                                     borderRadius: theme.radius.md,
-                                                    border: `1px solid ${theme.colors.gray[2]}`
                                                 }}
                                             >
                                                 <Flex align="center" justify="space-between" mb={6}>
-                                                    <Text size="sm" weight={600} color="dark.8">
+                                                    <Text color="dark.8" size="sm" weight={600}>
                                                         {fb.reviewerName}
                                                     </Text>
-                                                    <Text size="xs" color="dimmed">
+                                                    <Text color="dimmed" size="xs">
                                                         {new Date(fb.createdAt).toLocaleDateString()}
                                                     </Text>
                                                 </Flex>
                                                 <Box mb={6}>{renderStars(fb.rating, 14)}</Box>
-                                                <Text size="sm" color="dark.7" style={{ wordBreak: "break-word" }}>
+                                                <Text color="dark.7" size="sm" style={{ wordBreak: "break-word" }}>
                                                     {fb.comment}
                                                 </Text>
                                                 {fb.imageUrl && (
-                                                    <Box sx={{ maxWidth: 220, borderRadius: theme.radius.sm, overflow: 'hidden', marginTop: 10 }}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius: theme.radius.sm,
+                                                            marginTop: 10,
+                                                            maxWidth: 220,
+                                                            overflow: "hidden",
+                                                        }}
+                                                    >
                                                         <Image
-                                                            src={fb.imageUrl.startsWith("http") ? fb.imageUrl : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${fb.imageUrl}`}
                                                             alt="Review photo"
-                                                            radius="sm"
                                                             caption="Customer Photo"
+                                                            radius="sm"
+                                                            src={
+                                                                fb.imageUrl.startsWith("http")
+                                                                    ? fb.imageUrl
+                                                                    : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${fb.imageUrl}`
+                                                            }
                                                         />
                                                     </Box>
                                                 )}
@@ -394,12 +588,15 @@ const MenuItemDetailPage: NextPage = () => {
                                                         }}
                                                     >
                                                         <Flex align="center" gap={4} mb={2}>
-                                                            <IconCornerDownRight size={14} color={theme.colors.gray[6]} />
-                                                            <Text size="xs" weight={700} color="gray.6">
+                                                            <IconCornerDownRight
+                                                                color={theme.colors.gray[6]}
+                                                                size={14}
+                                                            />
+                                                            <Text color="gray.6" size="xs" weight={700}>
                                                                 Owner's Reply
                                                             </Text>
                                                         </Flex>
-                                                        <Text size="sm" italic color="dark.8" opacity={0.8}>
+                                                        <Text color="dark.8" italic opacity={0.8} size="sm">
                                                             "{fb.ownerResponse}"
                                                         </Text>
                                                     </Box>
@@ -412,26 +609,28 @@ const MenuItemDetailPage: NextPage = () => {
                                 <Divider my="xs" />
 
                                 {/* Submit Feedback Form */}
-                                <Box component="form" onSubmit={handleSubmitReview} mt="xs">
-                                    <Text weight={700} size="sm" mb="sm">
+                                <Box component="form" mt="xs" onSubmit={handleSubmitReview}>
+                                    <Text mb="sm" size="sm" weight={700}>
                                         Write a Review
                                     </Text>
 
                                     <Stack spacing="xs">
                                         <Group>
-                                            <Text size="xs" color="dimmed">Your Rating:</Text>
+                                            <Text color="dimmed" size="xs">
+                                                Your Rating:
+                                            </Text>
                                             <Group spacing="xs">
                                                 {[1, 2, 3, 4, 5].map((value) => (
                                                     <ActionIcon
                                                         key={value}
                                                         onClick={() => setRating(value)}
-                                                        variant="transparent"
                                                         size="xs"
+                                                        variant="transparent"
                                                     >
                                                         <IconStar
-                                                            size={20}
-                                                            fill={value <= rating ? "#f59e0b" : "none"}
                                                             color={value <= rating ? "#f59e0b" : theme.colors.gray[3]}
+                                                            fill={value <= rating ? "#f59e0b" : "none"}
+                                                            size={20}
                                                         />
                                                     </ActionIcon>
                                                 ))}
@@ -439,44 +638,63 @@ const MenuItemDetailPage: NextPage = () => {
                                         </Group>
 
                                         <TextInput
-                                            placeholder="Your Name (Optional)"
-                                            value={reviewerName}
-                                            onChange={(e) => setReviewerName(e.currentTarget.value)}
                                             disabled={isSubmitting}
+                                            onChange={(e) => setReviewerName(e.currentTarget.value)}
+                                            placeholder="Your Name (Optional)"
                                             size="xs"
+                                            value={reviewerName}
                                         />
 
                                         <Textarea
-                                            placeholder="Share your thoughts about this dish..."
-                                            value={comment}
-                                            onChange={(e) => setComment(e.currentTarget.value)}
                                             disabled={isSubmitting}
-                                            required
                                             minRows={2}
+                                            onChange={(e) => setComment(e.currentTarget.value)}
+                                            placeholder="Share your thoughts about this dish..."
+                                            required
                                             size="xs"
+                                            value={comment}
                                         />
 
-                                        <Group spacing="xs" align="center" my={4}>
-                                            <FileButton onChange={handleFileChange} accept="image/png,image/jpeg">
+                                        <Group align="center" my={4} spacing="xs">
+                                            <FileButton accept="image/png,image/jpeg" onChange={handleFileChange}>
                                                 {(props) => (
-                                                    <Button {...props} variant="outline" color="gray" size="xs" leftIcon={<IconPhoto size={14} />}>
+                                                    <Button
+                                                        {...props}
+                                                        color="gray"
+                                                        leftIcon={<IconPhoto size={14} />}
+                                                        size="xs"
+                                                        variant="outline"
+                                                    >
                                                         Upload Photo
                                                     </Button>
                                                 )}
                                             </FileButton>
                                             {reviewImageName && (
-                                                <Group spacing={4} align="center">
-                                                    <Text size="xs" color="dimmed" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <Group align="center" spacing={4}>
+                                                    <Text
+                                                        color="dimmed"
+                                                        size="xs"
+                                                        style={{
+                                                            maxWidth: 180,
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            whiteSpace: "nowrap",
+                                                        }}
+                                                    >
                                                         {reviewImageName}
                                                     </Text>
-                                                    <ActionIcon size="xs" color="red" onClick={() => handleFileChange(null)}>
+                                                    <ActionIcon
+                                                        color="red"
+                                                        onClick={() => handleFileChange(null)}
+                                                        size="xs"
+                                                    >
                                                         <IconTrash size={12} />
                                                     </ActionIcon>
                                                 </Group>
                                             )}
                                         </Group>
 
-                                        <Button type="submit" loading={isSubmitting} size="xs" color="gray" fullWidth>
+                                        <Button color="gray" fullWidth loading={isSubmitting} size="xs" type="submit">
                                             Submit Review
                                         </Button>
                                     </Stack>
@@ -488,10 +706,12 @@ const MenuItemDetailPage: NextPage = () => {
             </main>
         </>
     );
+
+    return detailContent;
 };
 
 export const getStaticPaths = () => {
-    return { paths: [], fallback: "blocking" };
+    return { fallback: "blocking", paths: [] };
 };
 
 export const getStaticProps = async () => ({

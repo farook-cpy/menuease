@@ -1,17 +1,17 @@
-import ImageKit from "imagekit";
 import { v2 as cloudinary } from "cloudinary";
+import ImageKit from "imagekit";
 
 // Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
 });
 
 // Configure ImageKit
 const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || "",
     privateKey: process.env.IMAGEKIT_PRIVATE_KEY || "",
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || "",
     urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || "",
 });
 
@@ -27,16 +27,22 @@ export const uploadToImageKit = async (
         imagekit.upload(
             {
                 file: buffer,
-                fileName: fileName,
-                folder: folder,
+                fileName,
+                folder,
                 useUniqueFileName: true,
             },
             (err, result) => {
-                if (err) return reject(err);
-                if (!result) return reject(new Error("ImageKit upload failed with no result"));
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                if (!result) {
+                    reject(new Error("ImageKit upload failed with no result"));
+                    return;
+                }
                 resolve({
-                    url: result.url,
                     fileId: result.fileId,
+                    url: result.url,
                 });
             }
         );
@@ -49,7 +55,10 @@ export const uploadToImageKit = async (
 export const deleteFromImageKit = async (fileId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         imagekit.deleteFile(fileId, (err) => {
-            if (err) return reject(err);
+            if (err) {
+                reject(err);
+                return;
+            }
             resolve();
         });
     });
@@ -58,19 +67,22 @@ export const deleteFromImageKit = async (fileId: string): Promise<void> => {
 /**
  * Uploads a buffer to Cloudinary (for videos) and returns its secure URL
  */
-export const uploadToCloudinary = async (
-    buffer: Buffer,
-    folder: string
-): Promise<{ url: string }> => {
+export const uploadToCloudinary = async (buffer: Buffer, folder: string): Promise<{ url: string }> => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                folder: folder,
+                folder,
                 resource_type: "video",
             },
             (err, result) => {
-                if (err) return reject(err);
-                if (!result) return reject(new Error("Cloudinary upload failed with no result"));
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                if (!result) {
+                    reject(new Error("Cloudinary upload failed with no result"));
+                    return;
+                }
                 resolve({
                     url: result.secure_url,
                 });
@@ -85,14 +97,13 @@ export const uploadToCloudinary = async (
  */
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-        cloudinary.uploader.destroy(
-            publicId,
-            { resource_type: "video" },
-            (err, result) => {
-                if (err) return reject(err);
-                resolve();
+        cloudinary.uploader.destroy(publicId, { resource_type: "video" }, (err) => {
+            if (err) {
+                reject(err);
+                return;
             }
-        );
+            resolve();
+        });
     });
 };
 
@@ -105,13 +116,13 @@ export const getCloudinaryPublicId = (url: string): string | null => {
         const parts = parsed.pathname.split("/");
         const uploadIndex = parts.indexOf("upload");
         if (uploadIndex === -1) return null;
-        
+
         const versionIndex = uploadIndex + 1;
         let startIndex = versionIndex;
         if (parts[versionIndex]?.match(/^v\d+$/)) {
             startIndex = versionIndex + 1;
         }
-        
+
         const publicIdWithExt = parts.slice(startIndex).join("/");
         return publicIdWithExt.replace(/\.[^/.]+$/, "");
     } catch (e) {

@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useEffect } from "react";
 
-import { Button, Group, Stack, Text, TextInput, Checkbox, useMantineTheme } from "@mantine/core";
+import { Button, Checkbox, Group, Select, Stack, Switch, Text, TextInput, useMantineTheme } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { IconMapPin, IconPhone } from "@tabler/icons";
 import { useTranslations } from "next-intl";
@@ -37,7 +37,10 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
         onError: (err: any) => showErrorToast(t("createError"), err),
         onSuccess: (data: any) => {
             onClose();
-            trpcCtx.restaurant.getAll.setData(undefined, (restaurants: any[] | undefined) => [...(restaurants || []), data]);
+            trpcCtx.restaurant.getAll.setData(undefined, (restaurants: any[] | undefined) => [
+                ...(restaurants || []),
+                data,
+            ]);
             showSuccessToast(tCommon("createSuccess"), t("createSuccessDesc", { name: data.name }));
         },
     });
@@ -56,14 +59,20 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
     const { getInputProps, onSubmit, setValues, isDirty, resetDirty, values, errors } = useForm({
         initialValues: {
             contactNo: restaurant?.contactNo || "",
+            currency: (restaurant as any)?.currency || "₹",
             imageBase64: "",
             imagePath: restaurant?.image?.path || "",
-            location: restaurant?.location || "",
-            name: restaurant?.name || "",
-            ownerUsername: (restaurant as any)?.ownerUsername || "",
-            ownerPassword: (restaurant as any)?.ownerPassword || "",
-            userId: restaurant?.userId || "",
+            isKitchenEnabled: (restaurant as any)?.isKitchenEnabled || false,
+            isOrderFeatureEnabled: (restaurant as any)?.isOrderFeatureEnabled || false,
             isOwnerDisabled: (restaurant as any)?.isOwnerDisabled || false,
+            location: restaurant?.location || "",
+            logoBase64: "",
+            logoUrl: (restaurant as any)?.logoUrl || "",
+            name: restaurant?.name || "",
+            ownerPassword: (restaurant as any)?.ownerPassword || "",
+            ownerUsername: (restaurant as any)?.ownerUsername || "",
+            userId: restaurant?.userId || "",
+            whatsappNo: (restaurant as any)?.whatsappNo || "",
         },
         validate: zodResolver(restaurantInput),
     });
@@ -72,14 +81,20 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
         if (opened) {
             const formValues = {
                 contactNo: restaurant?.contactNo || "",
+                currency: (restaurant as any)?.currency || "₹",
                 imageBase64: "",
                 imagePath: restaurant?.image?.path || "",
-                location: restaurant?.location || "",
-                name: restaurant?.name || "",
-                ownerUsername: (restaurant as any)?.ownerUsername || "",
-                ownerPassword: (restaurant as any)?.ownerPassword || "",
-                userId: restaurant?.userId || "",
+                isKitchenEnabled: (restaurant as any)?.isKitchenEnabled || false,
+                isOrderFeatureEnabled: (restaurant as any)?.isOrderFeatureEnabled || false,
                 isOwnerDisabled: (restaurant as any)?.isOwnerDisabled || false,
+                location: restaurant?.location || "",
+                logoBase64: "",
+                logoUrl: (restaurant as any)?.logoUrl || "",
+                name: restaurant?.name || "",
+                ownerPassword: (restaurant as any)?.ownerPassword || "",
+                ownerUsername: (restaurant as any)?.ownerUsername || "",
+                userId: restaurant?.userId || "",
+                whatsappNo: (restaurant as any)?.whatsappNo || "",
             };
             setValues(formValues);
             resetDirty(formValues);
@@ -154,14 +169,74 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                                 {...getInputProps("userId")}
                             />
                             <Checkbox
+                                checked={values.isOwnerDisabled}
                                 disabled={loading}
                                 label="Disable Owner Login"
-                                checked={values.isOwnerDisabled}
                                 {...getInputProps("isOwnerDisabled", { type: "checkbox" })}
                                 mt="xs"
                             />
                         </>
                     )}
+                    <Text mb={-10} size="sm" weight={500}>
+                        Logo Image (Optional)
+                    </Text>
+                    <ImageUpload
+                        disabled={loading}
+                        error={!!errors.logoUrl}
+                        height={120}
+                        imageHash={undefined}
+                        imageUrl={values?.logoUrl}
+                        onImageCrop={(logoBase64, logoUrl) => setValues({ logoBase64, logoUrl })}
+                        onImageDeleteClick={() => setValues({ logoBase64: "", logoUrl: "" })}
+                        width={120}
+                    />
+                    <Text color={theme.colors.red[7]} size="xs">
+                        {errors.logoUrl}
+                    </Text>
+
+                    <Select
+                        data={[
+                            { label: "₹ (INR)", value: "₹" },
+                            { label: "$ (USD)", value: "$" },
+                            { label: "€ (EUR)", value: "€" },
+                            { label: "£ (GBP)", value: "£" },
+                            { label: "AED", value: "AED" },
+                            { label: "SR", value: "SR" },
+                        ]}
+                        disabled={loading}
+                        label="Currency symbol"
+                        {...getInputProps("currency")}
+                    />
+
+                    <Switch
+                        checked={values.isOrderFeatureEnabled}
+                        disabled={loading}
+                        label="Enable Order Management (WhatsApp Ordering)"
+                        {...getInputProps("isOrderFeatureEnabled", { type: "checkbox" })}
+                        mt="xs"
+                    />
+
+                    {values.isOrderFeatureEnabled && (
+                        <TextInput
+                            disabled={loading}
+                            label="WhatsApp Number (with country code)"
+                            placeholder="e.g. 918547119867"
+                            withAsterisk
+                            {...getInputProps("whatsappNo")}
+                        />
+                    )}
+
+                    <Switch
+                        checked={values.isKitchenEnabled}
+                        disabled={loading}
+                        label="Enable Kitchen Screen (Table Orders display)"
+                        {...getInputProps("isKitchenEnabled", { type: "checkbox" })}
+                        mt="xs"
+                    />
+
+                    <Text mb={-10} size="sm" weight={500}>
+                        Cover Image
+                    </Text>
                     <ImageUpload
                         disabled={loading}
                         error={!!errors.imagePath}

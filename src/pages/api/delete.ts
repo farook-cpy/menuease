@@ -1,6 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { deleteFromImageKit, deleteFromCloudinary, getCloudinaryPublicId } from "src/utils/mediaServer";
+
+import type { NextApiRequest, NextApiResponse } from "next";
+
+import { deleteFromCloudinary, deleteFromImageKit, getCloudinaryPublicId } from "src/utils/mediaServer";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -21,7 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+        data: { user },
+        error: authError,
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
         return res.status(401).json({ error: "Unauthorized session" });
@@ -44,11 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             } else {
                 // ImageKit Image Deletion
                 // Query Supabase to find the Image record by path (since we store ImageKit fileId in Image.id)
-                const { data: imgRecord } = await supabase
-                    .from("Image")
-                    .select("id")
-                    .eq("path", path)
-                    .single();
+                const { data: imgRecord } = await supabase.from("Image").select("id").eq("path", path).single();
 
                 if (imgRecord?.id) {
                     await deleteFromImageKit(imgRecord.id);
@@ -60,10 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         } else {
             // Delete from Supabase Storage (compatibility with old images)
-            const { error: deleteErr } = await supabase.storage
-                .from("menufic")
-                .remove([path]);
-            
+            const { error: deleteErr } = await supabase.storage.from("menufic").remove([path]);
+
             if (deleteErr) {
                 console.error("Supabase Storage deletion error:", deleteErr);
                 throw deleteErr;

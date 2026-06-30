@@ -1,11 +1,15 @@
 import type { FC } from "react";
 import { useRef } from "react";
+
 import { Carousel } from "@mantine/carousel";
 import { Box, createStyles } from "@mantine/core";
 import Autoplay from "embla-carousel-autoplay";
+
 import type { Image } from "@prisma/client";
+
+import { Black, White } from "src/styles/theme";
+
 import { ImageKitImage } from "../ImageKitImage";
-import { White, Black } from "src/styles/theme";
 
 const useStyles = createStyles((theme) => ({
     carousalOverlay: {
@@ -69,8 +73,8 @@ export const BannerCarousel: FC<BannerCarouselProps> = ({ images, restaurantName
                         height={400}
                         imageAlt={`${restaurantName}-banner-${index}`}
                         imagePath={banner.path}
-                        width={1000}
                         priority={index === 0}
+                        width={1000}
                     />
                     <Box className={classes.carousalOverlay} />
                 </Carousel.Slide>

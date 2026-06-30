@@ -1,13 +1,25 @@
-import { useState, useEffect } from "react";
-import { BackgroundImage, Box, Center, createStyles, TextInput, PasswordInput, Button, Stack, Alert, Title } from "@mantine/core";
-import { IconAlertCircle, IconMail, IconLock } from "@tabler/icons";
+import { useEffect, useState } from "react";
+
+import {
+    Alert,
+    BackgroundImage,
+    Box,
+    Button,
+    Center,
+    createStyles,
+    PasswordInput,
+    Stack,
+    TextInput,
+    Title,
+} from "@mantine/core";
+import { IconAlertCircle, IconLock, IconMail } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 
 import type { NextPage } from "next";
 
 import { Logo } from "src/components/Logo";
-import { useSession, signIn } from "src/utils/supabaseAuth";
+import { signIn, useSession } from "src/utils/supabaseAuth";
 import { supabase } from "src/utils/supabaseClient";
 
 const useStyles = createStyles((theme) => {
@@ -20,13 +32,13 @@ const useStyles = createStyles((theme) => {
             boxShadow: theme.shadows.lg,
             display: "flex",
             flexDirection: "column",
+            maxWidth: "100%",
             padding: `${theme.spacing.lg}px ${theme.spacing.xl}px`,
             width: 380,
-            maxWidth: "100%",
         },
         form: {
-            width: "100%",
             marginTop: theme.spacing.md,
+            width: "100%",
         },
     };
 });
@@ -96,12 +108,12 @@ const AdminSignIn: NextPage = () => {
                     <Box my={10}>
                         <Logo />
                     </Box>
-                    
-                    <Title order={3} color="dark.8" align="center" mt="sm">
+
+                    <Title align="center" color="dark.8" mt="sm" order={3}>
                         Super Admin Panel
                     </Title>
 
-                    <form onSubmit={handleSubmit} className={classes.form}>
+                    <form className={classes.form} onSubmit={handleSubmit}>
                         <Stack spacing="sm">
                             {errorMsg && (
                                 <Alert color="red" icon={<IconAlertCircle size={16} />} radius="md">
@@ -110,34 +122,27 @@ const AdminSignIn: NextPage = () => {
                             )}
 
                             <TextInput
-                                label="Admin Email"
-                                placeholder="admin@domain.com"
-                                icon={<IconMail size={16} />}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={loading}
                                 autoFocus
+                                disabled={loading}
+                                icon={<IconMail size={16} />}
+                                label="Admin Email"
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="admin@domain.com"
+                                required
+                                value={email}
                             />
 
                             <PasswordInput
-                                label="Admin Password"
-                                placeholder="Enter admin password"
-                                icon={<IconLock size={16} />}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
                                 disabled={loading}
+                                icon={<IconLock size={16} />}
+                                label="Admin Password"
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter admin password"
+                                required
+                                value={password}
                             />
 
-                            <Button
-                                type="submit"
-                                loading={loading}
-                                fullWidth
-                                mt="md"
-                                size="md"
-                                color="primary"
-                            >
+                            <Button color="primary" fullWidth loading={loading} mt="md" size="md" type="submit">
                                 Access Console
                             </Button>
                         </Stack>

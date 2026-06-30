@@ -88,30 +88,32 @@ export const getColor = (base64: string): Promise<[number, number, number]> => {
 export const rgba2hex = (rgb1: number, rgb2: number, rgb3: number) => {
     const hex =
         // eslint-disable-next-line no-bitwise
-        ((rgb1 | (1 << 8)).toString(16).slice(1)) +
+        (rgb1 | (1 << 8)).toString(16).slice(1) +
         // eslint-disable-next-line no-bitwise
-        ((rgb2 | (1 << 8)).toString(16).slice(1)) +
+        (rgb2 | (1 << 8)).toString(16).slice(1) +
         // eslint-disable-next-line no-bitwise
-        ((rgb3 | (1 << 8)).toString(16).slice(1));
+        (rgb3 | (1 << 8)).toString(16).slice(1);
     return `#${hex}`;
 };
 
 /** Uploads base64 image/video to ImageKit/Cloudinary via server-side API */
 export const uploadImage = async (imageBase64: string, imageFolder: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) throw new Error("Unauthorized: Cannot upload files without user session");
 
     const response = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-        },
         body: JSON.stringify({
             imageBase64,
             imageFolder,
         }),
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+        method: "POST",
     });
 
     if (!response.ok) {
@@ -122,22 +124,24 @@ export const uploadImage = async (imageBase64: string, imageFolder: string) => {
     const { data } = await response.json();
     return {
         fileId: data.fileId, // Store the ImageKit fileId or Cloudinary URL as the Image ID in DB
-        filePath: data.url,  // Path/URL to be loaded in the app
+        filePath: data.url, // Path/URL to be loaded in the app
     };
 };
 
 /** Deletes a file from storage via server-side API (deletes from R2 or Supabase depending on path) */
 export const deleteFile = async (path: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
     const token = session?.access_token;
 
     const response = await fetch("/api/delete", {
-        method: "POST",
+        body: JSON.stringify({ path }),
         headers: {
             "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ path }),
+        method: "POST",
     });
 
     if (!response.ok) {

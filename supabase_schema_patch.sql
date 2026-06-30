@@ -46,3 +46,12 @@ ADD CONSTRAINT fk_order_restaurant
 FOREIGN KEY ("restaurantId") 
 REFERENCES "Restaurant"("id") 
 ON DELETE CASCADE;
+
+-- 7. Add brandColor and logoUrl columns to Restaurant table
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "brandColor" TEXT DEFAULT '#7048e8';
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "logoUrl" TEXT;
+
+-- 8. Add likes and dislikes columns to MenuItem table
+ALTER TABLE "MenuItem" ADD COLUMN IF NOT EXISTS "likes" INTEGER DEFAULT 0;
+ALTER TABLE "MenuItem" ADD COLUMN IF NOT EXISTS "dislikes" INTEGER DEFAULT 0;
+

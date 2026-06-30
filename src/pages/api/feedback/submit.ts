@@ -1,20 +1,17 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
+
+import type { NextApiRequest, NextApiResponse } from "next";
+
 import { uploadToImageKit } from "src/utils/mediaServer";
 
 // Use service role key server-side to bypass RLS, fallback to anon key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method not allowed" });
     }
@@ -56,13 +53,13 @@ export default async function handler(
             .from("Feedback")
             .insert([
                 {
+                    comment: String(comment).trim(),
+                    createdAt: new Date().toISOString(),
                     id,
+                    imageUrl,
                     menuItemId,
                     rating: Number(rating),
-                    comment: String(comment).trim(),
                     reviewerName: String(reviewerName || "Anonymous").trim() || "Anonymous",
-                    imageUrl,
-                    createdAt: new Date().toISOString(),
                 },
             ])
             .select()

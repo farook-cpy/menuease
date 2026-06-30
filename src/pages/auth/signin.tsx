@@ -1,13 +1,26 @@
-import { useState, useEffect } from "react";
-import { BackgroundImage, Box, Center, createStyles, TextInput, PasswordInput, Button, Tabs, Stack, Alert, Title } from "@mantine/core";
-import { IconAlertCircle, IconMail, IconLock, IconUser } from "@tabler/icons";
+import { useEffect, useState } from "react";
+
+import {
+    Alert,
+    BackgroundImage,
+    Box,
+    Button,
+    Center,
+    createStyles,
+    PasswordInput,
+    Stack,
+    Tabs,
+    TextInput,
+    Title,
+} from "@mantine/core";
+import { IconAlertCircle, IconLock, IconMail, IconUser } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 
 import type { NextPage } from "next";
 
 import { Logo } from "src/components/Logo";
-import { useSession, signIn, signUp } from "src/utils/supabaseAuth";
+import { signIn, signUp, useSession } from "src/utils/supabaseAuth";
 
 const useStyles = createStyles((theme) => {
     return {
@@ -19,13 +32,13 @@ const useStyles = createStyles((theme) => {
             boxShadow: theme.shadows.lg,
             display: "flex",
             flexDirection: "column",
+            maxWidth: "100%",
             padding: `${theme.spacing.lg}px ${theme.spacing.xl}px`,
             width: 380,
-            maxWidth: "100%",
         },
         form: {
-            width: "100%",
             marginTop: theme.spacing.md,
+            width: "100%",
         },
     };
 });
@@ -77,11 +90,11 @@ const SignIn: NextPage = () => {
                         <Logo />
                     </Box>
 
-                    <Title order={3} color="dark.8" align="center" mt="xs" mb="sm">
+                    <Title align="center" color="dark.8" mb="sm" mt="xs" order={3}>
                         Restaurant Owner Sign In
                     </Title>
 
-                    <form onSubmit={handleSubmit} className={classes.form}>
+                    <form className={classes.form} onSubmit={handleSubmit}>
                         <Stack spacing="sm">
                             {errorMsg && (
                                 <Alert color="red" icon={<IconAlertCircle size={16} />} radius="md">
@@ -90,33 +103,27 @@ const SignIn: NextPage = () => {
                             )}
 
                             <TextInput
-                                label="Username"
-                                placeholder="Enter restaurant username"
-                                icon={<IconUser size={16} />}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={loading}
                                 autoFocus
+                                disabled={loading}
+                                icon={<IconUser size={16} />}
+                                label="Username"
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter restaurant username"
+                                required
+                                value={email}
                             />
 
                             <PasswordInput
-                                label="Password"
-                                placeholder="Enter your password"
-                                icon={<IconLock size={16} />}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
                                 disabled={loading}
+                                icon={<IconLock size={16} />}
+                                label="Password"
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                                required
+                                value={password}
                             />
 
-                            <Button
-                                type="submit"
-                                loading={loading}
-                                fullWidth
-                                mt="md"
-                                size="md"
-                            >
+                            <Button fullWidth loading={loading} mt="md" size="md" type="submit">
                                 Sign In
                             </Button>
                         </Stack>

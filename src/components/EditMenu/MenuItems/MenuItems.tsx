@@ -45,13 +45,18 @@ export const MenuItems: FC<Props> = ({ categoryId, menuItems, menuId }) => {
                 item.id === categoryId
                     ? {
                           ...item,
-                          items: reorderedList.reduce((acc: (MenuItem & { image: Image | null })[], reorderedItem: any) => {
-                              const matchingItem = item?.items?.find((menuItem: any) => menuItem.id === reorderedItem.id);
-                              if (matchingItem) {
-                                  return [...acc, { ...matchingItem, position: reorderedItem.newPosition }];
-                              }
-                              return acc;
-                          }, []),
+                          items: reorderedList.reduce(
+                              (acc: (MenuItem & { image: Image | null })[], reorderedItem: any) => {
+                                  const matchingItem = item?.items?.find(
+                                      (menuItem: any) => menuItem.id === reorderedItem.id
+                                  );
+                                  if (matchingItem) {
+                                      return [...acc, { ...matchingItem, position: reorderedItem.newPosition }];
+                                  }
+                                  return acc;
+                              },
+                              []
+                          ),
                       }
                     : item
             );

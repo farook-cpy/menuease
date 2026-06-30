@@ -28,7 +28,13 @@ export const Logo: FC = () => {
 
     return (
         <Link className={classes.titleLink} href="/">
-            <Image alt="logo" className={classes.image} height={50} src="https://i.postimg.cc/mk3F8sNb/erasebg-transformed.png" width={200} />
+            <Image
+                alt="logo"
+                className={classes.image}
+                height={50}
+                src="https://i.postimg.cc/mk3F8sNb/erasebg-transformed.png"
+                width={200}
+            />
         </Link>
     );
 };

@@ -40,6 +40,8 @@ model Restaurant {
     analytics     MenuAnalytics[] @relation("AnalyticsOfRestaurant")
     isKitchenEnabled Boolean @default(false)
     orders        Order[]  @relation("OrdersOfRestaurant")
+    brandColor    String?
+    logoUrl       String?
 
     @@id([id, userId])
     @@index([isPublished])
@@ -109,6 +111,8 @@ model MenuItem {
     isVeg       Boolean?
     videoUrl    String?
     images      Image[]   @relation("AdditionalImagesOfMenuItem")
+    likes       Int       @default(0)
+    dislikes    Int       @default(0)
 
     @@id([id, userId])
     @@index([categoryId])

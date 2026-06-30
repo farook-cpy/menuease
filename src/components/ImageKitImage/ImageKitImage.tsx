@@ -68,7 +68,11 @@ export const ImageKitImage: FC<Props> = ({ blurhash, color, imagePath, imageAlt,
                     height={height}
                     loading={priority ? undefined : "lazy"}
                     priority={priority}
-                    src={imagePath.startsWith("http") ? imagePath : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${imagePath}`}
+                    src={
+                        imagePath.startsWith("http")
+                            ? imagePath
+                            : `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${imagePath}`
+                    }
                     width={width}
                 />
             )}

@@ -2,9 +2,26 @@ import type { FC } from "react";
 import { useState } from "react";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Box, Center, Flex, Loader, SimpleGrid, Title, Badge, Button, Group, Text, Stack, Alert, Modal, Select, Table, Divider, Card } from "@mantine/core";
-import { IconCirclePlus, IconAlertTriangle, IconCreditCard, IconHistory } from "@tabler/icons";
-import { useSession, impersonate } from "src/utils/supabaseAuth";
+import {
+    Alert,
+    Badge,
+    Box,
+    Button,
+    Card,
+    Center,
+    Divider,
+    Flex,
+    Group,
+    Loader,
+    Modal,
+    Select,
+    SimpleGrid,
+    Stack,
+    Table,
+    Text,
+    Title,
+} from "@mantine/core";
+import { IconAlertTriangle, IconCirclePlus, IconCreditCard, IconHistory } from "@tabler/icons";
 import { type NextPage } from "next";
 import { useTranslations } from "next-intl";
 import { NextSeo } from "next-seo";
@@ -18,9 +35,13 @@ import { RestaurantForm } from "src/components/Forms/RestaurantForm";
 import { env } from "src/env/client.mjs";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { impersonate, useSession } from "src/utils/supabaseAuth";
 
 /** Image card that will represent each restaurant that the user created */
-const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: boolean }> = ({ item: rawItem, isOwner }) => {
+const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: boolean }> = ({
+    item: rawItem,
+    isOwner,
+}) => {
     const item = rawItem as any;
     const status = item.subscriptionStatus || "trial";
     const trpcCtx = api.useContext();
@@ -77,7 +98,7 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
             trpcCtx.restaurant.getAll.invalidate();
             showSuccessToast("Subscription Renewed", `Successfully renewed plan for ${data.name}`);
             setBillingOpen(false);
-        }
+        },
     });
 
     const isSuspended = (item as any).isSuspended || false;
@@ -86,15 +107,26 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
     return (
         <Stack spacing="xs">
             <ImageCard
-                editDeleteOptions={isOwner ? undefined : {
-                    onDeleteClick: () => setDeleteFormOpen(true),
-                    onEditClick: () => setRestaurantFormOpen(true),
-                    onCloneClick: isAdmin ? () => cloneRestaurant({ id: item.id }) : undefined,
-                    onImpersonateClick: isAdmin ? () => impersonate(item.id, item.name, (item as any).ownerUsername || "") : undefined,
-                    isSuspended: isSuspended,
-                    onSuspendClick: isAdmin ? () => setSuspended({ id: item.id, isSuspended: !isSuspended }) : undefined,
-                    loading,
-                }}
+                editDeleteOptions={
+                    isOwner
+                        ? {
+                              loading,
+                              onSettingsClick: () => setRestaurantFormOpen(true),
+                          }
+                        : {
+                              isSuspended,
+                              loading,
+                              onCloneClick: isAdmin ? () => cloneRestaurant({ id: item.id }) : undefined,
+                              onDeleteClick: () => setDeleteFormOpen(true),
+                              onImpersonateClick: isAdmin
+                                  ? () => impersonate(item.id, item.name, (item as any).ownerUsername || "")
+                                  : undefined,
+                              onSettingsClick: () => setRestaurantFormOpen(true),
+                              onSuspendClick: isAdmin
+                                  ? () => setSuspended({ id: item.id, isSuspended: !isSuspended })
+                                  : undefined,
+                          }
+                }
                 href={`/restaurant/${item.id}`}
                 image={item.image}
                 imageAlt={item.name}
@@ -103,14 +135,21 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                 title={isSuspended ? `🚫 ${item.name}` : item.name}
             />
             {isOwner && (
-                <Card withBorder radius="md" p="xs" mt="-xs">
+                <Card mt="-xs" p="xs" radius="md" withBorder>
                     <Group position="apart">
                         <Stack spacing={2}>
-                            <Text size="xs" color="dimmed" weight={500}>
-                                Subscription: <Badge size="xs" color={status === "expired" ? "red" : status === "trial" ? "yellow" : "green"} variant="filled">{item.planName || "Free Trial"}</Badge>
+                            <Text color="dimmed" size="xs" weight={500}>
+                                Subscription:{" "}
+                                <Badge
+                                    color={status === "expired" ? "red" : status === "trial" ? "yellow" : "green"}
+                                    size="xs"
+                                    variant="filled"
+                                >
+                                    {item.planName || "Free Trial"}
+                                </Badge>
                             </Text>
                         </Stack>
-                        <Button size="xs" variant="light" color="primary" onClick={() => setBillingOpen(true)}>
+                        <Button color="primary" onClick={() => setBillingOpen(true)} size="xs" variant="light">
                             Billing & Renew
                         </Button>
                     </Group>
@@ -132,41 +171,41 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
 
             {/* Owner Billing & Renew Modal */}
             <Modal
-                opened={billingOpen}
-                onClose={() => setBillingOpen(false)}
-                title={`Billing & Subscription Settings: ${item.name}`}
-                size="md"
                 centered
+                onClose={() => setBillingOpen(false)}
+                opened={billingOpen}
+                size="md"
+                title={`Billing & Subscription Settings: ${item.name}`}
             >
                 <Stack spacing="md">
                     <div>
-                        <Text size="sm" color="dimmed" weight={500}>Current Plan</Text>
-                        <Badge size="lg" color="primary" variant="light" mt="xs">
+                        <Text color="dimmed" size="sm" weight={500}>
+                            Current Plan
+                        </Text>
+                        <Badge color="primary" mt="xs" size="lg" variant="light">
                             {item.planName || "Free Trial"}
                         </Badge>
                     </div>
 
                     <div>
-                        <Text size="sm" color="dimmed" weight={500}>Subscription Status</Text>
-                        <Badge 
-                            size="lg" 
-                            color={
-                                status === "expired" 
-                                    ? "red" 
-                                    : status === "trial" 
-                                    ? "yellow" 
-                                    : "green"
-                            } 
-                            variant="filled" 
+                        <Text color="dimmed" size="sm" weight={500}>
+                            Subscription Status
+                        </Text>
+                        <Badge
+                            color={status === "expired" ? "red" : status === "trial" ? "yellow" : "green"}
                             mt="xs"
+                            size="lg"
+                            variant="filled"
                         >
                             {status.toUpperCase()}
                         </Badge>
                     </div>
 
                     <div>
-                        <Text size="sm" color="dimmed" weight={500}>Expiry / Trial End Date</Text>
-                        <Text size="sm" weight={600} mt="xs">
+                        <Text color="dimmed" size="sm" weight={500}>
+                            Expiry / Trial End Date
+                        </Text>
+                        <Text mt="xs" size="sm" weight={600}>
                             {status === "trial" && (item as any).trialEndsAt
                                 ? new Date((item as any).trialEndsAt).toLocaleDateString()
                                 : item.subscriptionExpiresAt
@@ -178,14 +217,16 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                     <Divider />
 
                     <Stack spacing="xs">
-                        <Text size="sm" weight={500}>Renew / Upgrade Plan</Text>
+                        <Text size="sm" weight={500}>
+                            Renew / Upgrade Plan
+                        </Text>
                         <Select
-                            value={renewPlanName}
-                            onChange={(val) => setRenewPlanName(val as any || "Basic Plan")}
                             data={[
-                                { value: "Basic Plan", label: "Basic Plan (₹15/mo)" },
-                                { value: "Premium Plan", label: "Premium Plan (₹40/mo)" },
+                                { label: "Basic Plan (₹15/mo)", value: "Basic Plan" },
+                                { label: "Premium Plan (₹40/mo)", value: "Premium Plan" },
                             ]}
+                            onChange={(val) => setRenewPlanName((val as any) || "Basic Plan")}
+                            value={renewPlanName}
                         />
                         <Button
                             color="primary"
@@ -205,9 +246,13 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                     <Divider label="Payment Ledger" labelPosition="center" />
 
                     <div>
-                        <Text size="sm" weight={500} mb="xs">Recent Transactions</Text>
+                        <Text mb="xs" size="sm" weight={500}>
+                            Recent Transactions
+                        </Text>
                         {loadingHistory ? (
-                            <Center py="xs"><Loader size="xs" /></Center>
+                            <Center py="xs">
+                                <Loader size="xs" />
+                            </Center>
                         ) : (
                             <Table striped verticalSpacing="xs">
                                 <thead>
@@ -223,9 +268,11 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                                         return (
                                             <tr key={tx.id}>
                                                 <td>{new Date(tx.createdAt).toLocaleDateString()}</td>
-                                                <td><Text size="xs">{tx.description}</Text></td>
                                                 <td>
-                                                    <Text size="xs" weight={600} color={isDebit ? "red" : "green"}>
+                                                    <Text size="xs">{tx.description}</Text>
+                                                </td>
+                                                <td>
+                                                    <Text color={isDebit ? "red" : "green"} size="xs" weight={600}>
                                                         {isDebit ? "" : "+"}${Math.abs(tx.amount).toFixed(2)}
                                                     </Text>
                                                 </td>
@@ -235,7 +282,9 @@ const RestaurantCard: FC<{ item: Restaurant & { image: Image | null }; isOwner: 
                                     {billingHistory.length === 0 && (
                                         <tr>
                                             <td colSpan={3}>
-                                                <Text align="center" size="xs" color="dimmed">No transaction history.</Text>
+                                                <Text align="center" color="dimmed" size="xs">
+                                                    No transaction history.
+                                                </Text>
                                             </td>
                                         </tr>
                                     )}
@@ -275,7 +324,7 @@ const RestaurantsListPage: NextPage = () => {
                             {isSuperAdmin && (
                                 <Button
                                     color="primary"
-                                    onClick={() => window.location.href = "/admin/console"}
+                                    onClick={() => (window.location.href = "/admin/console")}
                                     variant="light"
                                 >
                                     Admin Console
@@ -294,31 +343,39 @@ const RestaurantsListPage: NextPage = () => {
                         </Group>
                     </Flex>
                     <Box mt="xl" ref={rootParent}>
-                        {isOwner && restaurants?.map((rest: any) => {
-                            const expiresAt = rest.subscriptionExpiresAt ? new Date(rest.subscriptionExpiresAt) : null;
-                            const restStatus = rest.subscriptionStatus || "trial";
-                            const isExpired = restStatus === "expired" || (expiresAt && new Date() > expiresAt);
-                            const isExpiringSoon = expiresAt && !isExpired && (expiresAt.getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000);
-                            
-                            if (isExpired || isExpiringSoon) {
-                                return (
-                                    <Alert
-                                        icon={<IconAlertTriangle size={16} />}
-                                        title={isExpired ? "Subscription Expired" : "Subscription Expiring Soon"}
-                                        color={isExpired ? "red" : "yellow"}
-                                        mb="md"
-                                        key={rest.id}
-                                    >
-                                        <Text size="sm">
-                                            {isExpired 
-                                              ? `Your subscription for "${rest.name}" has expired. Access to edit menus is blocked. Please renew your plan using the card button below.` 
-                                              : `Your subscription for "${rest.name}" expires soon on ${expiresAt?.toLocaleDateString()}. Please renew soon.`}
-                                        </Text>
-                                    </Alert>
-                                );
-                            }
-                            return null;
-                        })}
+                        {isOwner &&
+                            restaurants?.map((rest: any) => {
+                                const expiresAt = rest.subscriptionExpiresAt
+                                    ? new Date(rest.subscriptionExpiresAt)
+                                    : null;
+                                const restStatus = rest.subscriptionStatus || "trial";
+                                const isExpired = restStatus === "expired" || (expiresAt && new Date() > expiresAt);
+                                const isExpiringSoon =
+                                    expiresAt &&
+                                    !isExpired &&
+                                    expiresAt.getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000;
+
+                                if (isExpired || isExpiringSoon) {
+                                    return (
+                                        <Alert
+                                            key={rest.id}
+                                            color={isExpired ? "red" : "yellow"}
+                                            icon={<IconAlertTriangle size={16} />}
+                                            mb="md"
+                                            title={isExpired ? "Subscription Expired" : "Subscription Expiring Soon"}
+                                        >
+                                            <Text size="sm">
+                                                {isExpired
+                                                    ? `Your subscription for "${rest.name}" has expired. Access to edit menus is blocked. Please renew your plan using the card button below.`
+                                                    : `Your subscription for "${
+                                                          rest.name
+                                                      }" expires soon on ${expiresAt?.toLocaleDateString()}. Please renew soon.`}
+                                            </Text>
+                                        </Alert>
+                                    );
+                                }
+                                return null;
+                            })}
                         {isLoading ? (
                             <Center h="50vh" w="100%">
                                 <Loader size="lg" />
@@ -334,9 +391,12 @@ const RestaurantsListPage: NextPage = () => {
                                 ref={gridItemParent}
                             >
                                 {restaurants?.map((item) => (
-                                    <RestaurantCard key={item.id} item={item} isOwner={isOwner} />
+                                    <RestaurantCard key={item.id} isOwner={isOwner} item={item} />
                                 ))}
-                                {!isOwner && (isAdmin || (restaurants && restaurants.length < Number(env.NEXT_PUBLIC_MAX_RESTAURANTS_PER_USER))) && (
+                                {!isOwner &&
+                                    (isAdmin ||
+                                        (restaurants &&
+                                            restaurants.length < Number(env.NEXT_PUBLIC_MAX_RESTAURANTS_PER_USER))) && (
                                         <IconCard
                                             key="add-new-restaurant"
                                             Icon={IconCirclePlus}

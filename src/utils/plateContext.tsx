@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+
 import { useRouter } from "next/router";
 
 export interface PlateItem {
@@ -30,12 +31,12 @@ interface PlateContextType {
 const PlateContext = createContext<PlateContextType | undefined>(undefined);
 
 export const parsePrice = (priceStr: string) => {
-    if (!priceStr) return { number: 0, currency: "" };
+    if (!priceStr) return { currency: "", number: 0 };
     const trimmed = priceStr.trim();
     const numMatch = trimmed.match(/[0-9.]+/);
     const number = numMatch ? parseFloat(numMatch[0]) : 0;
     const currency = trimmed.replace(/[0-9.]+/g, "").trim();
-    return { number, currency };
+    return { currency, number };
 };
 
 export const formatPrice = (num: number, currency: string) => {
@@ -140,11 +141,11 @@ export const PlateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ...plateItems,
                 {
                     id: item.id,
+                    isVeg: item.isVeg,
                     name: item.name,
+                    notes: "",
                     price: item.price,
                     quantity,
-                    notes: "",
-                    isVeg: item.isVeg,
                 },
             ]);
         }
@@ -198,7 +199,7 @@ export const PlateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (plateItems.length === 0) return "0.00";
         let totalVal = 0;
         let currencyStr = "";
-        
+
         plateItems.forEach((item) => {
             const { number, currency } = parsePrice(item.price);
             totalVal += number * item.quantity;
@@ -214,28 +215,42 @@ export const PlateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return plateItems.reduce((acc, item) => acc + item.quantity, 0);
     };
 
-    return (
-        <PlateContext.Provider
-            value={{
-                activeRestaurantId,
-                setActiveRestaurantId,
-                plateItems,
-                addToPlate,
-                removeFromPlate,
-                updateQuantity,
-                updateNotes,
-                clearPlate,
-                getPlateTotal,
-                getPlateCount,
-                table,
-                floor,
-                setTable,
-                setFloor,
-            }}
-        >
-            {children}
-        </PlateContext.Provider>
+    const contextValue = React.useMemo(
+        () => ({
+            activeRestaurantId,
+            addToPlate,
+            clearPlate,
+            floor,
+            getPlateCount,
+            getPlateTotal,
+            plateItems,
+            removeFromPlate,
+            setActiveRestaurantId,
+            setFloor,
+            setTable,
+            table,
+            updateNotes,
+            updateQuantity,
+        }),
+        [
+            activeRestaurantId,
+            addToPlate,
+            clearPlate,
+            floor,
+            getPlateCount,
+            getPlateTotal,
+            plateItems,
+            removeFromPlate,
+            setActiveRestaurantId,
+            setFloor,
+            setTable,
+            table,
+            updateNotes,
+            updateQuantity,
+        ]
     );
+
+    return <PlateContext.Provider value={contextValue}>{children}</PlateContext.Provider>;
 };
 
 export const usePlate = () => {

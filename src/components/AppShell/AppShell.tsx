@@ -2,6 +2,7 @@ import type { FC, PropsWithChildren } from "react";
 import { useState } from "react";
 
 import { AppShell, Center, Container, Loader, Overlay, useMantineTheme } from "@mantine/core";
+
 import { useSession } from "src/utils/supabaseAuth";
 
 import { Footer } from "../Footer";

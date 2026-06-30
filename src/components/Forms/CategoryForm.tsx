@@ -33,7 +33,10 @@ export const CategoryForm: FC<Props> = ({ opened, onClose, menuId, categoryItem,
         onError: (err: any) => showErrorToast(t("createError"), err),
         onSuccess: (data: any) => {
             onClose();
-            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) => [...(categories || []), { ...data, items: [] }]);
+            trpcCtx.category.getAll.setData({ menuId }, (categories: any[] | undefined) => [
+                ...(categories || []),
+                { ...data, items: [] },
+            ]);
             if (onAddSuccess) {
                 onAddSuccess(data);
             }

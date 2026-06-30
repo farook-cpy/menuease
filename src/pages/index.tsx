@@ -5,6 +5,7 @@ import { NextSeo } from "next-seo";
 import { Footer } from "src/components/Footer";
 import { NavHeader } from "src/components/Header";
 import { AboutUs, ContactUs, Features, Hero, Pricing, SampleMenu, Steps } from "src/components/LandingSections";
+import messagesEn from "src/lang/en.json";
 
 /** Landing page to showcase what menufic is and what are the features that menufic provides */
 const LandingPage: NextPage = () => {
@@ -28,8 +29,6 @@ const LandingPage: NextPage = () => {
         </>
     );
 };
-
-import messagesEn from "src/lang/en.json";
 
 export const getStaticProps = async () => ({
     props: { messages: messagesEn },

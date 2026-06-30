@@ -1,62 +1,64 @@
 import type { FC, MutableRefObject } from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import {
+    Accordion,
     Box,
     Button,
-    Container,
-    Stack,
-    Title,
-    Transition,
     Card,
-    SimpleGrid,
-    Text,
-    Flex,
     Center,
+    Container,
+    Divider,
+    Flex,
     Grid,
-    Image,
     Group,
+    Image,
+    List,
+    Paper,
+    SimpleGrid,
+    Stack,
+    Table,
+    Text,
     Textarea,
     TextInput,
-    Divider,
-    Table,
-    Paper,
-    List,
     ThemeIcon,
-    Accordion,
+    Title,
+    Transition,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { useForm, zodResolver } from "@mantine/form";
-import { useMutation } from "@tanstack/react-query";
+import { useMediaQuery } from "@mantine/hooks";
 import {
+    IconBrandGithub,
     IconBrightness2,
     IconClick,
     IconDevices,
+    IconExternalLink,
     IconGauge,
-    IconQrcode,
-    IconSlideshow,
-    IconBrandGithub,
     IconMinus,
     IconPlus,
-    IconExternalLink,
+    IconQrcode,
+    IconSlideshow,
 } from "@tabler/icons";
+import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import QRCode from "react-qr-code";
 import { z } from "zod";
 
 import { env } from "src/env/client.mjs";
-import { useSession } from "src/utils/supabaseAuth";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { useSession } from "src/utils/supabaseAuth";
 
 // ─── Design Tokens ──────────────────────────────────────────────
 const tokens = {
+    accent: "#c8ff00",
     black: "#0a0a0a",
-    white: "#fafafa",
-    offWhite: "#f4f4f0",
     border: "#e2e2dc",
     muted: "#888880",
-    accent: "#c8ff00", // single accent color — no gradients
+    offWhite: "#f4f4f0",
+    // single accent color — no gradients
     surface: "#f9f9f6",
+    white: "#fafafa",
 } as const;
 
 // ─── Reusable: Section Label ─────────────────────────────────────
@@ -65,21 +67,21 @@ const SectionLabel: FC<{ children: string; index?: string }> = ({ children, inde
         {index && (
             <Text
                 sx={{
+                    color: tokens.muted,
                     fontFamily: "monospace",
                     fontSize: 11,
-                    color: tokens.muted,
                     letterSpacing: "0.08em",
                 }}
             >
                 {index}
             </Text>
         )}
-        <Box sx={{ width: 24, height: 1, background: tokens.muted }} />
+        <Box sx={{ background: tokens.muted, height: 1, width: 24 }} />
         <Text
             sx={{
+                color: tokens.muted,
                 fontFamily: "monospace",
                 fontSize: 11,
-                color: tokens.muted,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
             }}
@@ -101,22 +103,22 @@ const OutlineBtn: FC<{
     const fontSize = size === "lg" ? 15 : size === "sm" ? 12 : 13;
 
     const style = {
-        display: "inline-flex",
         alignItems: "center",
-        gap: 8,
-        padding,
-        fontSize,
-        fontWeight: 500,
-        letterSpacing: "0.01em",
-        border: `1.5px solid ${filled ? tokens.black : tokens.black}`,
         background: filled ? tokens.black : "transparent",
+        border: `1.5px solid ${filled ? tokens.black : tokens.black}`,
+        borderRadius: 0,
         color: filled ? tokens.white : tokens.black,
         cursor: "pointer",
-        transition: "background 0.15s ease, color 0.15s ease",
-        textDecoration: "none",
-        borderRadius: 0,
+        display: "inline-flex",
         fontFamily: "inherit",
+        fontSize,
+        fontWeight: 500,
+        gap: 8,
+        letterSpacing: "0.01em",
         lineHeight: 1,
+        padding,
+        textDecoration: "none",
+        transition: "background 0.15s ease, color 0.15s ease",
     } as const;
 
     const hoverStyle = {
@@ -126,13 +128,15 @@ const OutlineBtn: FC<{
 
     if (href) {
         return (
-            <Link href={href} style={style}
+            <Link
+                href={href}
                 onMouseEnter={(e) => {
                     Object.assign(e.currentTarget.style, hoverStyle);
                 }}
                 onMouseLeave={(e) => {
                     Object.assign(e.currentTarget.style, style);
                 }}
+                style={style}
             >
                 {children}
             </Link>
@@ -140,13 +144,15 @@ const OutlineBtn: FC<{
     }
 
     return (
-        <button onClick={onClick} style={style}
+        <button
+            onClick={onClick}
             onMouseEnter={(e) => {
                 Object.assign(e.currentTarget.style, hoverStyle);
             }}
             onMouseLeave={(e) => {
                 Object.assign(e.currentTarget.style, style);
             }}
+            style={style}
         >
             {children}
         </button>
@@ -154,9 +160,7 @@ const OutlineBtn: FC<{
 };
 
 // ─── Reusable: Horizontal Rule ───────────────────────────────────
-const HR: FC = () => (
-    <Box sx={{ borderTop: `1px solid ${tokens.border}`, width: "100%" }} />
-);
+const HR: FC = () => <Box sx={{ borderTop: `1px solid ${tokens.border}`, width: "100%" }} />;
 
 // ==========================================
 // 1. HERO
@@ -168,32 +172,38 @@ export const Hero: FC = () => {
     const [mounted, setMounted] = useState(false);
     const isMobile = useMediaQuery("(max-width: 768px)");
 
-    useEffect(() => { setMounted(true); }, []);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     return (
         <Box
             sx={{
                 background: tokens.white,
                 borderBottom: `1px solid ${tokens.border}`,
-                minHeight: "calc(100vh - 60px)",
                 display: "flex",
                 flexDirection: "column",
+                minHeight: "calc(100vh - 60px)",
             }}
         >
             {/* Top ticker / announcement bar */}
             <Box
                 sx={{
                     borderBottom: `1px solid ${tokens.border}`,
-                    padding: "10px 0",
                     overflow: "hidden",
+                    padding: "10px 0",
                 }}
             >
                 <Container size="xl">
                     <Flex align="center" justify="space-between">
-                        <Text sx={{ fontFamily: "monospace", fontSize: 11, color: tokens.muted, letterSpacing: "0.08em" }}>
+                        <Text
+                            sx={{ color: tokens.muted, fontFamily: "monospace", fontSize: 11, letterSpacing: "0.08em" }}
+                        >
                             FREE TIER AVAILABLE — NO CREDIT CARD REQUIRED
                         </Text>
-                        <Text sx={{ fontFamily: "monospace", fontSize: 11, color: tokens.muted, letterSpacing: "0.08em" }}>
+                        <Text
+                            sx={{ color: tokens.muted, fontFamily: "monospace", fontSize: 11, letterSpacing: "0.08em" }}
+                        >
                             EST. 2023
                         </Text>
                     </Flex>
@@ -201,19 +211,19 @@ export const Hero: FC = () => {
             </Box>
 
             {/* Main hero content */}
-            <Container size="xl" sx={{ flex: 1, display: "flex", alignItems: "center", padding: "80px 20px" }}>
-                <Grid sx={{ width: "100%" }} gutter={0}>
+            <Container size="xl" sx={{ alignItems: "center", display: "flex", flex: 1, padding: "80px 20px" }}>
+                <Grid gutter={0} sx={{ width: "100%" }}>
                     <Grid.Col md={7} sm={12}>
                         <Box sx={{ paddingRight: isMobile ? 0 : 60 }}>
                             {/* Index label */}
                             <Text
                                 sx={{
+                                    color: tokens.muted,
                                     fontFamily: "monospace",
                                     fontSize: 11,
-                                    color: tokens.muted,
                                     letterSpacing: "0.1em",
-                                    textTransform: "uppercase",
                                     marginBottom: 24,
+                                    textTransform: "uppercase",
                                 }}
                             >
                                 Digital Menu Platform — 01
@@ -222,13 +232,13 @@ export const Hero: FC = () => {
                             {/* Headline — editorial style, no gradient */}
                             <Title
                                 sx={{
+                                    color: tokens.black,
+                                    fontFamily: "Georgia, serif",
                                     fontSize: isMobile ? 44 : 80,
                                     fontWeight: 800,
-                                    lineHeight: 0.95,
                                     letterSpacing: "-3px",
-                                    color: tokens.black,
+                                    lineHeight: 0.95,
                                     marginBottom: 40,
-                                    fontFamily: "Georgia, serif",
                                 }}
                             >
                                 {t("tagLine1")}
@@ -236,10 +246,10 @@ export const Hero: FC = () => {
                                 <Text
                                     component="span"
                                     sx={{
-                                        fontStyle: "italic",
-                                        fontWeight: 400,
                                         color: tokens.muted,
                                         fontSize: isMobile ? 40 : 72,
+                                        fontStyle: "italic",
+                                        fontWeight: 400,
                                     }}
                                 >
                                     {t("tagLine2")}
@@ -251,28 +261,28 @@ export const Hero: FC = () => {
                             {/* Sub copy */}
                             <Text
                                 sx={{
-                                    fontSize: 15,
                                     color: tokens.muted,
-                                    maxWidth: 440,
+                                    fontSize: 15,
                                     lineHeight: 1.7,
                                     marginBottom: 48,
+                                    maxWidth: 440,
                                 }}
                             >
-                                Give your restaurant a digital menu your customers will actually use.
-                                QR codes, live updates, no app required.
+                                Give your restaurant a digital menu your customers will actually use. QR codes, live
+                                updates, no app required.
                             </Text>
 
                             {/* CTA row */}
-                            <Transition mounted={status !== "loading" && mounted} transition="fade" duration={400}>
+                            <Transition duration={400} mounted={status !== "loading" && mounted} transition="fade">
                                 {(styles) => (
-                                    <Flex style={styles} gap={12} wrap="wrap" align="center">
+                                    <Flex align="center" gap={12} style={styles} wrap="wrap">
                                         {status === "authenticated" ? (
-                                            <OutlineBtn href="/restaurant" size="lg" filled>
+                                            <OutlineBtn filled href="/restaurant" size="lg">
                                                 {tCommon("openDashboard")}
                                             </OutlineBtn>
                                         ) : (
                                             <>
-                                                <OutlineBtn href="/auth/signin" size="lg" filled>
+                                                <OutlineBtn filled href="/auth/signin" size="lg">
                                                     {t("getStarted")}
                                                 </OutlineBtn>
                                                 <OutlineBtn href="#how-it-works" size="lg">
@@ -287,9 +297,9 @@ export const Hero: FC = () => {
                             {/* Small print */}
                             <Text
                                 sx={{
+                                    color: tokens.muted,
                                     fontFamily: "monospace",
                                     fontSize: 10,
-                                    color: tokens.muted,
                                     letterSpacing: "0.06em",
                                     marginTop: 24,
                                     textTransform: "uppercase",
@@ -305,42 +315,42 @@ export const Hero: FC = () => {
                         <Box
                             sx={{
                                 borderLeft: isMobile ? "none" : `1px solid ${tokens.border}`,
-                                paddingLeft: isMobile ? 0 : 60,
-                                paddingTop: isMobile ? 60 : 0,
                                 display: "flex",
                                 flexDirection: "column",
-                                justifyContent: "center",
                                 height: "100%",
+                                justifyContent: "center",
+                                paddingLeft: isMobile ? 0 : 60,
+                                paddingTop: isMobile ? 60 : 0,
                             }}
                         >
                             {[
-                                { value: "10,000+", label: "Menus created" },
-                                { value: "500+", label: "Restaurants onboarded" },
-                                { value: "99.9%", label: "Uptime guarantee" },
-                                { value: "0", label: "Required installations" },
+                                { label: "Menus created", value: "10,000+" },
+                                { label: "Restaurants onboarded", value: "500+" },
+                                { label: "Uptime guarantee", value: "99.9%" },
+                                { label: "Required installations", value: "0" },
                             ].map((stat, i) => (
                                 <Box key={stat.label}>
                                     <Box sx={{ padding: "28px 0" }}>
                                         <Text
                                             sx={{
+                                                color: tokens.black,
+                                                fontFamily: "Georgia, serif",
                                                 fontSize: isMobile ? 40 : 56,
                                                 fontWeight: 700,
-                                                color: tokens.black,
-                                                lineHeight: 1,
                                                 letterSpacing: "-2px",
-                                                fontFamily: "Georgia, serif",
+                                                lineHeight: 1,
                                             }}
                                         >
                                             {stat.value}
                                         </Text>
                                         <Text
                                             sx={{
+                                                color: tokens.muted,
                                                 fontFamily: "monospace",
                                                 fontSize: 11,
-                                                color: tokens.muted,
                                                 letterSpacing: "0.08em",
-                                                textTransform: "uppercase",
                                                 marginTop: 4,
+                                                textTransform: "uppercase",
                                             }}
                                         >
                                             {stat.label}
@@ -378,13 +388,13 @@ export const Steps: FC = () => {
 
                 <Title
                     sx={{
+                        color: tokens.white,
+                        fontFamily: "Georgia, serif",
                         fontSize: isMobile ? 32 : 52,
                         fontWeight: 700,
-                        color: tokens.white,
                         letterSpacing: "-1.5px",
                         marginBottom: 64,
                         maxWidth: 500,
-                        fontFamily: "Georgia, serif",
                     }}
                 >
                     {t("title")}
@@ -396,19 +406,19 @@ export const Steps: FC = () => {
                         <Box key={step.title}>
                             <Box
                                 sx={{
-                                    padding: "32px 0",
-                                    display: "grid",
-                                    gridTemplateColumns: isMobile ? "1fr" : "80px 1fr 1fr",
-                                    gap: isMobile ? 12 : 40,
                                     alignItems: "start",
+                                    display: "grid",
+                                    gap: isMobile ? 12 : 40,
+                                    gridTemplateColumns: isMobile ? "1fr" : "80px 1fr 1fr",
+                                    padding: "32px 0",
                                 }}
                             >
                                 {/* Step number */}
                                 <Text
                                     sx={{
+                                        color: tokens.muted,
                                         fontFamily: "monospace",
                                         fontSize: 13,
-                                        color: tokens.muted,
                                         letterSpacing: "0.05em",
                                         paddingTop: 4,
                                     }}
@@ -419,9 +429,9 @@ export const Steps: FC = () => {
                                 {/* Step title */}
                                 <Text
                                     sx={{
+                                        color: tokens.white,
                                         fontSize: 22,
                                         fontWeight: 600,
-                                        color: tokens.white,
                                         letterSpacing: "-0.5px",
                                     }}
                                 >
@@ -431,8 +441,8 @@ export const Steps: FC = () => {
                                 {/* Step description */}
                                 <Text
                                     sx={{
-                                        fontSize: 14,
                                         color: tokens.muted,
+                                        fontSize: 14,
                                         lineHeight: 1.7,
                                     }}
                                 >
@@ -447,18 +457,18 @@ export const Steps: FC = () => {
                 {/* Bottom accent bar */}
                 <Box
                     sx={{
-                        marginTop: 64,
-                        padding: "24px 32px",
+                        alignItems: "center",
                         background: tokens.accent,
                         display: "inline-flex",
-                        alignItems: "center",
                         gap: 24,
+                        marginTop: 64,
+                        padding: "24px 32px",
                     }}
                 >
-                    <Text sx={{ fontSize: 13, fontWeight: 600, color: tokens.black, letterSpacing: "0.02em" }}>
+                    <Text sx={{ color: tokens.black, fontSize: 13, fontWeight: 600, letterSpacing: "0.02em" }}>
                         Total setup time: under 10 minutes
                     </Text>
-                    <OutlineBtn href="/auth/signin" filled size="sm">
+                    <OutlineBtn filled href="/auth/signin" size="sm">
                         Start now
                     </OutlineBtn>
                 </Box>
@@ -489,9 +499,9 @@ export const Features: FC = () => {
             id="features"
             sx={{
                 background: tokens.offWhite,
-                padding: "100px 0",
-                borderTop: `1px solid ${tokens.border}`,
                 borderBottom: `1px solid ${tokens.border}`,
+                borderTop: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
@@ -502,20 +512,20 @@ export const Features: FC = () => {
                             <SectionLabel index="03">Features</SectionLabel>
                             <Title
                                 sx={{
+                                    color: tokens.black,
+                                    fontFamily: "Georgia, serif",
                                     fontSize: 28,
                                     fontWeight: 700,
-                                    color: tokens.black,
                                     letterSpacing: "-0.5px",
                                     marginBottom: 16,
-                                    fontFamily: "Georgia, serif",
                                 }}
                             >
                                 {t("title")}
                             </Title>
-                            <Text sx={{ fontSize: 13, color: tokens.muted, lineHeight: 1.7, marginBottom: 32 }}>
+                            <Text sx={{ color: tokens.muted, fontSize: 13, lineHeight: 1.7, marginBottom: 32 }}>
                                 {t("subTitle")}
                             </Text>
-                            <OutlineBtn href="/auth/signin" filled size="sm">
+                            <OutlineBtn filled href="/auth/signin" size="sm">
                                 {t("tagLine")}
                             </OutlineBtn>
                         </Box>
@@ -532,36 +542,32 @@ export const Features: FC = () => {
                                     <Box key={tItem.title}>
                                         <Box
                                             sx={{
-                                                padding: "36px 0",
-                                                display: "grid",
-                                                gridTemplateColumns: isMobile ? "1fr" : "40px 1fr 2fr",
-                                                gap: isMobile ? 16 : 40,
-                                                alignItems: "start",
-                                                transition: "background 0.2s ease",
                                                 "&:hover": {
                                                     "& .feature-title": {
                                                         textDecoration: "underline",
                                                         textDecorationColor: tokens.muted,
                                                     },
                                                 },
+                                                alignItems: "start",
+                                                display: "grid",
+                                                gap: isMobile ? 16 : 40,
+                                                gridTemplateColumns: isMobile ? "1fr" : "40px 1fr 2fr",
+                                                padding: "36px 0",
+                                                transition: "background 0.2s ease",
                                             }}
                                         >
                                             {/* Icon */}
                                             <Box sx={{ paddingTop: 2 }}>
-                                                <feature.icon
-                                                    size={18}
-                                                    color={tokens.muted}
-                                                    strokeWidth={1.5}
-                                                />
+                                                <feature.icon color={tokens.muted} size={18} strokeWidth={1.5} />
                                             </Box>
 
                                             {/* Title */}
                                             <Text
                                                 className="feature-title"
                                                 sx={{
+                                                    color: tokens.black,
                                                     fontSize: 15,
                                                     fontWeight: 600,
-                                                    color: tokens.black,
                                                     letterSpacing: "-0.2px",
                                                 }}
                                             >
@@ -571,8 +577,8 @@ export const Features: FC = () => {
                                             {/* Description */}
                                             <Text
                                                 sx={{
-                                                    fontSize: 13,
                                                     color: tokens.muted,
+                                                    fontSize: 13,
                                                     lineHeight: 1.7,
                                                 }}
                                             >
@@ -608,25 +614,25 @@ export const SampleMenu: FC = () => {
         <Box
             sx={{
                 background: tokens.white,
-                padding: "100px 0",
                 borderBottom: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
                 <SectionLabel index="04">Live demo</SectionLabel>
 
-                <Grid gutter={80} align="center">
+                <Grid align="center" gutter={80}>
                     {/* Left */}
                     <Grid.Col md={6} sm={12}>
                         <Title
                             sx={{
+                                color: tokens.black,
+                                fontFamily: "Georgia, serif",
                                 fontSize: isMobile ? 36 : 56,
                                 fontWeight: 700,
-                                color: tokens.black,
                                 letterSpacing: "-2px",
                                 lineHeight: 1,
                                 marginBottom: 24,
-                                fontFamily: "Georgia, serif",
                             }}
                         >
                             {t("title")}
@@ -634,8 +640,8 @@ export const SampleMenu: FC = () => {
 
                         <Text
                             sx={{
-                                fontSize: 15,
                                 color: tokens.muted,
+                                fontSize: 15,
                                 lineHeight: 1.7,
                                 marginBottom: 40,
                                 maxWidth: 380,
@@ -644,8 +650,8 @@ export const SampleMenu: FC = () => {
                             {t("subTitle")}
                         </Text>
 
-                        <Flex gap={12} wrap="wrap" align="center">
-                            <OutlineBtn href={sampleRestaurantLink} filled size="lg">
+                        <Flex align="center" gap={12} wrap="wrap">
+                            <OutlineBtn filled href={sampleRestaurantLink} size="lg">
                                 {t("buttonLabel")}
                                 <IconExternalLink size={14} />
                             </OutlineBtn>
@@ -661,16 +667,14 @@ export const SampleMenu: FC = () => {
                                 <Flex key={item} align="center" gap={12} mb={12}>
                                     <Box
                                         sx={{
-                                            width: 6,
-                                            height: 6,
                                             background: tokens.black,
                                             borderRadius: "50%",
                                             flexShrink: 0,
+                                            height: 6,
+                                            width: 6,
                                         }}
                                     />
-                                    <Text sx={{ fontSize: 13, color: tokens.muted }}>
-                                        {item}
-                                    </Text>
+                                    <Text sx={{ color: tokens.muted, fontSize: 13 }}>{item}</Text>
                                 </Flex>
                             ))}
                         </Box>
@@ -678,30 +682,30 @@ export const SampleMenu: FC = () => {
 
                     {/* Right — QR code, no card styling */}
                     <Grid.Col md={6} sm={12}>
-                        <Flex direction="column" align={isMobile ? "flex-start" : "center"}>
+                        <Flex align={isMobile ? "flex-start" : "center"} direction="column">
                             {/* Plain QR code container */}
                             <Box
                                 sx={{
-                                    border: `1px solid ${tokens.border}`,
-                                    padding: 32,
-                                    display: "inline-block",
                                     background: tokens.white,
+                                    border: `1px solid ${tokens.border}`,
+                                    display: "inline-block",
+                                    padding: 32,
                                 }}
                             >
                                 <QRCode
-                                    style={{ height: 220, width: 220, display: "block" }}
-                                    value={sampleRestaurantLink}
                                     fgColor={tokens.black}
+                                    style={{ display: "block", height: 220, width: 220 }}
+                                    value={sampleRestaurantLink}
                                 />
                             </Box>
                             <Text
                                 sx={{
+                                    color: tokens.muted,
                                     fontFamily: "monospace",
                                     fontSize: 11,
-                                    color: tokens.muted,
                                     letterSpacing: "0.08em",
-                                    textTransform: "uppercase",
                                     marginTop: 16,
+                                    textTransform: "uppercase",
                                 }}
                             >
                                 Scan with your phone camera
@@ -745,28 +749,28 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
             id="pricing"
             sx={{
                 background: tokens.offWhite,
-                padding: "100px 0",
                 borderBottom: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
                 <SectionLabel index="05">Pricing</SectionLabel>
 
                 <Flex
-                    justify="space-between"
                     align={isMobile ? "flex-start" : "flex-end"}
                     direction={isMobile ? "column" : "row"}
                     gap={40}
+                    justify="space-between"
                     mb={64}
                 >
                     <Title
                         sx={{
+                            color: tokens.black,
+                            fontFamily: "Georgia, serif",
                             fontSize: isMobile ? 36 : 56,
                             fontWeight: 700,
-                            color: tokens.black,
                             letterSpacing: "-2px",
                             lineHeight: 1,
-                            fontFamily: "Georgia, serif",
                         }}
                     >
                         {t("title")}
@@ -774,19 +778,19 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                         <Text
                             component="span"
                             sx={{
-                                fontStyle: "italic",
-                                fontWeight: 400,
                                 color: tokens.muted,
                                 fontSize: isMobile ? 32 : 48,
+                                fontStyle: "italic",
+                                fontWeight: 400,
                             }}
                         >
                             two tiers, no tricks
                         </Text>
                     </Title>
 
-                    <Text sx={{ fontSize: 13, color: tokens.muted, maxWidth: 280, lineHeight: 1.7 }}>
-                        Start free. Upgrade only when your business needs it.
-                        No trial periods, no feature locks on the free tier.
+                    <Text sx={{ color: tokens.muted, fontSize: 13, lineHeight: 1.7, maxWidth: 280 }}>
+                        Start free. Upgrade only when your business needs it. No trial periods, no feature locks on the
+                        free tier.
                     </Text>
                 </Flex>
 
@@ -794,41 +798,41 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                 <Grid gutter={1} sx={{ background: tokens.border }}>
                     {/* Free */}
                     <Grid.Col md={6} sm={12}>
-                        <Box sx={{ background: tokens.white, padding: "48px 40px", height: "100%" }}>
+                        <Box sx={{ background: tokens.white, height: "100%", padding: "48px 40px" }}>
                             {/* Price header */}
                             <Box sx={{ marginBottom: 40 }}>
                                 <Text
                                     sx={{
+                                        color: tokens.muted,
                                         fontFamily: "monospace",
                                         fontSize: 11,
-                                        color: tokens.muted,
                                         letterSpacing: "0.1em",
-                                        textTransform: "uppercase",
                                         marginBottom: 16,
+                                        textTransform: "uppercase",
                                     }}
                                 >
                                     {t("freeTier.label")}
                                 </Text>
                                 <Text
                                     sx={{
+                                        color: tokens.black,
+                                        fontFamily: "Georgia, serif",
                                         fontSize: 64,
                                         fontWeight: 800,
-                                        color: tokens.black,
-                                        lineHeight: 1,
                                         letterSpacing: "-3px",
-                                        fontFamily: "Georgia, serif",
+                                        lineHeight: 1,
                                     }}
                                 >
                                     $0
                                 </Text>
                                 <Text
                                     sx={{
+                                        color: tokens.muted,
                                         fontFamily: "monospace",
                                         fontSize: 11,
-                                        color: tokens.muted,
-                                        textTransform: "uppercase",
                                         letterSpacing: "0.06em",
                                         marginTop: 6,
+                                        textTransform: "uppercase",
                                     }}
                                 >
                                     forever
@@ -838,23 +842,23 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                             <HR />
 
                             {/* Feature rows */}
-                            <Box sx={{ marginTop: 24, marginBottom: 40 }}>
+                            <Box sx={{ marginBottom: 40, marginTop: 24 }}>
                                 {freeTierRows.map(([feature, value]) => (
                                     <Flex
                                         key={feature}
-                                        justify="space-between"
                                         align="center"
+                                        justify="space-between"
                                         sx={{
-                                            padding: "12px 0",
                                             borderBottom: `1px solid ${tokens.border}`,
+                                            padding: "12px 0",
                                         }}
                                     >
-                                        <Text sx={{ fontSize: 13, color: tokens.muted }}>{feature}</Text>
+                                        <Text sx={{ color: tokens.muted, fontSize: 13 }}>{feature}</Text>
                                         <Text
                                             sx={{
+                                                color: tokens.black,
                                                 fontFamily: "monospace",
                                                 fontSize: 11,
-                                                color: tokens.black,
                                                 letterSpacing: "0.05em",
                                             }}
                                         >
@@ -877,56 +881,56 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                         <Box
                             sx={{
                                 background: tokens.black,
-                                padding: "48px 40px",
                                 height: "100%",
+                                padding: "48px 40px",
                                 position: "relative",
                             }}
                         >
                             {/* Accent strip */}
                             <Box
                                 sx={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: 3,
                                     background: tokens.accent,
+                                    height: 3,
+                                    left: 0,
+                                    position: "absolute",
+                                    right: 0,
+                                    top: 0,
                                 }}
                             />
 
                             <Box sx={{ marginBottom: 40 }}>
                                 <Text
                                     sx={{
+                                        color: "#555550",
                                         fontFamily: "monospace",
                                         fontSize: 11,
-                                        color: "#555550",
                                         letterSpacing: "0.1em",
-                                        textTransform: "uppercase",
                                         marginBottom: 16,
+                                        textTransform: "uppercase",
                                     }}
                                 >
                                     {t("enterpriseTier.label")}
                                 </Text>
                                 <Text
                                     sx={{
+                                        color: tokens.white,
+                                        fontFamily: "Georgia, serif",
                                         fontSize: 64,
                                         fontWeight: 800,
-                                        color: tokens.white,
-                                        lineHeight: 1,
                                         letterSpacing: "-3px",
-                                        fontFamily: "Georgia, serif",
+                                        lineHeight: 1,
                                     }}
                                 >
                                     Custom
                                 </Text>
                                 <Text
                                     sx={{
+                                        color: "#555550",
                                         fontFamily: "monospace",
                                         fontSize: 11,
-                                        color: "#555550",
-                                        textTransform: "uppercase",
                                         letterSpacing: "0.06em",
                                         marginTop: 6,
+                                        textTransform: "uppercase",
                                     }}
                                 >
                                     tailored to your scale
@@ -935,23 +939,23 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
 
                             <Box sx={{ borderTop: "1px solid #1a1a1a" }} />
 
-                            <Box sx={{ marginTop: 24, marginBottom: 40 }}>
+                            <Box sx={{ marginBottom: 40, marginTop: 24 }}>
                                 {enterpriseRows.map(([feature, value]) => (
                                     <Flex
                                         key={feature}
-                                        justify="space-between"
                                         align="center"
+                                        justify="space-between"
                                         sx={{
-                                            padding: "12px 0",
                                             borderBottom: "1px solid #1a1a1a",
+                                            padding: "12px 0",
                                         }}
                                     >
-                                        <Text sx={{ fontSize: 13, color: "#666660" }}>{feature}</Text>
+                                        <Text sx={{ color: "#666660", fontSize: 13 }}>{feature}</Text>
                                         <Text
                                             sx={{
+                                                color: tokens.accent,
                                                 fontFamily: "monospace",
                                                 fontSize: 11,
-                                                color: tokens.accent,
                                                 letterSpacing: "0.05em",
                                             }}
                                         >
@@ -963,27 +967,27 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
 
                             <button
                                 onClick={() => scrollToContactUs()}
-                                style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    padding: "11px 24px",
-                                    fontSize: 13,
-                                    fontWeight: 500,
-                                    border: `1.5px solid ${tokens.accent}`,
-                                    background: tokens.accent,
-                                    color: tokens.black,
-                                    cursor: "pointer",
-                                    borderRadius: 0,
-                                    fontFamily: "inherit",
-                                    letterSpacing: "0.01em",
-                                    transition: "opacity 0.15s ease",
-                                }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.opacity = "0.85";
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.opacity = "1";
+                                }}
+                                style={{
+                                    alignItems: "center",
+                                    background: tokens.accent,
+                                    border: `1.5px solid ${tokens.accent}`,
+                                    borderRadius: 0,
+                                    color: tokens.black,
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    fontFamily: "inherit",
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    gap: 8,
+                                    letterSpacing: "0.01em",
+                                    padding: "11px 24px",
+                                    transition: "opacity 0.15s ease",
                                 }}
                             >
                                 {t("enterpriseTier.contactUsButtonLabel")}
@@ -995,9 +999,9 @@ export const Pricing: FC<{ scrollToContactUs: () => void }> = ({ scrollToContact
                 {/* Fine print */}
                 <Text
                     sx={{
+                        color: tokens.muted,
                         fontFamily: "monospace",
                         fontSize: 11,
-                        color: tokens.muted,
                         letterSpacing: "0.06em",
                         marginTop: 24,
                     }}
@@ -1051,27 +1055,27 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
 
     const inputStyles = {
         input: {
-            background: tokens.white,
-            border: `1px solid ${tokens.border}`,
-            borderRadius: 0,
-            fontSize: 14,
-            height: 44,
-            color: tokens.black,
+            "&::placeholder": {
+                color: tokens.muted,
+            },
             "&:focus": {
                 border: `1px solid ${tokens.black}`,
                 outline: "none",
             },
-            "&::placeholder": {
-                color: tokens.muted,
-            },
+            background: tokens.white,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: 0,
+            color: tokens.black,
+            fontSize: 14,
+            height: 44,
         },
         label: {
+            color: tokens.muted,
             fontFamily: "monospace",
             fontSize: 11,
-            color: tokens.muted,
             letterSpacing: "0.08em",
-            textTransform: "uppercase" as const,
             marginBottom: 6,
+            textTransform: "uppercase" as const,
         },
     };
 
@@ -1081,8 +1085,8 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
             ref={contactUsRef}
             sx={{
                 background: tokens.white,
-                padding: "100px 0",
                 borderBottom: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
@@ -1093,21 +1097,21 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                     <Grid.Col md={4} sm={12}>
                         <Title
                             sx={{
+                                color: tokens.black,
+                                fontFamily: "Georgia, serif",
                                 fontSize: isMobile ? 32 : 48,
                                 fontWeight: 700,
-                                color: tokens.black,
                                 letterSpacing: "-1.5px",
                                 lineHeight: 1.1,
                                 marginBottom: 24,
-                                fontFamily: "Georgia, serif",
                             }}
                         >
                             {t("title")}
                         </Title>
 
-                        <Text sx={{ fontSize: 14, color: tokens.muted, lineHeight: 1.7, marginBottom: 48 }}>
-                            Interested in the enterprise plan, or just have a question?
-                            Fill out the form and we will get back to you within a business day.
+                        <Text sx={{ color: tokens.muted, fontSize: 14, lineHeight: 1.7, marginBottom: 48 }}>
+                            Interested in the enterprise plan, or just have a question? Fill out the form and we will
+                            get back to you within a business day.
                         </Text>
 
                         {/* Contact metadata */}
@@ -1119,19 +1123,17 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                             <Box key={label} sx={{ marginBottom: 20 }}>
                                 <Text
                                     sx={{
+                                        color: tokens.muted,
                                         fontFamily: "monospace",
                                         fontSize: 10,
-                                        color: tokens.muted,
                                         letterSpacing: "0.1em",
-                                        textTransform: "uppercase",
                                         marginBottom: 4,
+                                        textTransform: "uppercase",
                                     }}
                                 >
                                     {label}
                                 </Text>
-                                <Text sx={{ fontSize: 14, color: tokens.black, fontWeight: 500 }}>
-                                    {value}
-                                </Text>
+                                <Text sx={{ color: tokens.black, fontSize: 14, fontWeight: 500 }}>{value}</Text>
                             </Box>
                         ))}
                     </Grid.Col>
@@ -1151,12 +1153,7 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
                                 );
                             })}
                         >
-                            <SimpleGrid
-                                cols={2}
-                                breakpoints={[{ cols: 1, maxWidth: "sm" }]}
-                                spacing={20}
-                                mb={20}
-                            >
+                            <SimpleGrid breakpoints={[{ cols: 1, maxWidth: "sm" }]} cols={2} mb={20} spacing={20}>
                                 <TextInput
                                     label={t("name.label")}
                                     placeholder={t("name.placeholder")}
@@ -1173,62 +1170,62 @@ export const ContactUs: FC<{ contactUsRef: MutableRefObject<HTMLDivElement> }> =
 
                             <TextInput
                                 label={t("subject.label")}
+                                mb={20}
                                 placeholder={t("subject.placeholder")}
                                 styles={inputStyles}
-                                mb={20}
                                 {...form.getInputProps("subject")}
                             />
 
                             <Textarea
                                 autosize
                                 label={t("message.label")}
-                                placeholder={t("message.placeholder")}
-                                minRows={6}
                                 maxRows={12}
                                 mb={32}
+                                minRows={6}
+                                placeholder={t("message.placeholder")}
                                 styles={{
                                     ...inputStyles,
                                     input: {
                                         ...inputStyles.input,
                                         height: "auto",
-                                        paddingTop: 12,
                                         paddingBottom: 12,
+                                        paddingTop: 12,
                                         resize: "vertical",
                                     },
                                 }}
                                 {...form.getInputProps("message")}
                             />
 
-                            <Flex align="center" justify="space-between" wrap="wrap" gap={16}>
+                            <Flex align="center" gap={16} justify="space-between" wrap="wrap">
                                 <button
-                                    type="submit"
                                     disabled={submittingContactUs}
                                     style={{
-                                        display: "inline-flex",
                                         alignItems: "center",
-                                        gap: 8,
-                                        padding: "12px 32px",
-                                        fontSize: 13,
-                                        fontWeight: 600,
-                                        border: `1.5px solid ${tokens.black}`,
                                         background: tokens.black,
+                                        border: `1.5px solid ${tokens.black}`,
+                                        borderRadius: 0,
                                         color: tokens.white,
                                         cursor: submittingContactUs ? "not-allowed" : "pointer",
-                                        borderRadius: 0,
+                                        display: "inline-flex",
                                         fontFamily: "inherit",
-                                        opacity: submittingContactUs ? 0.6 : 1,
+                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        gap: 8,
                                         letterSpacing: "0.02em",
+                                        opacity: submittingContactUs ? 0.6 : 1,
+                                        padding: "12px 32px",
                                         transition: "opacity 0.15s ease",
                                     }}
+                                    type="submit"
                                 >
                                     {submittingContactUs ? "Sending..." : t("submitButtonLabel")}
                                 </button>
 
                                 <Text
                                     sx={{
+                                        color: tokens.muted,
                                         fontFamily: "monospace",
                                         fontSize: 10,
-                                        color: tokens.muted,
                                         letterSpacing: "0.08em",
                                         textTransform: "uppercase",
                                     }}
@@ -1255,25 +1252,25 @@ export const AboutUs: FC = () => {
         <Box
             sx={{
                 background: tokens.offWhite,
-                padding: "100px 0",
                 borderBottom: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
                 <SectionLabel index="07">About</SectionLabel>
 
-                <Grid gutter={80} align="center">
+                <Grid align="center" gutter={80}>
                     {/* Left */}
                     <Grid.Col md={6} sm={12}>
                         <Title
                             sx={{
+                                color: tokens.black,
+                                fontFamily: "Georgia, serif",
                                 fontSize: isMobile ? 36 : 56,
                                 fontWeight: 700,
-                                color: tokens.black,
                                 letterSpacing: "-2px",
                                 lineHeight: 1,
                                 marginBottom: 24,
-                                fontFamily: "Georgia, serif",
                             }}
                         >
                             {t("title")}
@@ -1281,8 +1278,8 @@ export const AboutUs: FC = () => {
 
                         <Text
                             sx={{
-                                fontSize: 15,
                                 color: tokens.muted,
+                                fontSize: 15,
                                 lineHeight: 1.8,
                                 marginBottom: 20,
                             }}
@@ -1290,44 +1287,32 @@ export const AboutUs: FC = () => {
                             {t("subtitle.line1")}
                             <Link
                                 href="https://github.com/kaje94/menufic"
-                                target="_blank"
                                 style={{
                                     color: tokens.black,
                                     fontWeight: 600,
                                     textDecoration: "underline",
                                     textUnderlineOffset: 3,
                                 }}
+                                target="_blank"
                             >
                                 {t("subtitle.line2")}
                             </Link>
                             {t("subtitle.line3")}
-                            <Text color="red" component="span">&hearts;</Text>.
+                            <Text color="red" component="span">
+                                &hearts;
+                            </Text>
+                            .
                         </Text>
 
-                        <Text sx={{ fontSize: 14, color: tokens.muted, lineHeight: 1.8, marginBottom: 12 }}>
+                        <Text sx={{ color: tokens.muted, fontSize: 14, lineHeight: 1.8, marginBottom: 12 }}>
                             {t("goal")}
                         </Text>
-                        <Text sx={{ fontSize: 14, color: tokens.muted, lineHeight: 1.8, marginBottom: 48 }}>
+                        <Text sx={{ color: tokens.muted, fontSize: 14, lineHeight: 1.8, marginBottom: 48 }}>
                             {t("appreciation")}
                         </Text>
 
                         <Link
                             href="https://github.com/kaje94/menufic"
-                            target="_blank"
-                            style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "12px 24px",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                border: `1.5px solid ${tokens.black}`,
-                                background: tokens.white,
-                                color: tokens.black,
-                                textDecoration: "none",
-                                letterSpacing: "0.01em",
-                                transition: "background 0.15s ease, color 0.15s ease",
-                            }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = tokens.black;
                                 e.currentTarget.style.color = tokens.white;
@@ -1336,6 +1321,21 @@ export const AboutUs: FC = () => {
                                 e.currentTarget.style.background = tokens.white;
                                 e.currentTarget.style.color = tokens.black;
                             }}
+                            style={{
+                                alignItems: "center",
+                                background: tokens.white,
+                                border: `1.5px solid ${tokens.black}`,
+                                color: tokens.black,
+                                display: "inline-flex",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                gap: 10,
+                                letterSpacing: "0.01em",
+                                padding: "12px 24px",
+                                textDecoration: "none",
+                                transition: "background 0.15s ease, color 0.15s ease",
+                            }}
+                            target="_blank"
                         >
                             <IconBrandGithub size={16} strokeWidth={1.5} />
                             {t("githubButtonLabel")}
@@ -1347,17 +1347,17 @@ export const AboutUs: FC = () => {
                     <Grid.Col md={6} sm={12}>
                         <Box
                             sx={{
+                                background: tokens.white,
                                 border: `1px solid ${tokens.border}`,
                                 padding: 40,
-                                background: tokens.white,
                             }}
                         >
                             <Image
                                 alt="foodler open source"
                                 height={260}
                                 src="/landing-about-us.svg"
-                                width={260}
                                 sx={{ display: "block", margin: "0 auto 40px" }}
+                                width={260}
                             />
 
                             <HR />
@@ -1371,27 +1371,25 @@ export const AboutUs: FC = () => {
                             ].map(({ label, value }) => (
                                 <Flex
                                     key={label}
-                                    justify="space-between"
                                     align="center"
+                                    justify="space-between"
                                     sx={{
-                                        padding: "12px 0",
                                         borderBottom: `1px solid ${tokens.border}`,
+                                        padding: "12px 0",
                                     }}
                                 >
                                     <Text
                                         sx={{
+                                            color: tokens.muted,
                                             fontFamily: "monospace",
                                             fontSize: 11,
-                                            color: tokens.muted,
                                             letterSpacing: "0.06em",
                                             textTransform: "uppercase",
                                         }}
                                     >
                                         {label}
                                     </Text>
-                                    <Text sx={{ fontSize: 13, color: tokens.black, fontWeight: 500 }}>
-                                        {value}
-                                    </Text>
+                                    <Text sx={{ color: tokens.black, fontSize: 13, fontWeight: 500 }}>{value}</Text>
                                 </Flex>
                             ))}
                         </Box>
@@ -1407,24 +1405,24 @@ export const AboutUs: FC = () => {
 // ==========================================
 const faqItems = [
     {
-        q: "Is the free tier actually free, forever?",
         a: "Yes. No credit card, no trial period, no feature degradation after 14 days. The free tier is permanently free.",
+        q: "Is the free tier actually free, forever?",
     },
     {
-        q: "How do customers access the menu?",
         a: "Via a QR code you print and place on your table, or a direct URL you can share anywhere. No app install required.",
+        q: "How do customers access the menu?",
     },
     {
-        q: "Can I update the menu without reprinting QR codes?",
         a: "Yes. The QR code points to a permanent URL. Any changes you make in the dashboard reflect immediately.",
+        q: "Can I update the menu without reprinting QR codes?",
     },
     {
-        q: "What happens if I exceed the free tier limits?",
         a: "We will notify you before any limit is reached. You can either remove old items or talk to us about the enterprise plan.",
+        q: "What happens if I exceed the free tier limits?",
     },
     {
-        q: "Do you offer white-labeling?",
         a: "Under the enterprise plan, yes. Custom domains and branding are available. Contact us to discuss.",
+        q: "Do you offer white-labeling?",
     },
 ];
 
@@ -1436,8 +1434,8 @@ export const FAQ: FC = () => {
         <Box
             sx={{
                 background: tokens.white,
-                padding: "100px 0",
                 borderBottom: `1px solid ${tokens.border}`,
+                padding: "100px 0",
             }}
         >
             <Container size="xl">
@@ -1447,12 +1445,12 @@ export const FAQ: FC = () => {
                     <Grid.Col md={4} sm={12}>
                         <Title
                             sx={{
+                                color: tokens.black,
+                                fontFamily: "Georgia, serif",
                                 fontSize: isMobile ? 32 : 48,
                                 fontWeight: 700,
-                                color: tokens.black,
                                 letterSpacing: "-1.5px",
                                 lineHeight: 1.1,
-                                fontFamily: "Georgia, serif",
                             }}
                         >
                             Common
@@ -1460,9 +1458,9 @@ export const FAQ: FC = () => {
                             <Text
                                 component="span"
                                 sx={{
+                                    color: tokens.muted,
                                     fontStyle: "italic",
                                     fontWeight: 400,
-                                    color: tokens.muted,
                                 }}
                             >
                                 questions
@@ -1474,18 +1472,18 @@ export const FAQ: FC = () => {
                         {faqItems.map((item, index) => (
                             <Box key={item.q}>
                                 <Box
-                                    sx={{
-                                        padding: "24px 0",
-                                        cursor: "pointer",
-                                    }}
                                     onClick={() => setOpened(opened === index ? null : index)}
+                                    sx={{
+                                        cursor: "pointer",
+                                        padding: "24px 0",
+                                    }}
                                 >
-                                    <Flex justify="space-between" align="center" gap={24}>
+                                    <Flex align="center" gap={24} justify="space-between">
                                         <Text
                                             sx={{
+                                                color: tokens.black,
                                                 fontSize: 15,
                                                 fontWeight: 500,
-                                                color: tokens.black,
                                                 lineHeight: 1.4,
                                             }}
                                         >
@@ -1493,9 +1491,9 @@ export const FAQ: FC = () => {
                                         </Text>
                                         <Box sx={{ flexShrink: 0 }}>
                                             {opened === index ? (
-                                                <IconMinus size={16} color={tokens.muted} strokeWidth={1.5} />
+                                                <IconMinus color={tokens.muted} size={16} strokeWidth={1.5} />
                                             ) : (
-                                                <IconPlus size={16} color={tokens.muted} strokeWidth={1.5} />
+                                                <IconPlus color={tokens.muted} size={16} strokeWidth={1.5} />
                                             )}
                                         </Box>
                                     </Flex>
@@ -1503,8 +1501,8 @@ export const FAQ: FC = () => {
                                     {opened === index && (
                                         <Text
                                             sx={{
-                                                fontSize: 14,
                                                 color: tokens.muted,
+                                                fontSize: 14,
                                                 lineHeight: 1.7,
                                                 marginTop: 16,
                                                 maxWidth: 520,
@@ -1539,16 +1537,16 @@ export const FooterCTA: FC = () => {
             }}
         >
             <Container size="xl">
-                <Grid gutter={0} align="flex-end">
+                <Grid align="flex-end" gutter={0}>
                     <Grid.Col md={8} sm={12}>
                         <Title
                             sx={{
+                                color: tokens.white,
+                                fontFamily: "Georgia, serif",
                                 fontSize: isMobile ? 48 : 96,
                                 fontWeight: 800,
-                                color: tokens.white,
-                                lineHeight: 0.9,
                                 letterSpacing: "-4px",
-                                fontFamily: "Georgia, serif",
+                                lineHeight: 0.9,
                                 marginBottom: isMobile ? 40 : 0,
                             }}
                         >
@@ -1557,9 +1555,9 @@ export const FooterCTA: FC = () => {
                             <Text
                                 component="span"
                                 sx={{
+                                    color: "#444440",
                                     fontStyle: "italic",
                                     fontWeight: 400,
-                                    color: "#444440",
                                 }}
                             >
                                 digital.
@@ -1574,24 +1572,24 @@ export const FooterCTA: FC = () => {
                                 paddingLeft: isMobile ? 0 : 48,
                             }}
                         >
-                            <Text sx={{ fontSize: 14, color: "#555550", lineHeight: 1.7, marginBottom: 32 }}>
+                            <Text sx={{ color: "#555550", fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
                                 Join restaurants already using Foodler to serve digital menus their customers love.
                             </Text>
 
                             {status === "authenticated" ? (
-                                <OutlineBtn href="/restaurant" filled size="lg">
+                                <OutlineBtn filled href="/restaurant" size="lg">
                                     Open Dashboard
                                 </OutlineBtn>
                             ) : (
                                 <Stack spacing={12}>
-                                    <OutlineBtn href="/auth/signin" filled size="lg">
+                                    <OutlineBtn filled href="/auth/signin" size="lg">
                                         Create free account
                                     </OutlineBtn>
                                     <Text
                                         sx={{
+                                            color: "#444440",
                                             fontFamily: "monospace",
                                             fontSize: 10,
-                                            color: "#444440",
                                             letterSpacing: "0.08em",
                                             textTransform: "uppercase",
                                         }}
@@ -1606,12 +1604,12 @@ export const FooterCTA: FC = () => {
 
                 {/* Bottom bar */}
                 <Box sx={{ borderTop: "1px solid #1a1a1a", marginTop: 80, paddingTop: 32 }}>
-                    <Flex justify="space-between" align="center" wrap="wrap" gap={16}>
+                    <Flex align="center" gap={16} justify="space-between" wrap="wrap">
                         <Text
                             sx={{
+                                color: "#333330",
                                 fontFamily: "monospace",
                                 fontSize: 11,
-                                color: "#333330",
                                 letterSpacing: "0.06em",
                             }}
                         >
@@ -1619,26 +1617,26 @@ export const FooterCTA: FC = () => {
                         </Text>
                         <Flex gap={32}>
                             {[
-                                { label: "GitHub", href: "https://github.com/kaje94/menufic" },
-                                { label: "Privacy", href: "/privacy" },
-                                { label: "Terms", href: "/terms" },
+                                { href: "https://github.com/kaje94/menufic", label: "GitHub" },
+                                { href: "/privacy", label: "Privacy" },
+                                { href: "/terms", label: "Terms" },
                             ].map(({ label, href }) => (
                                 <Link
                                     key={label}
                                     href={href}
-                                    style={{
-                                        fontFamily: "monospace",
-                                        fontSize: 11,
-                                        color: "#333330",
-                                        letterSpacing: "0.06em",
-                                        textDecoration: "none",
-                                        transition: "color 0.15s ease",
-                                    }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.color = tokens.white;
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.color = "#333330";
+                                    }}
+                                    style={{
+                                        color: "#333330",
+                                        fontFamily: "monospace",
+                                        fontSize: 11,
+                                        letterSpacing: "0.06em",
+                                        textDecoration: "none",
+                                        transition: "color 0.15s ease",
                                     }}
                                 >
                                     {label}
@@ -1650,4 +1648,4 @@ export const FooterCTA: FC = () => {
             </Container>
         </Box>
     );
-};  
+};

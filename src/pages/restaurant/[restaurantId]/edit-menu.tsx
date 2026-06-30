@@ -1,8 +1,22 @@
 import { useState } from "react";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Box, Breadcrumbs, Center, Grid, Loader, SimpleGrid, Text, Alert, Stack, Button, Modal, Textarea, Group } from "@mantine/core";
-import { IconAlertTriangle, IconFileCode, IconDownload } from "@tabler/icons";
+import {
+    Alert,
+    Box,
+    Breadcrumbs,
+    Button,
+    Center,
+    Grid,
+    Group,
+    Loader,
+    Modal,
+    SimpleGrid,
+    Stack,
+    Text,
+    Textarea,
+} from "@mantine/core";
+import { IconAlertTriangle, IconDownload, IconFileCode } from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -55,7 +69,7 @@ const EditMenuPage: NextPage = () => {
             setSelectedMenu(data);
             trpcCtx.restaurant.get.invalidate({ id: restaurantId });
             trpcCtx.menu.getAll.invalidate({ restaurantId });
-        }
+        },
     });
 
     const handleApplyJson = () => {
@@ -71,8 +85,8 @@ const EditMenuPage: NextPage = () => {
             }
             setJsonError(null);
             importMenu({
+                menuData: parsed,
                 restaurantId,
-                menuData: parsed
             });
         } catch (e: any) {
             setJsonError(`JSON Syntax Error: ${e.message}`);
@@ -96,38 +110,42 @@ const EditMenuPage: NextPage = () => {
                             <>
                                 <Box
                                     sx={(theme) => ({
+                                        alignItems: "flex-start",
                                         display: "flex",
                                         flexDirection: "column",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
                                         gap: theme.spacing.md,
+                                        justifyContent: "space-between",
                                         width: "100%",
                                         [`@media (min-width: ${theme.breakpoints.sm}px)`]: {
-                                            flexDirection: "row",
                                             alignItems: "center",
+                                            flexDirection: "row",
                                         },
                                     })}
                                 >
-                                    <Box sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }} py="xs">
+                                    <Box py="xs" sx={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "nowrap" }}>
                                         <Breadcrumbs>
                                             <Link href="/restaurant">{tRestaurant("breadcrumb")}</Link>
                                             <Link href={`/restaurant/${restaurant?.id}`}>{restaurant?.name}</Link>
                                             <Text>{t("breadcrumb")}</Text>
                                         </Breadcrumbs>
                                     </Box>
-                                    <Group position="right" spacing="sm" sx={(theme) => ({
-                                        width: "100%",
-                                        justifyContent: "flex-end",
-                                        [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
-                                            justifyContent: "flex-start"
-                                        }
-                                    })}>
+                                    <Group
+                                        position="right"
+                                        spacing="sm"
+                                        sx={(theme) => ({
+                                            justifyContent: "flex-end",
+                                            width: "100%",
+                                            [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
+                                                justifyContent: "flex-start",
+                                            },
+                                        })}
+                                    >
                                         <Button
-                                            variant="light"
                                             color="gray"
-                                            onClick={() => setJsonModalOpen(true)}
-                                            leftIcon={<IconFileCode size={16} />}
                                             disabled={isExpired}
+                                            leftIcon={<IconFileCode size={16} />}
+                                            onClick={() => setJsonModalOpen(true)}
+                                            variant="light"
                                         >
                                             JSON Edit
                                         </Button>
@@ -137,16 +155,19 @@ const EditMenuPage: NextPage = () => {
 
                                 {isExpired && (
                                     <Alert
-                                        icon={<IconAlertTriangle size={16} />}
-                                        title="Menu Editing Locked"
                                         color="red"
+                                        icon={<IconAlertTriangle size={16} />}
                                         mt="md"
+                                        title="Menu Editing Locked"
                                     >
-                                        This restaurant's subscription has expired. Please renew the subscription to reactivate editing options.
+                                        This restaurant's subscription has expired. Please renew the subscription to
+                                        reactivate editing options.
                                     </Alert>
                                 )}
 
-                                <div style={{ pointerEvents: isExpired ? 'none' : 'auto', opacity: isExpired ? 0.6 : 1 }}>
+                                <div
+                                    style={{ opacity: isExpired ? 0.6 : 1, pointerEvents: isExpired ? "none" : "auto" }}
+                                >
                                     <Grid gutter="lg" justify="center" mt="xl" ref={gridItemParent}>
                                         <Grid.Col lg={3} md={4} sm={12}>
                                             {router.query?.restaurantId && (
@@ -171,44 +192,45 @@ const EditMenuPage: NextPage = () => {
             </main>
 
             <Modal
-                opened={jsonModalOpen}
+                centered
                 onClose={() => {
                     setJsonModalOpen(false);
                     setJsonError(null);
                 }}
-                title="JSON Menu Editor / Importer"
+                opened={jsonModalOpen}
                 size="lg"
-                centered
+                title="JSON Menu Editor / Importer"
             >
                 <Stack spacing="md">
                     <Text size="sm">
-                        Create menus quickly by pasting a menu JSON configuration. You can download or view our template structure below:
+                        Create menus quickly by pasting a menu JSON configuration. You can download or view our template
+                        structure below:
                     </Text>
                     <Group position="apart">
                         <Link href="/template.json" passHref target="_blank">
-                            <Button variant="outline" size="xs" color="gray" leftIcon={<IconDownload size={14} />}>
+                            <Button color="gray" leftIcon={<IconDownload size={14} />} size="xs" variant="outline">
                                 View template.json
                             </Button>
                         </Link>
                     </Group>
-                    
+
                     <Textarea
-                        label="Paste Menu JSON"
-                        placeholder="Paste JSON here..."
-                        minRows={12}
-                        maxRows={18}
                         autosize
-                        value={jsonInput}
-                        onChange={(e) => setJsonInput(e.target.value)}
                         error={jsonError}
-                        styles={{ input: { fontFamily: 'monospace', fontSize: '12px' } }}
+                        label="Paste Menu JSON"
+                        maxRows={18}
+                        minRows={12}
+                        onChange={(e) => setJsonInput(e.target.value)}
+                        placeholder="Paste JSON here..."
+                        styles={{ input: { fontFamily: "monospace", fontSize: "12px" } }}
+                        value={jsonInput}
                     />
-                    
+
                     <Group position="right">
-                        <Button variant="outline" color="gray" onClick={() => setJsonModalOpen(false)}>
+                        <Button color="gray" onClick={() => setJsonModalOpen(false)} variant="outline">
                             Cancel
                         </Button>
-                        <Button color="gray" onClick={handleApplyJson} loading={importing}>
+                        <Button color="gray" loading={importing} onClick={handleApplyJson}>
                             Apply & Create Menu
                         </Button>
                     </Group>
@@ -217,6 +239,5 @@ const EditMenuPage: NextPage = () => {
         </>
     );
 };
-
 
 export default EditMenuPage;

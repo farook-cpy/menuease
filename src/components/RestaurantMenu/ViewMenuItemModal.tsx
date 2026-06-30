@@ -1,30 +1,31 @@
 import type { FC } from "react";
 import { useMemo, useState } from "react";
 
+import { Carousel } from "@mantine/carousel";
 import {
+    ActionIcon,
     Box,
+    Button,
+    Divider,
+    Flex,
+    Group,
+    Loader,
     Stack,
     Text,
-    useMantineTheme,
-    Divider,
-    TextInput,
     Textarea,
-    Button,
-    Group,
-    ActionIcon,
-    Loader,
-    Flex
+    TextInput,
+    useMantineTheme,
 } from "@mantine/core";
-import { Carousel } from "@mantine/carousel";
-import { IconStar, IconMessage2, IconCornerDownRight } from "@tabler/icons";
+import { IconCornerDownRight, IconMessage2, IconStar } from "@tabler/icons";
 
 import type { ModalProps } from "@mantine/core";
 import type { Image, MenuItem } from "@prisma/client";
 
-import { ImageKitImage } from "../ImageKitImage";
-import { Modal } from "../Modal";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+
+import { ImageKitImage } from "../ImageKitImage";
+import { Modal } from "../Modal";
 
 interface Props extends ModalProps {
     /** Menu item for which the modal needs to be displayed */
@@ -46,25 +47,25 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
 
     // Submit review mutation
     const { mutate: createFeedback, isLoading: isSubmitting } = api.feedback.create.useMutation({
+        onError: (err: any) => {
+            showErrorToast("Failed to submit review", err);
+        },
         onSuccess: () => {
             setReviewerName("");
             setComment("");
             setRating(5);
             showSuccessToast("Review Submitted", "Thank you for your feedback!");
         },
-        onError: (err: any) => {
-            showErrorToast("Failed to submit review", err);
-        }
     });
 
     const handleSubmitReview = (e: React.FormEvent) => {
         e.preventDefault();
         if (!comment.trim()) return;
         createFeedback({
+            comment,
             menuItemId: menuItem?.id || "",
             rating,
-            comment,
-            reviewerName: reviewerName.trim() || "Anonymous"
+            reviewerName: reviewerName.trim() || "Anonymous",
         });
     };
 
@@ -90,9 +91,9 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                 {[1, 2, 3, 4, 5].map((i) => (
                     <IconStar
                         key={i}
-                        size={size}
-                        fill={i <= count ? theme.colors.gray[6] : "none"}
                         color={i <= count ? theme.colors.gray[6] : theme.colors.gray[3]}
+                        fill={i <= count ? theme.colors.gray[6] : "none"}
+                        size={size}
                     />
                 ))}
             </Group>
@@ -103,8 +104,8 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
         <Modal
             centered
             data-testid="menu-item-card-modal"
-            styles={{ modal: { background: bgColor } }}
             opened={opened}
+            styles={{ modal: { background: bgColor } }}
             title={
                 <Stack spacing={4}>
                     <Text color={theme.black} size="xl" weight="bold">
@@ -113,7 +114,7 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                     {feedbacks.length > 0 && (
                         <Group spacing={6}>
                             {renderStars(Math.round(Number(averageRating)), 16)}
-                            <Text color={theme.black} size="sm" weight={500} opacity={0.8}>
+                            <Text color={theme.black} opacity={0.8} size="sm" weight={500}>
                                 {averageRating} ({feedbacks.length} {feedbacks.length === 1 ? "review" : "reviews"})
                             </Text>
                         </Group>
@@ -124,26 +125,26 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
         >
             <Stack spacing="md" sx={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
                 {menuItem?.videoUrl && (
-                    <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden", marginBottom: 10 }}>
+                    <Box sx={{ borderRadius: theme.radius.lg, marginBottom: 10, overflow: "hidden" }}>
                         <video
-                            src={menuItem.videoUrl}
-                            controls
                             autoPlay
-                            muted
+                            controls
                             loop
+                            muted
                             playsInline
-                            style={{ width: "100%", maxHeight: "250px", objectFit: "cover" }}
+                            src={menuItem.videoUrl}
+                            style={{ maxHeight: "250px", objectFit: "cover", width: "100%" }}
                         />
                     </Box>
                 )}
                 {menuItem?.images && menuItem.images.length > 1 ? (
                     <Box sx={{ borderRadius: theme.radius.lg, overflow: "hidden" }}>
                         <Carousel
+                            height={300}
                             loop
                             mx="auto"
-                            withIndicators
-                            height={300}
                             styles={{ indicator: { background: theme.white } }}
+                            withIndicators
                         >
                             {menuItem.images.map((img, index) => (
                                 <Carousel.Slide key={img.id}>
@@ -153,8 +154,8 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                                         height={300}
                                         imageAlt={`${menuItem.name}-${index}`}
                                         imagePath={img.path}
-                                        width={400}
                                         priority={index === 0}
+                                        width={400}
                                     />
                                 </Carousel.Slide>
                             ))}
@@ -178,14 +179,23 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                     {menuItem?.description}
                 </Text>
 
-                <Divider my="md" label={<Group spacing={4}><IconMessage2 size={16} /><Text weight={600}>Reviews & Feedback</Text></Group>} labelPosition="center" />
+                <Divider
+                    label={
+                        <Group spacing={4}>
+                            <IconMessage2 size={16} />
+                            <Text weight={600}>Reviews & Feedback</Text>
+                        </Group>
+                    }
+                    labelPosition="center"
+                    my="md"
+                />
 
                 {/* Reviews List */}
                 <Stack spacing="xs">
                     {feedbacksLoading ? (
-                        <Loader size="sm" mx="auto" />
+                        <Loader mx="auto" size="sm" />
                     ) : feedbacks.length === 0 ? (
-                        <Text align="center" color="dimmed" size="sm" py="md">
+                        <Text align="center" color="dimmed" py="md" size="sm">
                             No reviews yet. Be the first to leave feedback!
                         </Text>
                     ) : (
@@ -194,21 +204,24 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                                 key={fb.id}
                                 p="sm"
                                 sx={{
-                                    backgroundColor: theme.colorScheme === "light" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.2)",
+                                    backgroundColor:
+                                        theme.colorScheme === "light" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.2)",
+                                    border: `1px solid ${
+                                        theme.colorScheme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)"
+                                    }`,
                                     borderRadius: theme.radius.md,
-                                    border: `1px solid ${theme.colorScheme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)"}`
                                 }}
                             >
                                 <Flex align="center" justify="space-between" mb={6}>
-                                    <Text size="sm" weight={600} color={theme.black}>
+                                    <Text color={theme.black} size="sm" weight={600}>
                                         {fb.reviewerName}
                                     </Text>
-                                    <Text size="xs" color="dimmed">
+                                    <Text color="dimmed" size="xs">
                                         {new Date(fb.createdAt).toLocaleDateString()}
                                     </Text>
                                 </Flex>
                                 <Box mb={6}>{renderStars(fb.rating)}</Box>
-                                <Text size="sm" color={theme.black} opacity={0.9} style={{ wordBreak: "break-word" }}>
+                                <Text color={theme.black} opacity={0.9} size="sm" style={{ wordBreak: "break-word" }}>
                                     {fb.comment}
                                 </Text>
 
@@ -222,12 +235,12 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                                         }}
                                     >
                                         <Flex align="center" gap={4} mb={2}>
-                                            <IconCornerDownRight size={14} color={theme.colors.gray[6]} />
-                                            <Text size="xs" weight={700} color="gray.6">
+                                            <IconCornerDownRight color={theme.colors.gray[6]} size={14} />
+                                            <Text color="gray.6" size="xs" weight={700}>
                                                 Owner's Reply
                                             </Text>
                                         </Flex>
-                                        <Text size="sm" italic color={theme.black} opacity={0.8}>
+                                        <Text color={theme.black} italic opacity={0.8} size="sm">
                                             "{fb.ownerResponse}"
                                         </Text>
                                     </Box>
@@ -240,33 +253,37 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                 {/* Submit Feedback Form */}
                 <Box
                     component="form"
-                    onSubmit={handleSubmitReview}
                     mt="md"
+                    onSubmit={handleSubmitReview}
                     p="sm"
                     sx={{
+                        border: `1px dashed ${
+                            theme.colorScheme === "light" ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"
+                        }`,
                         borderRadius: theme.radius.md,
-                        border: `1px dashed ${theme.colorScheme === "light" ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"}`
                     }}
                 >
-                    <Text weight={700} size="sm" mb="sm" color={theme.black}>
+                    <Text color={theme.black} mb="sm" size="sm" weight={700}>
                         Write a Review
                     </Text>
 
                     <Stack spacing="xs">
                         <Group>
-                            <Text size="xs" color={theme.black} opacity={0.7}>Your Rating:</Text>
+                            <Text color={theme.black} opacity={0.7} size="xs">
+                                Your Rating:
+                            </Text>
                             <Group spacing="xs">
                                 {[1, 2, 3, 4, 5].map((value) => (
                                     <ActionIcon
                                         key={value}
                                         onClick={() => setRating(value)}
-                                        variant="transparent"
                                         size="xs"
+                                        variant="transparent"
                                     >
                                         <IconStar
-                                            size={20}
-                                            fill={value <= rating ? theme.colors.gray[6] : "none"}
                                             color={value <= rating ? theme.colors.gray[6] : theme.colors.gray[3]}
+                                            fill={value <= rating ? theme.colors.gray[6] : "none"}
+                                            size={20}
                                         />
                                     </ActionIcon>
                                 ))}
@@ -274,36 +291,36 @@ export const ViewMenuItemModal: FC<Props> = ({ menuItem, opened, ...rest }) => {
                         </Group>
 
                         <TextInput
-                            placeholder="Your Name (Optional)"
-                            value={reviewerName}
-                            onChange={(e) => setReviewerName(e.currentTarget.value)}
                             disabled={isSubmitting}
+                            onChange={(e) => setReviewerName(e.currentTarget.value)}
+                            placeholder="Your Name (Optional)"
                             size="xs"
                             styles={{
                                 input: {
                                     backgroundColor: theme.colorScheme === "light" ? "#fff" : "rgba(0,0,0,0.15)",
-                                    color: theme.black
-                                }
+                                    color: theme.black,
+                                },
                             }}
+                            value={reviewerName}
                         />
 
                         <Textarea
-                            placeholder="Share your thoughts about this dish..."
-                            value={comment}
-                            onChange={(e) => setComment(e.currentTarget.value)}
                             disabled={isSubmitting}
-                            required
                             minRows={2}
+                            onChange={(e) => setComment(e.currentTarget.value)}
+                            placeholder="Share your thoughts about this dish..."
+                            required
                             size="xs"
                             styles={{
                                 input: {
                                     backgroundColor: theme.colorScheme === "light" ? "#fff" : "rgba(0,0,0,0.15)",
-                                    color: theme.black
-                                }
+                                    color: theme.black,
+                                },
                             }}
+                            value={comment}
                         />
 
-                        <Button type="submit" loading={isSubmitting} size="xs" color="gray" fullWidth>
+                        <Button color="gray" fullWidth loading={isSubmitting} size="xs" type="submit">
                             Submit Review
                         </Button>
                     </Stack>
