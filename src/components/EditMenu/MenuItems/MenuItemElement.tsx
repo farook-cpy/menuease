@@ -4,12 +4,15 @@ import { useState } from "react";
 import { ActionIcon, Box, createStyles, Grid, Switch, Text } from "@mantine/core";
 import { IconEdit, IconGripVertical, IconMessage2, IconTrash } from "@tabler/icons";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/router";
 import { Draggable } from "react-beautiful-dnd";
 
 import type { Image, MenuItem } from "@prisma/client";
 
 import { api } from "src/utils/api";
+import { isFeatureEnabled } from "src/utils/features";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { UpgradePlanModal } from "../../UpgradePlanModal";
 
 import { MenuItemReviewsModal } from "./MenuItemReviewsModal";
 import { DeleteConfirmModal } from "../../DeleteConfirmModal";
@@ -49,6 +52,23 @@ const useStyles = createStyles((theme) => ({
         width: 50,
         flexShrink: 0,
     },
+    itemTitle: {
+        fontWeight: 600,
+        maxWidth: 350,
+    },
+    rowContent: {
+        alignItems: "center",
+        display: "flex",
+        flex: 1,
+        gap: 15,
+        justifyContent: "space-between",
+    },
+    tableElementWrap: {
+        alignItems: "center",
+        display: "flex",
+        gap: 15,
+        padding: "10px 15px",
+    },
     itemDragging: { background: theme.colors.dark[1], boxShadow: theme.shadows.sm },
 }));
 
@@ -64,12 +84,22 @@ interface Props {
 /** Individual menu item component with an option to edit or delete */
 export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => {
     const trpcCtx = api.useContext();
+    const router = useRouter();
     const { classes, cx, theme } = useStyles();
     const [deleteMenuItemModalOpen, setDeleteMenuItemModalOpen] = useState(false);
     const [menuItemFormOpen, setMenuItemFormOpen] = useState(false);
     const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
+    const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+    const [targetUpgradePlan, setTargetUpgradePlan] = useState<"Starter" | "Professional" | "Premium" | undefined>();
     const t = useTranslations("dashboard.editMenu.menuItem");
     const tCommon = useTranslations("common");
+
+    const restaurantId = router.query?.restaurantId as string;
+    const { data: restaurant } = api.restaurant.get.useQuery(
+        { id: restaurantId },
+        { enabled: !!restaurantId }
+    );
+    const planName = (restaurant as any)?.planName || "Free Trial";
 
     const [isAvailable, setIsAvailable] = useState(menuItem.isAvailable !== false);
     const [isTodaySpecial, setIsTodaySpecial] = useState(menuItem.isTodaySpecial === true);
@@ -95,11 +125,23 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
     });
 
     const handleToggleAvailability = (checked: boolean) => {
+        const isAllowed = isFeatureEnabled(restaurant, "outOfStock");
+        if (!isAllowed) {
+            setTargetUpgradePlan("Professional");
+            setUpgradeModalOpen(true);
+            return;
+        }
         setIsAvailable(checked);
         toggleAvailability({ id: menuItem.id, isAvailable: checked });
     };
 
     const handleToggleSpecial = (checked: boolean) => {
+        const isAllowed = isFeatureEnabled(restaurant, "specials");
+        if (!isAllowed) {
+            setTargetUpgradePlan("Professional");
+            setUpgradeModalOpen(true);
+            return;
+        }
         setIsTodaySpecial(checked);
         toggleSpecial({ id: menuItem.id, isTodaySpecial: checked });
     };
@@ -289,6 +331,16 @@ export const MenuItemElement: FC<Props> = ({ menuItem, menuId, categoryId }) => 
                 onClose={() => setReviewsModalOpen(false)}
                 opened={reviewsModalOpen}
             />
+
+            {restaurant && (
+                <UpgradePlanModal
+                    opened={upgradeModalOpen}
+                    onClose={() => setUpgradeModalOpen(false)}
+                    restaurantId={restaurant.id}
+                    restaurantName={restaurant.name}
+                    targetPlan={targetUpgradePlan}
+                />
+            )}
         </>
     );
 };

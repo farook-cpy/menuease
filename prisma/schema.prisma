@@ -36,6 +36,12 @@ model Restaurant {
     currency      String?
     isOrderFeatureEnabled Boolean @default(false)
     whatsappNo    String?
+    enterpriseFeatures String?
+    instagramUrl  String?
+    facebookUrl   String?
+    twitterUrl    String?
+    youtubeUrl    String?
+    tiktokUrl     String?
     billingTransactions BillingTransaction[] @relation("BillingTransactionsOfRestaurant")
     analytics     MenuAnalytics[] @relation("AnalyticsOfRestaurant")
     isKitchenEnabled Boolean @default(false)
@@ -207,4 +213,15 @@ model MenuAnalytics {
 
     @@index([restaurantId])
     @@index([menuItemId])
+}
+
+model AuditLog {
+    id           String   @id
+    restaurantId String
+    actionCode   String
+    payload      String?
+    userId       String?
+    createdAt    DateTime @default(now())
+
+    @@index([restaurantId])
 }

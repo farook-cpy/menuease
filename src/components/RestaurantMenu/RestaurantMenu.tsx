@@ -24,7 +24,16 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { IconBell, IconBrandWhatsapp } from "@tabler/icons";
+import {
+    IconBell,
+    IconBrandWhatsapp,
+    IconSearch,
+    IconBrandInstagram,
+    IconBrandFacebook,
+    IconBrandTwitter,
+    IconBrandYoutube,
+    IconBrandTiktok,
+} from "@tabler/icons";
 import {
     CheckIcon,
     MapPinIcon,
@@ -42,6 +51,7 @@ import { Black, White } from "src/styles/theme";
 import { api } from "src/utils/api";
 import { formatPrice, parsePrice, usePlate } from "src/utils/plateContext";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
+import { isFeatureEnabled } from "src/utils/features";
 
 import { MenuItemCard } from "./MenuItemCard";
 import { Empty } from "../Empty";
@@ -160,6 +170,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [generalNotes, setGeneralNotes] = useState("");
     const [waiterModalOpened, setWaiterModalOpened] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const { mutate: callWaiter, isLoading: callingWaiter } = api.waiterCall.create.useMutation({
         onSuccess: () => {
@@ -274,10 +285,28 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         };
     }, [selectedMenu, restaurant?.menus, isHappyHourActive]);
 
+    const filteredMenuDetails = useMemo(() => {
+        if (!menuDetails) return null;
+        const isSearchEnabled = isFeatureEnabled(restaurant, "search");
+        if (!searchQuery.trim() || !isSearchEnabled) return menuDetails;
+
+        const q = searchQuery.toLowerCase();
+        return {
+            ...menuDetails,
+            categories: menuDetails.categories?.map((cat) => ({
+                ...cat,
+                items: cat.items?.filter((item) => 
+                    item.name.toLowerCase().includes(q) || 
+                    item.description.toLowerCase().includes(q)
+                ),
+            })).filter((cat) => cat.items && cat.items.length > 0),
+        };
+    }, [menuDetails, searchQuery, restaurant]);
+
     const dailySpecials = useMemo(() => {
         const list: any[] = [];
-        if (menuDetails?.categories) {
-            menuDetails.categories.forEach((cat) => {
+        if (filteredMenuDetails?.categories) {
+            filteredMenuDetails.categories.forEach((cat) => {
                 if (cat.items) {
                     cat.items.forEach((item) => {
                         if ((item as any).isTodaySpecial) {
@@ -288,7 +317,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
             });
         }
         return list;
-    }, [menuDetails]);
+    }, [filteredMenuDetails]);
 
     const images: Image[] = useMemo(() => {
         const banners = restaurant?.banners;
@@ -299,34 +328,105 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
     }, [restaurant]);
 
     const renderFestivalBanner = () => {
+        if (!isFeatureEnabled(restaurant, "themes")) return null;
+
         const themeType = (restaurant as any)?.festivalTheme;
         if (!themeType || themeType === "NONE") return null;
 
         let bgGradient = "";
         let titleText = "";
         let subtitleText = "";
-        let emoji = "";
+        let customGraphic: React.ReactNode = null;
+        let borderStyle: any = {};
 
         if (themeType === "EID") {
-            bgGradient = "linear-gradient(135deg, #0f2027, #203a43, #2c5364)";
+            bgGradient = "linear-gradient(135deg, #022c22, #064e3b, #065f46)";
             titleText = "Eid Mubarak! 🌙";
-            subtitleText = "Celebrate the joy of Eid with our special festive dishes!";
-            emoji = "✨";
-        } else if (themeType === "ONAM") {
-            bgGradient = "linear-gradient(135deg, #ff9933, #ffffff, #138808)";
-            titleText = "Happy Onam! 🌾";
-            subtitleText = "Feast on our authentic traditional Onasadya specials today!";
-            emoji = "🌸";
-        } else if (themeType === "CHRISTMAS") {
-            bgGradient = "linear-gradient(135deg, #c0392b, #8e44ad, #2c3e50)";
-            titleText = "Merry Christmas! 🎄";
-            subtitleText = "Unwrap delicious holiday deals and seasonal delicacies!";
-            emoji = "❄️";
+            subtitleText = "Celebrate the blessings of Eid with our special festive dishes!";
+            customGraphic = (
+                <svg width="120" height="120" viewBox="0 0 120 120" style={{ position: "absolute", right: 15, top: 0, opacity: 0.8 }}>
+                    <path d="M 80 20 A 40 40 0 1 0 100 85 A 32 32 0 1 1 80 20 Z" fill="#fcd34d" />
+                    <line x1="35" y1="0" x2="35" y2="40" stroke="#fcd34d" strokeWidth="1.5" />
+                    <rect x="27" y="40" width="16" height="24" rx="2" fill="#fcd34d" />
+                    <polygon points="27,40 35,32 43,40" fill="#fcd34d" />
+                    <line x1="55" y1="0" x2="55" y2="60" stroke="#fcd34d" strokeWidth="1.5" />
+                    <rect x="47" y="60" width="16" height="24" rx="2" fill="#fcd34d" />
+                    <polygon points="47,60 55,52 63,60" fill="#fcd34d" />
+                </svg>
+            );
         } else if (themeType === "RAMADAN") {
-            bgGradient = "linear-gradient(135deg, #1f4037, #99f2c8)";
+            bgGradient = "linear-gradient(135deg, #09090b, #0f172a, #1e1b4b)";
             titleText = "Ramadan Kareem! 🕌";
-            subtitleText = "Break your fast with our delicious Iftar meals & drinks!";
-            emoji = "✨";
+            subtitleText = "Break your fast with our delicious Iftar meals & refreshing drinks!";
+            customGraphic = (
+                <svg width="120" height="120" viewBox="0 0 120 120" style={{ position: "absolute", right: 15, top: 0, opacity: 0.75 }}>
+                    <line x1="45" y1="0" x2="45" y2="50" stroke="#fbbf24" strokeWidth="1.5" />
+                    <rect x="37" y="50" width="16" height="24" rx="2" fill="#fbbf24" />
+                    <polygon points="37,50 45,42 53,50" fill="#fbbf24" />
+                    <circle cx="45" cy="62" r="3" fill="#ffffff" />
+                </svg>
+            );
+        } else if (themeType === "ONAM") {
+            bgGradient = "linear-gradient(135deg, #f59e0b, #d97706, #15803d)";
+            titleText = "Happy Onam! 🌸";
+            subtitleText = "Feast on our authentic traditional Onasadya specials today!";
+            borderStyle = {
+                borderLeft: "10px solid #fbbf24",
+                borderRight: "10px solid #fbbf24",
+            };
+            customGraphic = (
+                <svg width="130" height="130" viewBox="0 0 100 100" style={{ position: "absolute", right: -15, bottom: -15, opacity: 0.4 }}>
+                    <circle cx="50" cy="50" r="46" fill="#f59e0b" />
+                    <circle cx="50" cy="50" r="38" fill="#15803d" />
+                    <circle cx="50" cy="50" r="30" fill="#ef4444" />
+                    <circle cx="50" cy="50" r="22" fill="#fbbf24" />
+                    <circle cx="50" cy="50" r="14" fill="#ffffff" />
+                    <circle cx="50" cy="50" r="6" fill="#ea580c" />
+                </svg>
+            );
+        } else if (themeType === "VISHU") {
+            bgGradient = "linear-gradient(135deg, #fbbf24, #d97706, #b45309)";
+            titleText = "Happy Vishu! 🌼";
+            subtitleText = "Start a prosperous new year with sweet Vishu Kanji and Kani specials!";
+            borderStyle = {
+                borderBottom: "6px solid #fcd34d",
+            };
+            customGraphic = (
+                <svg width="100" height="130" viewBox="0 0 100 130" style={{ position: "absolute", right: 20, bottom: 0, opacity: 0.9 }}>
+                    <ellipse cx="50" cy="120" rx="30" ry="8" fill="#eab308" />
+                    <rect x="47" y="40" width="6" height="80" fill="#eab308" />
+                    <ellipse cx="50" cy="40" rx="20" ry="6" fill="#eab308" />
+                    <path d="M 50 15 C 42 32 50 38 50 38 C 50 38 58 32 50 15 Z" fill="#ef4444" />
+                    <path d="M 50 22 C 45 32 50 37 50 37 C 50 37 55 32 50 22 Z" fill="#facc15" />
+                </svg>
+            );
+        } else if (themeType === "DIWALI") {
+            bgGradient = "linear-gradient(135deg, #4c1d95, #6d28d9, #be185d)";
+            titleText = "Happy Diwali! 🪔";
+            subtitleText = "Share the light and happiness with our delicious festive sweets & family combo deals!";
+            customGraphic = (
+                <svg width="130" height="100" viewBox="0 0 130 100" style={{ position: "absolute", right: 10, bottom: -10, opacity: 0.9 }}>
+                    <path d="M 20 60 C 20 80 70 80 70 60 Z" fill="#c2410c" />
+                    <path d="M 20 60 L 70 60 Z" fill="#c2410c" />
+                    <path d="M 45 30 C 40 45 45 55 45 55 C 45 55 50 45 45 30 Z" fill="#ea580c" />
+                    <path d="M 45 36 C 42 45 45 53 45 53 C 45 53 48 45 45 36 Z" fill="#facc15" />
+                    <path d="M 65 70 C 65 90 115 90 115 70 Z" fill="#c2410c" opacity="0.8" />
+                    <path d="M 90 40 C 85 55 90 65 90 65 C 90 65 95 55 90 40 Z" fill="#ea580c" opacity="0.8" />
+                    <path d="M 90 46 C 87 55 90 63 90 63 C 90 63 93 55 90 46 Z" fill="#facc15" opacity="0.8" />
+                </svg>
+            );
+        } else if (themeType === "CHRISTMAS") {
+            bgGradient = "linear-gradient(135deg, #991b1b, #7f1d1d, #064e3b)";
+            titleText = "Merry Christmas! 🎄";
+            subtitleText = "Celebrate the season of giving with our special holiday delicacies and sweet deals!";
+            customGraphic = (
+                <svg width="120" height="120" viewBox="0 0 120 120" style={{ position: "absolute", right: 15, top: 0, opacity: 0.8 }}>
+                    <line x1="60" y1="0" x2="60" y2="50" stroke="#ffffff" strokeWidth="1.5" />
+                    <polygon points="60,35 64,47 76,47 67,55 70,67 60,59 50,67 53,55 44,47 56,47" fill="#fcd34d" />
+                    <line x1="30" y1="0" x2="30" y2="70" stroke="#ffffff" strokeWidth="1" />
+                    <polygon points="30,58 33,67 42,67 35,73 37,82 30,76 23,82 25,73 18,67 27,67" fill="#ffffff" opacity="0.8" />
+                </svg>
+            );
         }
 
         return (
@@ -338,22 +438,29 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     background: bgGradient,
                     color: "#ffffff",
                     textAlign: "center",
-                    boxShadow: theme.shadows.md,
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
                     position: "relative",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 120,
+                    ...borderStyle,
                 }}
             >
-                <Text sx={{ fontSize: "2rem" }} weight={800} style={{ fontFamily: "Outfit, sans-serif" }}>
-                    {emoji} {titleText}
+                {customGraphic}
+                <Text sx={{ fontSize: "1.7rem", zIndex: 1 }} weight={900} style={{ fontFamily: "Outfit, sans-serif", textShadow: "1px 1px 4px rgba(0,0,0,0.5)" }}>
+                    {titleText}
                 </Text>
-                <Text size="sm" mt="xs" weight={500} opacity={0.9}>
+                <Text size="sm" mt="xs" weight={600} opacity={0.95} style={{ zIndex: 1, maxWidth: "70%", textShadow: "1px 1px 3px rgba(0,0,0,0.5)" }}>
                     {subtitleText}
                 </Text>
             </Paper>
         );
     };
 
-    const haveMenuItems = menuDetails?.categories?.some((category) => category?.items?.length > 0);
+    const haveMenuItems = filteredMenuDetails?.categories?.some((category) => category?.items?.length > 0);
 
     const menuContent = (
         <Box mih="calc(100vh - 100px)">
@@ -410,6 +517,33 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                 </Flex>
                             )}
                         </Box>
+                        <Flex gap="sm" mt="xs" wrap="wrap">
+                            {(restaurant as any)?.instagramUrl && (
+                                <ActionIcon component="a" href={(restaurant as any).instagramUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="pink">
+                                    <IconBrandInstagram size={18} />
+                                </ActionIcon>
+                            )}
+                            {(restaurant as any)?.facebookUrl && (
+                                <ActionIcon component="a" href={(restaurant as any).facebookUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="blue">
+                                    <IconBrandFacebook size={18} />
+                                </ActionIcon>
+                            )}
+                            {(restaurant as any)?.twitterUrl && (
+                                <ActionIcon component="a" href={(restaurant as any).twitterUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="dark">
+                                    <IconBrandTwitter size={18} />
+                                </ActionIcon>
+                            )}
+                            {(restaurant as any)?.youtubeUrl && (
+                                <ActionIcon component="a" href={(restaurant as any).youtubeUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="red">
+                                    <IconBrandYoutube size={18} />
+                                </ActionIcon>
+                            )}
+                            {(restaurant as any)?.tiktokUrl && (
+                                <ActionIcon component="a" href={(restaurant as any).tiktokUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="dark">
+                                    <IconBrandTiktok size={18} />
+                                </ActionIcon>
+                            )}
+                        </Flex>
                     </Box>
                 </MediaQuery>
             </Box>
@@ -448,6 +582,33 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                             </a>
                         </Flex>
                     )}
+                    <Flex gap="sm" mt="xs" wrap="wrap">
+                        {(restaurant as any)?.instagramUrl && (
+                            <ActionIcon component="a" href={(restaurant as any).instagramUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="pink">
+                                <IconBrandInstagram size={18} />
+                            </ActionIcon>
+                        )}
+                        {(restaurant as any)?.facebookUrl && (
+                            <ActionIcon component="a" href={(restaurant as any).facebookUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="blue">
+                                <IconBrandFacebook size={18} />
+                            </ActionIcon>
+                        )}
+                        {(restaurant as any)?.twitterUrl && (
+                            <ActionIcon component="a" href={(restaurant as any).twitterUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="dark">
+                                <IconBrandTwitter size={18} />
+                            </ActionIcon>
+                        )}
+                        {(restaurant as any)?.youtubeUrl && (
+                            <ActionIcon component="a" href={(restaurant as any).youtubeUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="red">
+                                <IconBrandYoutube size={18} />
+                            </ActionIcon>
+                        )}
+                        {(restaurant as any)?.tiktokUrl && (
+                            <ActionIcon component="a" href={(restaurant as any).tiktokUrl} target="_blank" rel="noopener noreferrer" radius="xl" size="md" variant="subtle" color="dark">
+                                <IconBrandTiktok size={18} />
+                            </ActionIcon>
+                        )}
+                    </Flex>
                 </Stack>
             </MediaQuery>
             {renderFestivalBanner()}
@@ -484,6 +645,17 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     ))}
                 </Tabs.List>
             </Tabs>
+            {restaurant && isFeatureEnabled(restaurant, "search") && (
+                <TextInput
+                    icon={<IconSearch size={16} />}
+                    placeholder="Search items..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    mb="lg"
+                    radius="md"
+                    size="md"
+                />
+            )}
             <Box ref={menuParent}>
                 {dailySpecials.length > 0 && (
                     <Box mb="xl">
@@ -513,7 +685,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                     </Box>
                 )}
 
-                {menuDetails?.categories
+                {filteredMenuDetails?.categories
                     ?.filter((category) => category?.items.length)
                     ?.map((category) => (
                         <Box key={category.id}>

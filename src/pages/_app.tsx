@@ -18,6 +18,7 @@ import { CustomFonts } from "src/styles/CustomFonts";
 import { getMantineTheme, theme } from "src/styles/theme";
 import { PlateProvider } from "src/utils/plateContext";
 import { SupabaseAuthProvider } from "src/utils/supabaseAuth";
+import { OfflineSyncProvider } from "src/utils/offlineSync";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -33,6 +34,42 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({ Component, pagePr
     const locale = router.locale || "en";
     const colorScheme: ColorScheme = "light";
     const toggleColorScheme = () => {};
+
+    // Restore and persist React Query cache in localStorage for complete offline reloading support
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        
+        const persisted = localStorage.getItem("menuease_query_cache");
+        if (persisted) {
+            try {
+                const queries = JSON.parse(persisted);
+                queries.forEach((q: any) => {
+                    queryClient.setQueryData(q.queryKey, q.state.data);
+                });
+            } catch (e) {
+                console.error("Failed to restore persisted cache", e);
+            }
+        }
+
+        const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+            if (event.type === "observerAdded" || event.type === "updated") {
+                const allQueries = queryClient.getQueryCache().getAll();
+                const toPersist = allQueries
+                    .filter((q) => q.state.status === "success" && q.state.data)
+                    .map((q) => ({
+                        queryKey: q.queryKey,
+                        state: { data: q.state.data }
+                    }));
+                try {
+                    localStorage.setItem("menuease_query_cache", JSON.stringify(toPersist));
+                } catch (e) {
+                    console.error("Failed to persist query cache", e);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const checkKeepAlive = async () => {
@@ -79,7 +116,9 @@ const MyApp: AppType<{ messages?: AbstractIntlMessages }> = ({ Component, pagePr
                                     timeZone="UTC"
                                 >
                                     <PlateProvider>
-                                        <Component {...pageProps} />
+                                        <OfflineSyncProvider>
+                                            <Component {...pageProps} />
+                                        </OfflineSyncProvider>
                                     </PlateProvider>
                                 </NextIntlClientProvider>
                                 <Analytics />

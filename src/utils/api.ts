@@ -28,6 +28,24 @@ const getCurrentUserId = async () => {
     return user.id;
 };
 
+// Helper to write compressed audit logs to Supabase
+const writeAuditLog = async (restaurantId: string, actionCode: string, payload: string) => {
+    try {
+        const userId = await getCurrentUserId().catch(() => null);
+        const { error } = await supabase.from("AuditLog").insert([{
+            id: nanoid(24),
+            restaurantId,
+            actionCode,
+            payload,
+            userId,
+            createdAt: new Date().toISOString()
+        }]);
+        if (error) console.error("Failed to write audit log:", error);
+    } catch (e) {
+        console.error("Failed to write audit log:", e);
+    }
+};
+
 const getAdminRole = async () => {
     if (typeof window !== "undefined") {
         const ownerSessionStr = localStorage.getItem("owner_session");
@@ -657,6 +675,12 @@ export const api = {
                     isOrderFeatureEnabled?: boolean;
                     whatsappNo?: string | null;
                     isKitchenEnabled?: boolean;
+                    enterpriseFeatures?: string | null;
+                    instagramUrl?: string | null;
+                    facebookUrl?: string | null;
+                    twitterUrl?: string | null;
+                    youtubeUrl?: string | null;
+                    tiktokUrl?: string | null;
                 }
             >(
                 options?: any
@@ -682,6 +706,24 @@ export const api = {
                         }
                         if (input.isKitchenEnabled !== undefined) {
                             updateData.isKitchenEnabled = input.isKitchenEnabled;
+                        }
+                        if (input.enterpriseFeatures !== undefined) {
+                            updateData.enterpriseFeatures = input.enterpriseFeatures;
+                        }
+                        if (input.instagramUrl !== undefined) {
+                            updateData.instagramUrl = input.instagramUrl;
+                        }
+                        if (input.facebookUrl !== undefined) {
+                            updateData.facebookUrl = input.facebookUrl;
+                        }
+                        if (input.twitterUrl !== undefined) {
+                            updateData.twitterUrl = input.twitterUrl;
+                        }
+                        if (input.youtubeUrl !== undefined) {
+                            updateData.youtubeUrl = input.youtubeUrl;
+                        }
+                        if (input.tiktokUrl !== undefined) {
+                            updateData.tiktokUrl = input.tiktokUrl;
                         }
 
                         const { data, error } = await supabase
@@ -769,9 +811,15 @@ export const api = {
                             userId,
                         };
 
+                        const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", input.menuId).single();
+                        const restaurantId = menuData?.restaurantId || "";
+
                         const { data, error } = await supabase.from("Category").insert([newCat]).select().single();
 
                         if (error) throw error;
+                        if (restaurantId) {
+                            await writeAuditLog(restaurantId, "CC", id + "|" + input.name);
+                        }
                         return data;
                     },
                     {
@@ -816,6 +864,14 @@ export const api = {
                             await supabase.from("MenuItem").delete().in("id", itemIds);
                         }
 
+                        const { data: catData } = await supabase.from("Category").select("name, menuId").eq("id", input.id).single();
+                        const catName = catData?.name || "";
+                        let restaurantId = "";
+                        if (catData?.menuId) {
+                            const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", catData.menuId).single();
+                            restaurantId = menuData?.restaurantId || "";
+                        }
+
                         const { data, error } = await supabase
                             .from("Category")
                             .delete()
@@ -824,6 +880,9 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+                        if (restaurantId) {
+                            await writeAuditLog(restaurantId, "CD", input.id + "|" + catName);
+                        }
                         return data;
                     },
                     {
@@ -890,6 +949,14 @@ export const api = {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(
                     async (input: any) => {
+                        const { data: catData } = await supabase.from("Category").select("name, menuId").eq("id", input.id).single();
+                        const oldName = catData?.name || "";
+                        let restaurantId = "";
+                        if (catData?.menuId) {
+                            const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", catData.menuId).single();
+                            restaurantId = menuData?.restaurantId || "";
+                        }
+
                         const { data, error } = await supabase
                             .from("Category")
                             .update({ name: input.name, updatedAt: new Date().toISOString() })
@@ -898,6 +965,9 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+                        if (restaurantId && oldName !== input.name) {
+                            await writeAuditLog(restaurantId, "CU", input.id + "|" + oldName + "|" + input.name);
+                        }
                         return data;
                     },
                     {
@@ -1146,6 +1216,7 @@ export const api = {
                         const { data, error } = await supabase.from("Menu").insert([newMenu]).select().single();
 
                         if (error) throw error;
+                        await writeAuditLog(input.restaurantId, "MC", id + "|" + input.name);
                         return data;
                     },
                     {
@@ -1197,6 +1268,10 @@ export const api = {
                             );
                         }
 
+                        const { data: menuData } = await supabase.from("Menu").select("name, restaurantId").eq("id", input.id).single();
+                        const menuName = menuData?.name || "";
+                        const restaurantId = menuData?.restaurantId || "";
+
                         const { data, error } = await supabase
                             .from("Menu")
                             .delete()
@@ -1205,6 +1280,9 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+                        if (restaurantId) {
+                            await writeAuditLog(restaurantId, "MD", input.id + "|" + menuName);
+                        }
                         return data;
                     },
                     {
@@ -1375,6 +1453,10 @@ export const api = {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(
                     async (input: any) => {
+                        const { data: menuData } = await supabase.from("Menu").select("name, restaurantId").eq("id", input.id).single();
+                        const oldName = menuData?.name || "";
+                        const restaurantId = menuData?.restaurantId || "";
+
                         const { data, error } = await supabase
                             .from("Menu")
                             .update({
@@ -1387,6 +1469,9 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+                        if (restaurantId && oldName !== input.name) {
+                            await writeAuditLog(restaurantId, "MU", input.id + "|" + oldName + "|" + input.name);
+                        }
                         return data;
                     },
                     {
@@ -1503,9 +1588,15 @@ export const api = {
                             videoUrl: input.videoUrl || null,
                         };
 
+                        const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", input.menuId).single();
+                        const restaurantId = menuData?.restaurantId || "";
+
                         const { data, error } = await supabase.from("MenuItem").insert([newItem]).select().single();
 
                         if (error) throw error;
+                        if (restaurantId) {
+                            await writeAuditLog(restaurantId, "IC", id + "|" + input.name + "|" + input.price);
+                        }
 
                         if (input.additionalImages && input.additionalImages.length > 0) {
                             const imagesToInsert = input.additionalImages.map((img: any) => ({
@@ -1539,7 +1630,7 @@ export const api = {
                     async (input: any) => {
                         const { data: current } = await supabase
                             .from("MenuItem")
-                            .select("imageId, videoUrl")
+                            .select("imageId, videoUrl, name, categoryId")
                             .eq("id", input.id)
                             .single();
 
@@ -1569,6 +1660,17 @@ export const api = {
                             await supabase.from("Image").delete().eq("menuItemId", input.id);
                         }
 
+                        const { data: itemData } = await supabase.from("MenuItem").select("name, categoryId").eq("id", input.id).single();
+                        const itemName = itemData?.name || "";
+                        let restaurantId = "";
+                        if (itemData?.categoryId) {
+                            const { data: catData } = await supabase.from("Category").select("menuId").eq("id", itemData.categoryId).single();
+                            if (catData?.menuId) {
+                                const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", catData.menuId).single();
+                                restaurantId = menuData?.restaurantId || "";
+                            }
+                        }
+
                         const { data, error } = await supabase
                             .from("MenuItem")
                             .delete()
@@ -1577,6 +1679,9 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+                        if (restaurantId) {
+                            await writeAuditLog(restaurantId, "ID", input.id + "|" + itemName);
+                        }
                         return data;
                     },
                     {
@@ -1935,6 +2040,7 @@ export const api = {
                         };
                         const { data, error } = await supabase.from("Order").insert([newOrder]).select().single();
                         if (error) throw error;
+                        await writeAuditLog(input.restaurantId, "ON", newOrder.id + "|" + (newOrder.table || ""));
                         return data;
                     },
                     {
@@ -1979,6 +2085,10 @@ export const api = {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(
                     async (input: any) => {
+                        // Fetch old status
+                        const { data: orderData } = await supabase.from("Order").select("status").eq("id", input.id).single();
+                        const oldStatus = orderData?.status || "UNKNOWN";
+
                         const { data, error } = await supabase
                             .from("Order")
                             .update({ status: input.status, updatedAt: new Date().toISOString() })
@@ -1986,6 +2096,7 @@ export const api = {
                             .select()
                             .single();
                         if (error) throw error;
+                        await writeAuditLog(input.restaurantId, "OS", input.id + "|" + oldStatus + "|" + input.status);
                         return data;
                     },
                     {
@@ -2214,6 +2325,11 @@ export const api = {
                     isKitchenEnabled?: boolean;
                     logoBase64?: string;
                     logoUrl?: string;
+                    instagramUrl?: string | null;
+                    facebookUrl?: string | null;
+                    twitterUrl?: string | null;
+                    youtubeUrl?: string | null;
+                    tiktokUrl?: string | null;
                 }
             >(
                 options?: any
@@ -2647,6 +2763,7 @@ export const api = {
                             .select()
                             .single();
                         if (error) throw error;
+                        await writeAuditLog(input.id, "RP", input.id + "|" + input.isPublished);
                         return data;
                     },
                     {
@@ -2729,7 +2846,7 @@ export const api = {
                         }
                         const { data: current } = await supabase
                             .from("Restaurant")
-                            .select("imageId, logoUrl")
+                            .select("imageId, logoUrl, name, location, contactNo, currency, whatsappNo, isKitchenEnabled, isOrderFeatureEnabled")
                             .eq("id", input.id)
                             .single();
 
@@ -2801,6 +2918,11 @@ export const api = {
                             name: input.name,
                             updatedAt: new Date().toISOString(),
                             whatsappNo: input.whatsappNo || null,
+                            instagramUrl: input.instagramUrl || null,
+                            facebookUrl: input.facebookUrl || null,
+                            twitterUrl: input.twitterUrl || null,
+                            youtubeUrl: input.youtubeUrl || null,
+                            tiktokUrl: input.tiktokUrl || null,
                         };
 
                         if (isSuper) {
@@ -2820,6 +2942,32 @@ export const api = {
                             .single();
 
                         if (error) throw error;
+
+                        // Insert audit logs for changed fields
+                        if (current) {
+                            if (current.name !== input.name) {
+                                await writeAuditLog(input.id, "RN", current.name + "|" + input.name);
+                            }
+                            if (current.location !== input.location) {
+                                await writeAuditLog(input.id, "RL", current.location + "|" + input.location);
+                            }
+                            if (current.contactNo !== input.contactNo) {
+                                await writeAuditLog(input.id, "RC", current.contactNo + "|" + input.contactNo);
+                            }
+                            if ((current.whatsappNo || "") !== (input.whatsappNo || "")) {
+                                await writeAuditLog(input.id, "RW", (current.whatsappNo || "") + "|" + (input.whatsappNo || ""));
+                            }
+                            if ((current.currency || "") !== (input.currency || "")) {
+                                await writeAuditLog(input.id, "RCO", (current.currency || "") + "|" + (input.currency || ""));
+                            }
+                            if (current.isKitchenEnabled !== (input.isKitchenEnabled || false)) {
+                                await writeAuditLog(input.id, "RK", current.isKitchenEnabled + "|" + (input.isKitchenEnabled || false));
+                            }
+                            if (current.isOrderFeatureEnabled !== (input.isOrderFeatureEnabled || false)) {
+                                await writeAuditLog(input.id, "RO", current.isOrderFeatureEnabled + "|" + (input.isOrderFeatureEnabled || false));
+                            }
+                        }
+
                         return data;
                     },
                     {
@@ -2861,6 +3009,7 @@ export const api = {
                         };
                         const { data, error } = await supabase.from("WaiterCall").insert([newCall]).select().single();
                         if (error) throw error;
+                        await writeAuditLog(input.restaurantId, "WC", input.requestType + "|" + (input.table || ""));
                         return data;
                     },
                     {
@@ -2902,6 +3051,8 @@ export const api = {
                 const queryClient = useQueryClient();
                 return useMutation<TData, TError, TVariables>(
                     async (input: any) => {
+                        // Fetch call details
+                        const { data: callData } = await supabase.from("WaiterCall").select("requestType, table").eq("id", input.id).single();
                         const { data, error } = await supabase
                             .from("WaiterCall")
                             .update({ status: "RESOLVED" })
@@ -2909,6 +3060,9 @@ export const api = {
                             .select()
                             .single();
                         if (error) throw error;
+                        if (callData) {
+                            await writeAuditLog(input.restaurantId, "WR", callData.requestType + "|" + (callData.table || ""));
+                        }
                         return data;
                     },
                     {
@@ -2953,6 +3107,7 @@ export const api = {
                                 .select()
                                 .single();
                             if (error) throw error;
+                            await writeAuditLog(input.restaurantId, "LV", input.phone + "|" + current.visitCount + "|" + (current.visitCount + 1));
                             return data;
                         } else {
                             const id = nanoid(24);
@@ -2966,6 +3121,7 @@ export const api = {
                             };
                             const { data, error } = await supabase.from("CustomerLoyalty").insert([newLoyalty]).select().single();
                             if (error) throw error;
+                            await writeAuditLog(input.restaurantId, "LV", input.phone + "|0|1");
                             return data;
                         }
                     },
@@ -2987,6 +3143,25 @@ export const api = {
                             .maybeSingle();
                         if (error) throw error;
                         return data || null;
+                    },
+                    options
+                );
+            },
+        },
+    },
+    auditLog: {
+        getByRestaurant: {
+            useQuery: (input: { restaurantId: string }, options?: any) => {
+                return useQuery(
+                    ["auditLogs", input.restaurantId],
+                    async () => {
+                        const { data, error } = await supabase
+                            .from("AuditLog")
+                            .select("*")
+                            .eq("restaurantId", input.restaurantId)
+                            .order("createdAt", { ascending: false });
+                        if (error) throw error;
+                        return data || [];
                     },
                     options
                 );
@@ -3027,6 +3202,9 @@ export const api = {
             }
             if (domain === "loyalty") {
                 if (method === "getByPhone") return ["customerLoyalty", variables?.restaurantId || variables?.phone || variables];
+            }
+            if (domain === "auditLog") {
+                if (method === "getByRestaurant") return ["auditLogs", variables?.restaurantId || variables];
             }
             return null;
         };

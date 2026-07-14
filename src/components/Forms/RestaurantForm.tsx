@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useEffect } from "react";
 
-import { Button, Checkbox, Group, Select, Stack, Switch, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { Button, Checkbox, Group, Select, Stack, Switch, Text, TextInput, useMantineTheme, Divider } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { IconMapPin, IconPhone } from "@tabler/icons";
 import { useTranslations } from "next-intl";
@@ -79,6 +79,11 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
             ownerUsername: (restaurant as any)?.ownerUsername || "",
             userId: restaurant?.userId || "",
             whatsappNo: (restaurant as any)?.whatsappNo || "",
+            instagramUrl: (restaurant as any)?.instagramUrl || "",
+            facebookUrl: (restaurant as any)?.facebookUrl || "",
+            twitterUrl: (restaurant as any)?.twitterUrl || "",
+            youtubeUrl: (restaurant as any)?.youtubeUrl || "",
+            tiktokUrl: (restaurant as any)?.tiktokUrl || "",
         },
         validate: zodResolver(restaurantInput),
     });
@@ -107,6 +112,11 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                 ownerUsername: (restaurant as any)?.ownerUsername || "",
                 userId: restaurant?.userId || "",
                 whatsappNo: (restaurant as any)?.whatsappNo || "",
+                instagramUrl: (restaurant as any)?.instagramUrl || "",
+                facebookUrl: (restaurant as any)?.facebookUrl || "",
+                twitterUrl: (restaurant as any)?.twitterUrl || "",
+                youtubeUrl: (restaurant as any)?.youtubeUrl || "",
+                tiktokUrl: (restaurant as any)?.tiktokUrl || "",
             };
             setValues(formValues);
             resetDirty(formValues);
@@ -258,6 +268,8 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                             { label: "None (Default)", value: "NONE" },
                             { label: "Eid Al-Fitr / Eid Al-Adha 🌙", value: "EID" },
                             { label: "Onam 🌾", value: "ONAM" },
+                            { label: "Vishu 🌼", value: "VISHU" },
+                            { label: "Diwali 🪔", value: "DIWALI" },
                             { label: "Christmas 🎄", value: "CHRISTMAS" },
                             { label: "Ramadan 🕌", value: "RAMADAN" },
                         ]}
@@ -286,6 +298,38 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                         placeholder="20"
                         type="number"
                         {...getInputProps("happyHourDiscount")}
+                    />
+
+                    <Divider label="Social Media Handles / Links" labelPosition="center" />
+                    <TextInput
+                        disabled={loading}
+                        label="Instagram Profile Link"
+                        placeholder="https://instagram.com/username"
+                        {...getInputProps("instagramUrl")}
+                    />
+                    <TextInput
+                        disabled={loading}
+                        label="Facebook Page Link"
+                        placeholder="https://facebook.com/pagename"
+                        {...getInputProps("facebookUrl")}
+                    />
+                    <TextInput
+                        disabled={loading}
+                        label="Twitter / X Profile Link"
+                        placeholder="https://x.com/username"
+                        {...getInputProps("twitterUrl")}
+                    />
+                    <TextInput
+                        disabled={loading}
+                        label="YouTube Channel Link"
+                        placeholder="https://youtube.com/@channel"
+                        {...getInputProps("youtubeUrl")}
+                    />
+                    <TextInput
+                        disabled={loading}
+                        label="TikTok Profile Link"
+                        placeholder="https://tiktok.com/@username"
+                        {...getInputProps("tiktokUrl")}
                     />
 
                     <TextInput

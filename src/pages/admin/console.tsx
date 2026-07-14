@@ -14,6 +14,7 @@ import {
     Modal,
     NumberInput,
     Select,
+    SimpleGrid,
     Stack,
     Switch,
     Table,
@@ -79,6 +80,12 @@ const AdminConsolePage: NextPage = () => {
     const [subIsOrderFeatureEnabled, setSubIsOrderFeatureEnabled] = useState<boolean>(false);
     const [subWhatsappNo, setSubWhatsappNo] = useState<string>("");
     const [subIsKitchenEnabled, setSubIsKitchenEnabled] = useState<boolean>(false);
+    const [subEnterpriseFeatures, setSubEnterpriseFeatures] = useState<string[]>([]);
+    const [subInstagramUrl, setSubInstagramUrl] = useState<string>("");
+    const [subFacebookUrl, setSubFacebookUrl] = useState<string>("");
+    const [subTwitterUrl, setSubTwitterUrl] = useState<string>("");
+    const [subYoutubeUrl, setSubYoutubeUrl] = useState<string>("");
+    const [subTiktokUrl, setSubTiktokUrl] = useState<string>("");
 
     // Queries
     const { data: userRole, isLoading: loadingRole } = api.admin.getRole.useQuery();
@@ -600,6 +607,13 @@ const AdminConsolePage: NextPage = () => {
                                                                                 setSubIsKitchenEnabled(
                                                                                     rest.isKitchenEnabled || false
                                                                                 );
+                                                                                const features = (rest as any).enterpriseFeatures || "";
+                                                                                setSubEnterpriseFeatures(features.split(",").map((s: string) => s.trim()).filter(Boolean));
+                                                                                setSubInstagramUrl((rest as any).instagramUrl || "");
+                                                                                setSubFacebookUrl((rest as any).facebookUrl || "");
+                                                                                setSubTwitterUrl((rest as any).twitterUrl || "");
+                                                                                setSubYoutubeUrl((rest as any).youtubeUrl || "");
+                                                                                setSubTiktokUrl((rest as any).tiktokUrl || "");
                                                                                 setRecordPayment(false);
                                                                                 setPaymentAmount(0);
                                                                                 setPaymentMethod("Cash");
@@ -736,11 +750,12 @@ const AdminConsolePage: NextPage = () => {
                         if (!selectedRest) return;
 
                         updateSubscription({
-                            isKitchenEnabled: subIsKitchenEnabled,
-                            isOrderFeatureEnabled: subIsOrderFeatureEnabled,
+                            isKitchenEnabled: subPlanName === "Enterprise" ? subEnterpriseFeatures.includes("kitchen") : subIsKitchenEnabled,
+                            isOrderFeatureEnabled: subPlanName === "Enterprise" ? subEnterpriseFeatures.includes("ordering") : subIsOrderFeatureEnabled,
                             paymentAmount: recordPayment ? paymentAmount : undefined,
                             paymentMethod: recordPayment ? paymentMethod : undefined,
                             planName: subPlanName,
+                            enterpriseFeatures: subPlanName === "Enterprise" ? subEnterpriseFeatures.join(",") : null,
                             recordPayment,
                             restaurantId: selectedRest.id,
                             subscriptionExpiresAt:
@@ -753,6 +768,11 @@ const AdminConsolePage: NextPage = () => {
                                     ? new Date(subTrialEndsAt).toISOString()
                                     : null,
                             whatsappNo: subWhatsappNo || null,
+                            instagramUrl: subInstagramUrl || null,
+                            facebookUrl: subFacebookUrl || null,
+                            twitterUrl: subTwitterUrl || null,
+                            youtubeUrl: subYoutubeUrl || null,
+                            tiktokUrl: subTiktokUrl || null,
                         });
                     }}
                 >
@@ -760,8 +780,10 @@ const AdminConsolePage: NextPage = () => {
                         <Select
                             data={[
                                 { label: "Free Trial", value: "Free Trial" },
-                                { label: "Basic Plan ($15/mo)", value: "Basic Plan" },
-                                { label: "Premium Plan ($40/mo)", value: "Premium Plan" },
+                                { label: "Starter (₹4,999/year)", value: "Starter" },
+                                { label: "Professional (₹7,999/year)", value: "Professional" },
+                                { label: "Premium (₹11,999/year)", value: "Premium" },
+                                { label: "Enterprise (Custom Features Toggle)", value: "Enterprise" },
                             ]}
                             label="Subscription Plan"
                             onChange={(val) => {
@@ -770,16 +792,55 @@ const AdminConsolePage: NextPage = () => {
                                 if (newPlan === "Free Trial") {
                                     setSubStatus("trial");
                                     setPaymentAmount(0);
-                                } else if (newPlan === "Basic Plan") {
+                                } else if (newPlan === "Starter") {
                                     setSubStatus("active");
-                                    setPaymentAmount(15);
-                                } else if (newPlan === "Premium Plan") {
+                                    setPaymentAmount(4999);
+                                } else if (newPlan === "Professional") {
                                     setSubStatus("active");
-                                    setPaymentAmount(40);
+                                    setPaymentAmount(7999);
+                                } else if (newPlan === "Premium") {
+                                    setSubStatus("active");
+                                    setPaymentAmount(11999);
+                                } else if (newPlan === "Enterprise") {
+                                    setSubStatus("active");
+                                    setPaymentAmount(0);
                                 }
                             }}
                             value={subPlanName}
                         />
+
+                        {subPlanName === "Enterprise" && (
+                            <Stack spacing="xs">
+                                <Divider label="Granular Enterprise Features Toggles" labelPosition="center" />
+                                <SimpleGrid cols={2} spacing="xs">
+                                    {[
+                                        { label: "Search bar in Menu", key: "search" },
+                                        { label: "Out of Stock Toggle", key: "outOfStock" },
+                                        { label: "Featured Specials (Today's Specials)", key: "specials" },
+                                        { label: "Analytics / Stats Page", key: "analytics" },
+                                        { label: "Customer Reviews (Feedback Page)", key: "reviews" },
+                                        { label: "WhatsApp Billing & Loyalty", key: "loyalty" },
+                                        { label: "Promotional Banners page", key: "banners" },
+                                        { label: "Festival Themes", key: "themes" },
+                                        { label: "Table Ordering", key: "ordering" },
+                                        { label: "Kitchen Screen", key: "kitchen" },
+                                        { label: "Waiter Calling", key: "waiterCall" },
+                                    ].map((f) => (
+                                        <Switch
+                                            key={f.key}
+                                            label={f.label}
+                                            checked={subEnterpriseFeatures.includes(f.key)}
+                                            onChange={(e) => {
+                                                const checked = e.currentTarget.checked;
+                                                setSubEnterpriseFeatures(prev => 
+                                                    checked ? [...prev, f.key] : prev.filter(k => k !== f.key)
+                                                );
+                                            }}
+                                        />
+                                    ))}
+                                </SimpleGrid>
+                            </Stack>
+                        )}
 
                         <Select
                             data={[
@@ -876,7 +937,39 @@ const AdminConsolePage: NextPage = () => {
                             onChange={(event) => setSubIsKitchenEnabled(event.currentTarget.checked)}
                         />
 
-                        <Button color="primary" loading={updatingSubscription} type="submit">
+                        <Divider label="Social Media Handles" labelPosition="center" />
+                        <TextInput
+                            label="Instagram Profile Link"
+                            placeholder="https://instagram.com/username"
+                            value={subInstagramUrl}
+                            onChange={(e) => setSubInstagramUrl(e.target.value)}
+                        />
+                        <TextInput
+                            label="Facebook Page Link"
+                            placeholder="https://facebook.com/pagename"
+                            value={subFacebookUrl}
+                            onChange={(e) => setSubFacebookUrl(e.target.value)}
+                        />
+                        <TextInput
+                            label="Twitter / X Profile Link"
+                            placeholder="https://x.com/username"
+                            value={subTwitterUrl}
+                            onChange={(e) => setSubTwitterUrl(e.target.value)}
+                        />
+                        <TextInput
+                            label="YouTube Channel Link"
+                            placeholder="https://youtube.com/@channel"
+                            value={subYoutubeUrl}
+                            onChange={(e) => setSubYoutubeUrl(e.target.value)}
+                        />
+                        <TextInput
+                            label="TikTok Profile Link"
+                            placeholder="https://tiktok.com/@username"
+                            value={subTiktokUrl}
+                            onChange={(e) => setSubTiktokUrl(e.target.value)}
+                        />
+
+                        <Button color="primary" loading={updatingSubscription} type="submit" mt="md">
                             Save Subscription Settings
                         </Button>
 
