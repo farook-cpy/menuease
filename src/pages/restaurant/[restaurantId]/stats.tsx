@@ -30,6 +30,7 @@ import {
     IconFlame,
     IconList,
     IconTrendingUp,
+    IconQrcode,
 } from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
@@ -169,7 +170,7 @@ const StatsPage: NextPage = () => {
                                         { cols: 2, maxWidth: "md" },
                                         { cols: 1, maxWidth: "sm" },
                                     ]}
-                                    cols={3}
+                                    cols={4}
                                     spacing="lg"
                                 >
                                     <Card p="xl" radius="md" shadow="sm" withBorder>
@@ -246,6 +247,32 @@ const StatsPage: NextPage = () => {
                                                 }}
                                             >
                                                 <IconTrendingUp size={24} />
+                                            </Paper>
+                                        </Group>
+                                    </Card>
+
+                                    <Card p="xl" radius="md" shadow="sm" withBorder>
+                                        <Group align="flex-start" noWrap position="apart">
+                                            <Stack spacing={4}>
+                                                <Text color="dimmed" size="xs" transform="uppercase" weight={600}>
+                                                    Branded QR Scans
+                                                </Text>
+                                                <Title order={1} size="2.5rem">
+                                                    {stats?.totalQrScans || 0}
+                                                </Title>
+                                                <Text color="dimmed" size="xs">
+                                                    Scans of your personalized QR codes.
+                                                </Text>
+                                            </Stack>
+                                            <Paper
+                                                p="xs"
+                                                radius="md"
+                                                sx={{
+                                                    backgroundColor: theme.colors.gray[1],
+                                                    color: theme.colors.gray[6],
+                                                }}
+                                            >
+                                                <IconQrcode size={24} />
                                             </Paper>
                                         </Group>
                                     </Card>

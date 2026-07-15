@@ -17,6 +17,7 @@ import {
     Textarea,
     TextInput,
     useMantineTheme,
+    Divider,
 } from "@mantine/core";
 import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { useForm, zodResolver } from "@mantine/form";
@@ -82,6 +83,9 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
 
     const theme = useMantineTheme();
     const [videoProgress, setVideoProgress] = useState<number | null>(null);
+    const [customSizes, setCustomSizes] = useState<Array<{ name: string; price: string }>>([]);
+    const [customVariants, setCustomVariants] = useState<Array<{ groupName: string; options: string }>>([]);
+    const [customAddons, setCustomAddons] = useState<Array<{ name: string; price: string }>>([]);
     const [videoUploading, setVideoUploading] = useState(false);
     const [imageProgress, setImageProgress] = useState<{ [key: string]: number }>({});
 
@@ -190,6 +194,24 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
             };
             setValues(newValues);
             resetDirty(newValues);
+
+            // Parse and populate customizations state
+            try {
+                const parsedSizes = menuItem?.sizes ? JSON.parse(menuItem.sizes) : [];
+                setCustomSizes(parsedSizes);
+            } catch(e) { setCustomSizes([]); }
+
+            try {
+                const parsedVariants = menuItem?.variants 
+                    ? JSON.parse(menuItem.variants).map((v: any) => ({ groupName: v.groupName, options: v.options.join(", ") })) 
+                    : [];
+                setCustomVariants(parsedVariants);
+            } catch(e) { setCustomVariants([]); }
+
+            try {
+                const parsedAddons = menuItem?.addons ? JSON.parse(menuItem.addons) : [];
+                setCustomAddons(parsedAddons);
+            } catch(e) { setCustomAddons([]); }
         }
     }, [menuItem, opened]);
 
@@ -210,10 +232,18 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         formValues.deletedImageIds.length > 0 ||
                         formValues.videoUrl !== (menuItem?.videoUrl || "");
 
-                    if (isDirty() || hasMediaChanges) {
+                    if (true) { // Force save to capture customizations state changes
                         const submitValues = {
                             ...formValues,
                             additionalImages: formValues.newAdditionalImages,
+                            sizes: customSizes.length > 0 ? JSON.stringify(customSizes.filter(s => s.name.trim())) : null,
+                            variants: customVariants.length > 0 
+                                ? JSON.stringify(customVariants.filter(v => v.groupName.trim()).map(v => ({
+                                    groupName: v.groupName.trim(),
+                                    options: v.options.split(",").map(o => o.trim()).filter(Boolean)
+                                  }))) 
+                                : null,
+                            addons: customAddons.length > 0 ? JSON.stringify(customAddons.filter(a => a.name.trim())) : null,
                         };
 
                         if (menuItem) {
@@ -260,6 +290,151 @@ export const MenuItemForm: FC<Props> = ({ opened, onClose, menuId, menuItem, cat
                         placeholder="Select food type"
                         value={values.isVeg === true ? "veg" : values.isVeg === false ? "nonveg" : "none"}
                     />
+
+                    <Divider label="Dish Sizes (Appetite Options)" labelPosition="center" />
+                    <Stack spacing="xs">
+                        {customSizes.map((sz, index) => (
+                            <Group key={index} spacing="xs" align="flex-end">
+                                <TextInput
+                                    placeholder="e.g. Medium"
+                                    label={index === 0 ? "Size Name" : ""}
+                                    value={sz.name}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customSizes];
+                                        if (updated[index]) {
+                                            updated[index].name = e.target.value;
+                                            setCustomSizes(updated);
+                                        }
+                                    }}
+                                />
+                                <TextInput
+                                    placeholder="e.g. 150"
+                                    label={index === 0 ? "Price" : ""}
+                                    value={sz.price}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customSizes];
+                                        if (updated[index]) {
+                                            updated[index].price = e.target.value;
+                                            setCustomSizes(updated);
+                                        }
+                                    }}
+                                />
+                                <ActionIcon
+                                    color="red"
+                                    variant="light"
+                                    onClick={() => setCustomSizes(customSizes.filter((_, i) => i !== index))}
+                                >
+                                    <IconTrash size={16} />
+                                </ActionIcon>
+                            </Group>
+                        ))}
+                        <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setCustomSizes([...customSizes, { name: "", price: "" }])}
+                        >
+                            + Add Size Option
+                        </Button>
+                    </Stack>
+
+                    <Divider label="Variant Options (e.g. Crust / Spice)" labelPosition="center" />
+                    <Stack spacing="xs">
+                        {customVariants.map((v, index) => (
+                            <Group key={index} spacing="xs" align="flex-end">
+                                <TextInput
+                                    placeholder="e.g. Spice Level"
+                                    label={index === 0 ? "Variant Title" : ""}
+                                    value={v.groupName}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customVariants];
+                                        if (updated[index]) {
+                                            updated[index].groupName = e.target.value;
+                                            setCustomVariants(updated);
+                                        }
+                                    }}
+                                />
+                                <TextInput
+                                    placeholder="e.g. Mild, Medium, Hot"
+                                    label={index === 0 ? "Options (comma separated)" : ""}
+                                    value={v.options}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customVariants];
+                                        if (updated[index]) {
+                                            updated[index].options = e.target.value;
+                                            setCustomVariants(updated);
+                                        }
+                                    }}
+                                />
+                                <ActionIcon
+                                    color="red"
+                                    variant="light"
+                                    onClick={() => setCustomVariants(customVariants.filter((_, i) => i !== index))}
+                                >
+                                    <IconTrash size={16} />
+                                </ActionIcon>
+                            </Group>
+                        ))}
+                        <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setCustomVariants([...customVariants, { groupName: "", options: "" }])}
+                        >
+                            + Add Variant Group
+                        </Button>
+                    </Stack>
+
+                    <Divider label="Extra Add-Ons (e.g. Toppings / Sides)" labelPosition="center" />
+                    <Stack spacing="xs">
+                        {customAddons.map((ad, index) => (
+                            <Group key={index} spacing="xs" align="flex-end">
+                                <TextInput
+                                    placeholder="e.g. Extra Cheese"
+                                    label={index === 0 ? "Add-On Name" : ""}
+                                    value={ad.name}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customAddons];
+                                        if (updated[index]) {
+                                            updated[index].name = e.target.value;
+                                            setCustomAddons(updated);
+                                        }
+                                    }}
+                                />
+                                <TextInput
+                                    placeholder="e.g. 40"
+                                    label={index === 0 ? "Price" : ""}
+                                    value={ad.price}
+                                    sx={{ flex: 1 }}
+                                    onChange={(e) => {
+                                        const updated = [...customAddons];
+                                        if (updated[index]) {
+                                            updated[index].price = e.target.value;
+                                            setCustomAddons(updated);
+                                        }
+                                    }}
+                                />
+                                <ActionIcon
+                                    color="red"
+                                    variant="light"
+                                    onClick={() => setCustomAddons(customAddons.filter((_, i) => i !== index))}
+                                >
+                                    <IconTrash size={16} />
+                                </ActionIcon>
+                            </Group>
+                        ))}
+                        <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setCustomAddons([...customAddons, { name: "", price: "" }])}
+                        >
+                            + Add Extra Add-On
+                        </Button>
+                    </Stack>
+
                     <ImageUpload
                         disabled={loading}
                         height={400}

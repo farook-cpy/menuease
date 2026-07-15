@@ -49,9 +49,14 @@ const RestaurantMenuPage: NextPage<PageProps> = ({ restaurant: initialRestaurant
 
     useEffect(() => {
         if (restaurantId && restaurant) {
-            logPageView({ deviceType: getDeviceType(), restaurantId, type: "page_view" });
+            const isQr = router.query.src === "qr";
+            logPageView({
+                deviceType: getDeviceType(),
+                restaurantId,
+                type: isQr ? "qr_scan" : "page_view",
+            });
         }
-    }, [restaurantId, restaurant, logPageView]);
+    }, [restaurantId, restaurant, logPageView, router.query.src]);
 
     if (isLoading) {
         return (

@@ -42,6 +42,11 @@ model Restaurant {
     twitterUrl    String?
     youtubeUrl    String?
     tiktokUrl     String?
+    menuTheme     String   @default("GRID")
+    qrFgColor     String   @default("#000000")
+    qrBgColor     String   @default("#ffffff")
+    qrStyle       String   @default("SQUARE")
+    qrLogoUrl     String?
     billingTransactions BillingTransaction[] @relation("BillingTransactionsOfRestaurant")
     analytics     MenuAnalytics[] @relation("AnalyticsOfRestaurant")
     isKitchenEnabled Boolean @default(false)
@@ -55,6 +60,7 @@ model Restaurant {
     happyHourDiscount Int     @default(0)
     waiterCalls      WaiterCall[] @relation("WaiterCallsOfRestaurant")
     customerLoyalties CustomerLoyalty[] @relation("CustomerLoyaltiesOfRestaurant")
+    offers           Offer[] @relation("OffersOfRestaurant")
 
     @@id([id, userId])
     @@index([isPublished])
@@ -222,6 +228,33 @@ model AuditLog {
     payload      String?
     userId       String?
     createdAt    DateTime @default(now())
+
+    @@index([restaurantId])
+}
+
+model Notification {
+    id           String   @id
+    title        String
+    message      String
+    restaurantId String?
+    createdAt    DateTime @default(now())
+
+    @@index([restaurantId])
+}
+
+model Offer {
+    id           String     @id @default(cuid())
+    restaurantId String
+    restaurant   Restaurant @relation("OffersOfRestaurant", fields: [restaurantId], references: [id], onDelete: Cascade)
+    title        String
+    description  String
+    price        String?
+    type         String     // "SPECIAL_OFFER" or "COMBO_DEAL"
+    isAvailable  Boolean    @default(true)
+    endsAt       DateTime?
+    items        String?    // JSON string of bundled items e.g. [{"itemId": "123", "qty": 1}]
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
 
     @@index([restaurantId])
 }

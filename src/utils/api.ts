@@ -319,6 +319,7 @@ export const api = {
                         const safeLogs = logs || [];
                         const pageViews = safeLogs.filter((l: any) => l.type === "page_view");
                         const itemClicks = safeLogs.filter((l: any) => l.type === "item_click");
+                        const qrScans = safeLogs.filter((l: any) => l.type === "qr_scan");
 
                         // 1. Daily views (last 7 days)
                         const dailyViewsMap: Record<string, number> = {};
@@ -330,6 +331,12 @@ export const api = {
                         }
 
                         pageViews.forEach((l: any) => {
+                            const dateStr = l.createdAt.split("T")[0];
+                            if (dailyViewsMap[dateStr] !== undefined) {
+                                dailyViewsMap[dateStr] += 1;
+                            }
+                        });
+                        qrScans.forEach((l: any) => {
                             const dateStr = l.createdAt.split("T")[0];
                             if (dailyViewsMap[dateStr] !== undefined) {
                                 dailyViewsMap[dateStr] += 1;
@@ -438,6 +445,7 @@ export const api = {
                             popularItems,
                             totalItemClicks: itemClicks.length,
                             totalPageViews: pageViews.length,
+                            totalQrScans: qrScans.length,
                         };
                     },
                     options
@@ -450,7 +458,7 @@ export const api = {
                 TError = Error,
                 TVariables = {
                     restaurantId: string;
-                    type: "page_view" | "item_click";
+                    type: "page_view" | "item_click" | "qr_scan";
                     menuItemId?: string;
                     deviceType?: string;
                 }
@@ -681,6 +689,11 @@ export const api = {
                     twitterUrl?: string | null;
                     youtubeUrl?: string | null;
                     tiktokUrl?: string | null;
+                    menuTheme?: string;
+                    qrFgColor?: string;
+                    qrBgColor?: string;
+                    qrStyle?: string;
+                    qrLogoUrl?: string | null;
                 }
             >(
                 options?: any
@@ -724,6 +737,21 @@ export const api = {
                         }
                         if (input.tiktokUrl !== undefined) {
                             updateData.tiktokUrl = input.tiktokUrl;
+                        }
+                        if (input.menuTheme !== undefined) {
+                            updateData.menuTheme = input.menuTheme;
+                        }
+                        if (input.qrFgColor !== undefined) {
+                            updateData.qrFgColor = input.qrFgColor;
+                        }
+                        if (input.qrBgColor !== undefined) {
+                            updateData.qrBgColor = input.qrBgColor;
+                        }
+                        if (input.qrStyle !== undefined) {
+                            updateData.qrStyle = input.qrStyle;
+                        }
+                        if (input.qrLogoUrl !== undefined) {
+                            updateData.qrLogoUrl = input.qrLogoUrl;
                         }
 
                         const { data, error } = await supabase
@@ -1533,6 +1561,9 @@ export const api = {
                     imageBase64?: string;
                     videoUrl?: string | null;
                     additionalImages?: { id: string; path: string; blurHash: string; color: string }[];
+                    sizes?: string | null;
+                    variants?: string | null;
+                    addons?: string | null;
                 }
             >(
                 options?: any
@@ -1586,6 +1617,9 @@ export const api = {
                             updatedAt: new Date().toISOString(),
                             userId,
                             videoUrl: input.videoUrl || null,
+                            sizes: input.sizes || null,
+                            variants: input.variants || null,
+                            addons: input.addons || null,
                         };
 
                         const { data: menuData } = await supabase.from("Menu").select("restaurantId").eq("id", input.menuId).single();
@@ -1750,6 +1784,9 @@ export const api = {
                     videoUrl?: string | null;
                     additionalImages?: { id: string; path: string; blurHash: string; color: string }[];
                     deletedImageIds?: string[];
+                    sizes?: string | null;
+                    variants?: string | null;
+                    addons?: string | null;
                 }
             >(
                 options?: any
@@ -1847,6 +1884,9 @@ export const api = {
                                 price: input.price,
                                 updatedAt: new Date().toISOString(),
                                 videoUrl,
+                                sizes: input.sizes || null,
+                                variants: input.variants || null,
+                                addons: input.addons || null,
                             })
                             .eq("id", input.id)
                             .select()
@@ -2384,6 +2424,11 @@ export const api = {
                             location: input.location,
                             logoUrl,
                             name: input.name,
+                            menuTheme: input.menuTheme || "GRID",
+                            qrFgColor: input.qrFgColor || "#000000",
+                            qrBgColor: input.qrBgColor || "#ffffff",
+                            qrStyle: input.qrStyle || "SQUARE",
+                            qrLogoUrl: null,
                             planName: "Free Trial",
                             subscriptionExpiresAt: trialEndsAt.toISOString(),
                             subscriptionStatus: "trial",
@@ -2830,6 +2875,12 @@ export const api = {
                     isKitchenEnabled?: boolean;
                     logoBase64?: string;
                     logoUrl?: string;
+                    menuTheme?: string;
+                    qrFgColor?: string;
+                    qrBgColor?: string;
+                    qrStyle?: string;
+                    qrLogoUrl?: string | null;
+                    qrLogoBase64?: string;
                 }
             >(
                 options?: any
@@ -2846,7 +2897,7 @@ export const api = {
                         }
                         const { data: current } = await supabase
                             .from("Restaurant")
-                            .select("imageId, logoUrl, name, location, contactNo, currency, whatsappNo, isKitchenEnabled, isOrderFeatureEnabled")
+                            .select("imageId, logoUrl, qrLogoUrl, name, location, contactNo, currency, whatsappNo, isKitchenEnabled, isOrderFeatureEnabled")
                             .eq("id", input.id)
                             .single();
 
@@ -2900,6 +2951,20 @@ export const api = {
                             logoUrl = null;
                         }
 
+                        let qrLogoUrl = input.qrLogoUrl;
+                        if (input.qrLogoBase64) {
+                            if (current?.qrLogoUrl) {
+                                await deleteFile(current.qrLogoUrl);
+                            }
+                            const qrLogoUpload = await uploadImage(input.qrLogoBase64, `${input.id}/qr_logo`);
+                            qrLogoUrl = qrLogoUpload.filePath;
+                        } else if (input.qrLogoUrl === "") {
+                            if (current?.qrLogoUrl) {
+                                await deleteFile(current.qrLogoUrl);
+                            }
+                            qrLogoUrl = null;
+                        }
+
                         const isSuper = await isSuperAdmin();
                         const updateData: any = {
                             brandColor: input.brandColor || null,
@@ -2916,6 +2981,11 @@ export const api = {
                             location: input.location,
                             logoUrl,
                             name: input.name,
+                            menuTheme: input.menuTheme || "GRID",
+                            qrFgColor: input.qrFgColor || "#000000",
+                            qrBgColor: input.qrBgColor || "#ffffff",
+                            qrStyle: input.qrStyle || "SQUARE",
+                            qrLogoUrl: qrLogoUrl === undefined ? current?.qrLogoUrl : qrLogoUrl,
                             updatedAt: new Date().toISOString(),
                             whatsappNo: input.whatsappNo || null,
                             instagramUrl: input.instagramUrl || null,
@@ -3168,6 +3238,183 @@ export const api = {
             },
         },
     },
+    notification: {
+        send: {
+            useMutation: (options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation(
+                    async (input: { title: string; message: string; restaurantId: string | null }) => {
+                        const { data, error } = await supabase
+                            .from("Notification")
+                            .insert([{
+                                id: nanoid(24),
+                                title: input.title,
+                                message: input.message,
+                                restaurantId: input.restaurantId,
+                                createdAt: new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["notifications", variables.restaurantId]);
+                            queryClient.invalidateQueries(["notifications", "all"]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        }
+                    }
+                );
+            }
+        },
+        getByRestaurant: {
+            useQuery: (input: { restaurantId: string }, options?: any) => {
+                return useQuery(
+                    ["notifications", input.restaurantId],
+                    async () => {
+                        const { data, error } = await supabase
+                            .from("Notification")
+                            .select("*")
+                            .or(`restaurantId.eq.${input.restaurantId},restaurantId.is.null`)
+                            .order("createdAt", { ascending: false });
+                        if (error) throw error;
+                        return data || [];
+                    },
+                    options
+                );
+            }
+        }
+    },
+    offer: {
+        getByRestaurant: {
+            useQuery: (input: { restaurantId: string }, options?: any) => {
+                return useQuery(
+                    ["offers", input.restaurantId],
+                    async () => {
+                        const { data, error } = await supabase
+                            .from("Offer")
+                            .select("*")
+                            .eq("restaurantId", input.restaurantId)
+                            .order("createdAt", { ascending: false });
+                        if (error) throw error;
+                        return data || [];
+                    },
+                    options
+                );
+            }
+        },
+        create: {
+            useMutation: (options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation(
+                    async (input: {
+                        restaurantId: string;
+                        title: string;
+                        description: string;
+                        price?: string | null;
+                        type: string;
+                        isAvailable?: boolean;
+                        endsAt?: string | null;
+                        items?: string | null;
+                    }) => {
+                        const { data, error } = await supabase
+                            .from("Offer")
+                            .insert([{
+                                id: nanoid(24),
+                                restaurantId: input.restaurantId,
+                                title: input.title,
+                                description: input.description,
+                                price: input.price || null,
+                                type: input.type,
+                                isAvailable: input.isAvailable !== undefined ? input.isAvailable : true,
+                                endsAt: input.endsAt || null,
+                                items: input.items || null,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["offers", variables.restaurantId]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        }
+                    }
+                );
+            }
+        },
+        update: {
+            useMutation: (options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation(
+                    async (input: {
+                        id: string;
+                        restaurantId: string;
+                        title: string;
+                        description: string;
+                        price?: string | null;
+                        type: string;
+                        isAvailable?: boolean;
+                        endsAt?: string | null;
+                        items?: string | null;
+                    }) => {
+                        const { data, error } = await supabase
+                            .from("Offer")
+                            .update({
+                                title: input.title,
+                                description: input.description,
+                                price: input.price || null,
+                                type: input.type,
+                                isAvailable: input.isAvailable !== undefined ? input.isAvailable : true,
+                                endsAt: input.endsAt || null,
+                                items: input.items || null,
+                                updatedAt: new Date().toISOString()
+                            })
+                            .eq("id", input.id)
+                            .select()
+                            .single();
+                        if (error) throw error;
+                        return data;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["offers", variables.restaurantId]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        }
+                    }
+                );
+            }
+        },
+        delete: {
+            useMutation: (options?: any) => {
+                const queryClient = useQueryClient();
+                return useMutation(
+                    async (input: { id: string; restaurantId: string }) => {
+                        const { error } = await supabase
+                            .from("Offer")
+                            .delete()
+                            .eq("id", input.id);
+                        if (error) throw error;
+                        return true;
+                    },
+                    {
+                        ...options,
+                        onSuccess: (data, variables, context) => {
+                            queryClient.invalidateQueries(["offers", variables.restaurantId]);
+                            if (options?.onSuccess) options.onSuccess(data, variables, context);
+                        }
+                    }
+                );
+            }
+        }
+    },
     useContext: (): any => {
         const queryClient = useQueryClient();
 
@@ -3205,6 +3452,12 @@ export const api = {
             }
             if (domain === "auditLog") {
                 if (method === "getByRestaurant") return ["auditLogs", variables?.restaurantId || variables];
+            }
+            if (domain === "notification") {
+                if (method === "getByRestaurant") return ["notifications", variables?.restaurantId || variables];
+            }
+            if (domain === "offer") {
+                if (method === "getByRestaurant") return ["offers", variables?.restaurantId || variables];
             }
             return null;
         };

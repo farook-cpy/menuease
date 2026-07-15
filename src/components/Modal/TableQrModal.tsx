@@ -19,6 +19,8 @@ import downloadjs from "downloadjs";
 import html2canvas from "html2canvas";
 import QRCode from "react-qr-code";
 
+import { env } from "src/env/client.mjs";
+import { api } from "src/utils/api";
 import { Modal } from "./Modal";
 
 interface Props {
@@ -35,9 +37,24 @@ export const TableQrModal: FC<Props> = ({ opened, onClose, restaurantId, restaur
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
 
+    // Fetch restaurant QR customization configs
+    const { data: restaurant } = api.restaurant.getDetails.useQuery({ id: restaurantId }, { enabled: opened });
+    const qrFgColor = restaurant?.qrFgColor || "#000000";
+    const qrBgColor = restaurant?.qrBgColor || "#ffffff";
+    const qrStyle = restaurant?.qrStyle || "SQUARE";
+    const qrLogoUrl = restaurant?.qrLogoUrl || "";
+
+    const getImageUrl = (path?: string | null) => {
+        if (!path) return "";
+        if (path.startsWith("http")) return path;
+        return `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menufic/${path}`;
+    };
+    const activeLogoUrl = qrLogoUrl ? getImageUrl(qrLogoUrl === "RESTAURANT_LOGO" ? restaurant?.logoUrl : qrLogoUrl) : "";
+
     const generatedUrl = useMemo(() => {
         let url = `${origin}/restaurant/${restaurantId}/menu`;
         const params = new URLSearchParams();
+        params.append("src", "qr"); // Track scanner source
         if (table.trim()) {
             params.append("table", table.trim());
         }
@@ -165,15 +182,71 @@ export const TableQrModal: FC<Props> = ({ opened, onClose, restaurantId, restaur
                             {floor.trim() && floor.trim().toUpperCase()}
                         </Text>
                     )}
+                    <svg width="0" height="0" style={{ position: "absolute", zIndex: -1 }}>
+                        <defs>
+                            <filter id="qr-rounded-filter-table">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+                                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+                            </filter>
+                            <filter id="qr-dot-filter-table">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -12" result="goo" />
+                                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+                            </filter>
+                        </defs>
+                    </svg>
+
                     <Box
                         p="md"
                         sx={{
-                            backgroundColor: theme.white,
+                            backgroundColor: qrBgColor,
                             border: `1px solid ${theme.colors.gray[2]}`,
                             borderRadius: theme.radius.md,
                         }}
                     >
-                        <QRCode style={{ height: "auto", maxWidth: "100%", width: 180 }} value={generatedUrl} />
+                        <div style={{ position: "relative", display: "inline-block", width: 180, height: 180 }}>
+                            <QRCode
+                                fgColor={qrFgColor}
+                                bgColor={qrBgColor}
+                                style={{
+                                    filter: qrStyle === "ROUNDED" ? "url(#qr-rounded-filter-table)" : qrStyle === "DOT" ? "url(#qr-dot-filter-table)" : "none",
+                                    height: "auto",
+                                    maxWidth: "100%",
+                                    width: "100%"
+                                }}
+                                value={generatedUrl}
+                            />
+                            {activeLogoUrl && (
+                                <div style={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    backgroundColor: qrBgColor,
+                                    padding: "4px",
+                                    borderRadius: "50%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "20%",
+                                    height: "20%",
+                                    border: `2px solid ${qrFgColor}`,
+                                    boxShadow: "0 2px 10px rgba(0,0,0,0.15)"
+                                }}>
+                                    <img
+                                        src={activeLogoUrl}
+                                        alt="center-logo"
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            borderRadius: "50%"
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </Box>
                     <Text align="center" color="gray.5" mt="md" size="xs" style={{ letterSpacing: 1 }} weight={500}>
                         SCAN TO ORDER

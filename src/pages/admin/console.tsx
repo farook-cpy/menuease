@@ -21,6 +21,7 @@ import {
     Tabs,
     Text,
     TextInput,
+    Textarea,
     Title,
     Tooltip,
 } from "@mantine/core";
@@ -39,6 +40,7 @@ import {
     IconUserPlus,
     IconUsers,
     IconWallet,
+    IconBell,
 } from "@tabler/icons";
 import { type NextPage } from "next";
 import { useRouter } from "next/router";
@@ -81,6 +83,11 @@ const AdminConsolePage: NextPage = () => {
     const [subWhatsappNo, setSubWhatsappNo] = useState<string>("");
     const [subIsKitchenEnabled, setSubIsKitchenEnabled] = useState<boolean>(false);
     const [subEnterpriseFeatures, setSubEnterpriseFeatures] = useState<string[]>([]);
+    const [subMenuTheme, setSubMenuTheme] = useState<string>("GRID");
+    const [subQrFgColor, setSubQrFgColor] = useState<string>("#000000");
+    const [subQrBgColor, setSubQrBgColor] = useState<string>("#ffffff");
+    const [subQrStyle, setSubQrStyle] = useState<string>("SQUARE");
+    const [subQrLogoUrl, setSubQrLogoUrl] = useState<string>("");
     const [subInstagramUrl, setSubInstagramUrl] = useState<string>("");
     const [subFacebookUrl, setSubFacebookUrl] = useState<string>("");
     const [subTwitterUrl, setSubTwitterUrl] = useState<string>("");
@@ -611,6 +618,11 @@ const AdminConsolePage: NextPage = () => {
                                                                                 setSubEnterpriseFeatures(features.split(",").map((s: string) => s.trim()).filter(Boolean));
                                                                                 setSubInstagramUrl((rest as any).instagramUrl || "");
                                                                                 setSubFacebookUrl((rest as any).facebookUrl || "");
+                                                                                setSubMenuTheme((rest as any).menuTheme || "GRID");
+                                                                                setSubQrFgColor((rest as any).qrFgColor || "#000000");
+                                                                                setSubQrBgColor((rest as any).qrBgColor || "#ffffff");
+                                                                                setSubQrStyle((rest as any).qrStyle || "SQUARE");
+                                                                                setSubQrLogoUrl((rest as any).qrLogoUrl || "");
                                                                                 setSubTwitterUrl((rest as any).twitterUrl || "");
                                                                                 setSubYoutubeUrl((rest as any).youtubeUrl || "");
                                                                                 setSubTiktokUrl((rest as any).tiktokUrl || "");
@@ -769,6 +781,11 @@ const AdminConsolePage: NextPage = () => {
                                     : null,
                             whatsappNo: subWhatsappNo || null,
                             instagramUrl: subInstagramUrl || null,
+                            menuTheme: subMenuTheme,
+                            qrFgColor: subQrFgColor,
+                            qrBgColor: subQrBgColor,
+                            qrStyle: subQrStyle,
+                            qrLogoUrl: subQrLogoUrl || null,
                             facebookUrl: subFacebookUrl || null,
                             twitterUrl: subTwitterUrl || null,
                             youtubeUrl: subYoutubeUrl || null,
@@ -777,6 +794,55 @@ const AdminConsolePage: NextPage = () => {
                     }}
                 >
                     <Stack spacing="md">
+                        <Select
+                            data={[
+                                { label: "Grid Menu (Modern Card Grid)", value: "GRID" },
+                                { label: "Gourmet Menu (Elegant Luxury Layout)", value: "GOURMET" },
+                                { label: "Simple Menu (Classic Minimalist List)", value: "SIMPLE" },
+                            ]}
+                            label="Menu Layout Theme"
+                            onChange={(val) => setSubMenuTheme(val || "GRID")}
+                            value={subMenuTheme}
+                            mb="md"
+                        />
+
+                        <Divider label="QR Code Personalization" labelPosition="center" my="sm" />
+                        
+                        <Select
+                            data={[
+                                { label: "Classic Squares", value: "SQUARE" },
+                                { label: "Gooey Rounded", value: "ROUNDED" },
+                                { label: "Liquid Dots", value: "DOT" },
+                            ]}
+                            label="QR Code Blocks Style"
+                            onChange={(val) => setSubQrStyle(val || "SQUARE")}
+                            value={subQrStyle}
+                            mb="sm"
+                        />
+
+                        <Group grow spacing="xs" mb="sm">
+                            <TextInput
+                                label="Foreground (Blocks) Color"
+                                placeholder="#000000"
+                                onChange={(e) => setSubQrFgColor(e.target.value)}
+                                value={subQrFgColor}
+                            />
+                            <TextInput
+                                label="Background Color"
+                                placeholder="#ffffff"
+                                onChange={(e) => setSubQrBgColor(e.target.value)}
+                                value={subQrBgColor}
+                            />
+                        </Group>
+
+                        <TextInput
+                            label="QR Center Logo URL (Use RESTAURANT_LOGO or Custom URL)"
+                            placeholder="e.g. RESTAURANT_LOGO"
+                            onChange={(e) => setSubQrLogoUrl(e.target.value)}
+                            value={subQrLogoUrl}
+                            mb="md"
+                        />
+
                         <Select
                             data={[
                                 { label: "Free Trial", value: "Free Trial" },

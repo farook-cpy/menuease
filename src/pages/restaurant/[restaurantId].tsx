@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Box, Breadcrumbs, Button, Center, Group, Loader, SimpleGrid, Text, useMantineTheme, Badge } from "@mantine/core";
@@ -11,6 +11,7 @@ import {
     IconStars,
     IconToolsKitchen,
     IconHistory,
+    IconBell,
 } from "@tabler/icons";
 import { type NextPage } from "next";
 import Link from "next/link";
@@ -49,6 +50,59 @@ const RestaurantManagePage: NextPage = () => {
         }
     );
 
+    const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+
+    // Load saved preferences on startup
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("desktop_notifications_enabled") === "true";
+            setNotificationsEnabled(saved);
+        }
+    }, []);
+
+    // Query notifications feed from database (refetching every 15s to capture live broadcasts)
+    const { data: notifications } = api.notification.getByRestaurant.useQuery(
+        { restaurantId },
+        { enabled: !!restaurantId, refetchInterval: 15000 }
+    );
+
+    // Watch for incoming notifications and fire desktop/in-app alert
+    useEffect(() => {
+        if (!notifications || notifications.length === 0) return;
+
+        const seenIds = JSON.parse(localStorage.getItem("seen_notifications") || "[]");
+        let newSeen = [...seenIds];
+        let hasNew = false;
+
+        notifications.forEach((notif: any) => {
+            if (!seenIds.includes(notif.id)) {
+                hasNew = true;
+                newSeen.push(notif.id);
+
+                // 1. Show in-app Mantine Alert Toast
+                showErrorToast(`📢 ${notif.title}`, new Error(notif.message)); // Using helper to show a prominent alert notification
+
+                // 2. Show system browser notification if enabled
+                if (notificationsEnabled && typeof window !== "undefined" && "Notification" in window) {
+                    if (Notification.permission === "granted") {
+                        try {
+                            new Notification(notif.title, {
+                                body: notif.message,
+                                icon: "/favicon.ico"
+                            });
+                        } catch (err) {
+                            console.error("Browser Notification failed", err);
+                        }
+                    }
+                }
+            }
+        });
+
+        if (hasNew) {
+            localStorage.setItem("seen_notifications", JSON.stringify(newSeen));
+        }
+    }, [notifications, notificationsEnabled]);
+
     const planName = (restaurant as any)?.planName || "Free Trial";
     
     // Evaluate custom features
@@ -56,6 +110,7 @@ const RestaurantManagePage: NextPage = () => {
     const isReviewsEnabled = isFeatureEnabled(restaurant, "reviews");
     const isAnalyticsEnabled = isFeatureEnabled(restaurant, "analytics");
     const isLoyaltyEnabled = isFeatureEnabled(restaurant, "loyalty");
+    const isOffersEnabled = isFeatureEnabled(restaurant, "offers");
 
     return (
         <>
@@ -135,6 +190,38 @@ const RestaurantManagePage: NextPage = () => {
                                         subTitle={t("menuCardSubTitle")}
                                         testId="manage-menus-card"
                                         title={t("menuCardTitle")}
+                                    />
+                                    <IconCard
+                                        Icon={IconBell}
+                                        onClick={() => {
+                                            if (typeof window !== "undefined" && "Notification" in window) {
+                                                if (Notification.permission === "default") {
+                                                    Notification.requestPermission().then((perm) => {
+                                                        const enabled = perm === "granted";
+                                                        setNotificationsEnabled(enabled);
+                                                        localStorage.setItem("desktop_notifications_enabled", String(enabled));
+                                                        if (enabled) {
+                                                            showErrorToast("Notifications Allowed", new Error("You will now receive real-time alerts on this device!"));
+                                                        }
+                                                    });
+                                                } else {
+                                                    const next = !notificationsEnabled;
+                                                    setNotificationsEnabled(next);
+                                                    localStorage.setItem("desktop_notifications_enabled", String(next));
+                                                    if (next && Notification.permission !== "granted") {
+                                                        Notification.requestPermission();
+                                                    }
+                                                    showErrorToast(
+                                                        next ? "Alerts Enabled" : "Alerts Muted",
+                                                        new Error(next ? "You will receive desktop alerts." : "Desktop alerts have been muted.")
+                                                    );
+                                                }
+                                            } else {
+                                                showErrorToast("Not Supported", new Error("Desktop alerts are not supported by this browser."));
+                                            }
+                                        }}
+                                        subTitle={notificationsEnabled ? "Status: Active (Tap to mute)" : "Status: Muted (Tap to enable)"}
+                                        title="Desktop Alerts"
                                     />
                                     <IconCard
                                         Icon={IconSlideshow}

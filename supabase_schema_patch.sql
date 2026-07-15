@@ -284,14 +284,36 @@ CREATE POLICY "Allow owner read analytics" ON "MenuAnalytics" FOR SELECT TO auth
 );
 
 -- 19. Security Hardening: Enable RLS and setup policies for Feedback
+-- Ensure Feedback table exists
+CREATE TABLE IF NOT EXISTS "Feedback" (
+  "id" TEXT PRIMARY KEY,
+  "menuItemId" TEXT NOT NULL,
+  "rating" INTEGER NOT NULL,
+  "comment" TEXT NOT NULL,
+  "reviewerName" TEXT DEFAULT 'Anonymous' NOT NULL,
+  "ownerResponse" TEXT,
+  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE "Feedback" DROP CONSTRAINT IF EXISTS fk_feedback_menuitem;
+ALTER TABLE "Feedback"
+ADD CONSTRAINT fk_feedback_menuitem
+FOREIGN KEY ("menuItemId")
+REFERENCES "MenuItem"("id")
+ON DELETE CASCADE;
+
 ALTER TABLE "Feedback" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public insert feedback" ON "Feedback";
 DROP POLICY IF EXISTS "Allow owner read feedback" ON "Feedback";
+
 CREATE POLICY "Allow public insert feedback" ON "Feedback" FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Allow owner read feedback" ON "Feedback" FOR SELECT TO authenticated USING (
     EXISTS (
-        SELECT 1 FROM "Restaurant"
-        WHERE "Restaurant".id = "Feedback"."restaurantId"
+        SELECT 1 FROM "MenuItem"
+        JOIN "Category" ON "Category".id = "MenuItem"."categoryId"
+        JOIN "Menu" ON "Menu".id = "Category"."menuId"
+        JOIN "Restaurant" ON "Restaurant".id = "Menu"."restaurantId"
+        WHERE "MenuItem".id = "Feedback"."menuItemId"
           AND ("Restaurant"."userId" = auth.uid()::text OR is_admin())
     )
 );
@@ -407,4 +429,71 @@ CREATE POLICY "Allow owner read audit" ON "AuditLog" FOR SELECT TO authenticated
           AND ("Restaurant"."userId" = auth.uid()::text OR is_admin())
     )
 );
+
+-- 28. Create Notification table to store global or targeted notifications
+CREATE TABLE IF NOT EXISTS "Notification" (
+    "id" TEXT PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "restaurantId" TEXT, -- null for global notifications
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- 29. Add foreign key constraint for cascading delete on Notification
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS fk_notification_restaurant;
+ALTER TABLE "Notification" 
+ADD CONSTRAINT fk_notification_restaurant 
+FOREIGN KEY ("restaurantId") 
+REFERENCES "Restaurant"("id") 
+ON DELETE CASCADE;
+
+-- 30. Add index on restaurantId for Notification
+CREATE INDEX IF NOT EXISTS "Notification_restaurantId_idx" ON "Notification"("restaurantId");
+
+-- 31. Enable RLS and setup policies for Notification table
+ALTER TABLE "Notification" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read notification" ON "Notification";
+DROP POLICY IF EXISTS "Allow public insert notification" ON "Notification";
+
+CREATE POLICY "Allow public insert notification" ON "Notification" FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public read notification" ON "Notification" FOR SELECT TO public USING (true);
+
+-- 32. Add menuTheme column to Restaurant with 'GRID' as default
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "menuTheme" TEXT DEFAULT 'GRID' NOT NULL;
+
+-- 33. Add customization columns to MenuItem
+ALTER TABLE "MenuItem" ADD COLUMN IF NOT EXISTS "sizes" TEXT;
+ALTER TABLE "MenuItem" ADD COLUMN IF NOT EXISTS "variants" TEXT;
+ALTER TABLE "MenuItem" ADD COLUMN IF NOT EXISTS "addons" TEXT;
+
+-- 34. Add QR personalization columns to Restaurant
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "qrFgColor" TEXT DEFAULT '#000000' NOT NULL;
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "qrBgColor" TEXT DEFAULT '#ffffff' NOT NULL;
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "qrStyle" TEXT DEFAULT 'SQUARE' NOT NULL;
+ALTER TABLE "Restaurant" ADD COLUMN IF NOT EXISTS "qrLogoUrl" TEXT;
+
+-- 35. Create Offer table to store special offers and combo deals
+CREATE TABLE IF NOT EXISTS "Offer" (
+    "id" TEXT PRIMARY KEY,
+    "restaurantId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "price" TEXT,
+    "type" TEXT NOT NULL, -- SPECIAL_OFFER or COMBO_DEAL
+    "isAvailable" BOOLEAN DEFAULT true NOT NULL,
+    "endsAt" TIMESTAMP WITH TIME ZONE,
+    "items" TEXT, -- JSON string of bundled items
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+ALTER TABLE "Offer" DROP CONSTRAINT IF EXISTS fk_offer_restaurant;
+ALTER TABLE "Offer" ADD CONSTRAINT fk_offer_restaurant FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS "Offer_restaurantId_idx" ON "Offer"("restaurantId");
+
+ALTER TABLE "Offer" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read offer" ON "Offer";
+DROP POLICY IF EXISTS "Allow public insert offer" ON "Offer";
+CREATE POLICY "Allow public insert offer" ON "Offer" FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public read offer" ON "Offer" FOR SELECT TO public USING (true);
 

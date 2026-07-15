@@ -80,6 +80,12 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
             userId: restaurant?.userId || "",
             whatsappNo: (restaurant as any)?.whatsappNo || "",
             instagramUrl: (restaurant as any)?.instagramUrl || "",
+            menuTheme: (restaurant as any)?.menuTheme || "GRID",
+            qrFgColor: (restaurant as any)?.qrFgColor || "#000000",
+            qrBgColor: (restaurant as any)?.qrBgColor || "#ffffff",
+            qrStyle: (restaurant as any)?.qrStyle || "SQUARE",
+            qrLogoUrl: (restaurant as any)?.qrLogoUrl || "",
+            qrLogoBase64: "",
             facebookUrl: (restaurant as any)?.facebookUrl || "",
             twitterUrl: (restaurant as any)?.twitterUrl || "",
             youtubeUrl: (restaurant as any)?.youtubeUrl || "",
@@ -113,6 +119,12 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                 userId: restaurant?.userId || "",
                 whatsappNo: (restaurant as any)?.whatsappNo || "",
                 instagramUrl: (restaurant as any)?.instagramUrl || "",
+                menuTheme: (restaurant as any)?.menuTheme || "GRID",
+                qrFgColor: (restaurant as any)?.qrFgColor || "#000000",
+                qrBgColor: (restaurant as any)?.qrBgColor || "#ffffff",
+                qrStyle: (restaurant as any)?.qrStyle || "SQUARE",
+                qrLogoUrl: (restaurant as any)?.qrLogoUrl || "",
+                qrLogoBase64: "",
                 facebookUrl: (restaurant as any)?.facebookUrl || "",
                 twitterUrl: (restaurant as any)?.twitterUrl || "",
                 youtubeUrl: (restaurant as any)?.youtubeUrl || "",
@@ -277,6 +289,83 @@ export const RestaurantForm: FC<Props> = ({ opened, onClose, restaurant, ...rest
                         label="Active Festival Theme (Themed Header Banner)"
                         {...getInputProps("festivalTheme")}
                     />
+
+                    <Select
+                        data={[
+                            { label: "Grid Menu (Modern Card Grid)", value: "GRID" },
+                            { label: "Gourmet Menu (Elegant Luxury Layout)", value: "GOURMET" },
+                            { label: "Simple Menu (Classic Minimalist List)", value: "SIMPLE" },
+                        ]}
+                        disabled={loading}
+                        label="Menu Layout Theme"
+                        {...getInputProps("menuTheme")}
+                    />
+
+                    <Divider label="QR Code Personalization" labelPosition="center" />
+                    
+                    <Select
+                        data={[
+                            { label: "Classic Squares", value: "SQUARE" },
+                            { label: "Gooey Rounded", value: "ROUNDED" },
+                            { label: "Liquid Dots", value: "DOT" },
+                        ]}
+                        disabled={loading}
+                        label="QR Code Blocks Style"
+                        {...getInputProps("qrStyle")}
+                    />
+
+                    <Group grow spacing="xs">
+                        <TextInput
+                            disabled={loading}
+                            label="Foreground (Blocks) Color"
+                            placeholder="e.g. #000000"
+                            {...getInputProps("qrFgColor")}
+                        />
+                        <TextInput
+                            disabled={loading}
+                            label="Background Color"
+                            placeholder="e.g. #ffffff"
+                            {...getInputProps("qrBgColor")}
+                        />
+                    </Group>
+
+                    <Select
+                        data={[
+                            { label: "No Logo in Center", value: "none" },
+                            { label: "Use Restaurant Logo", value: "logo" },
+                            { label: "Custom Centered Logo", value: "custom" },
+                        ]}
+                        disabled={loading}
+                        label="QR Center Logo Integration"
+                        value={
+                            values.qrLogoUrl === null || values.qrLogoUrl === ""
+                                ? "none"
+                                : values.qrLogoUrl === "RESTAURANT_LOGO"
+                                ? "logo"
+                                : "custom"
+                        }
+                        onChange={(val) => {
+                            if (val === "none") {
+                                setValues({ qrLogoUrl: "" });
+                            } else if (val === "logo") {
+                                setValues({ qrLogoUrl: "RESTAURANT_LOGO" });
+                            } else {
+                                setValues({ qrLogoUrl: "CUSTOM" });
+                            }
+                        }}
+                    />
+
+                    {values.qrLogoUrl !== "" && values.qrLogoUrl !== "RESTAURANT_LOGO" && values.qrLogoUrl !== null && (
+                        <ImageUpload
+                            disabled={loading}
+                            height={150}
+                            imageUrl={values.qrLogoUrl === "CUSTOM" ? "" : values.qrLogoUrl || ""}
+                            onImageCrop={(qrLogoBase64, qrLogoUrl) => setValues({ qrLogoBase64, qrLogoUrl })}
+                            onImageDeleteClick={() => setValues({ qrLogoBase64: "", qrLogoUrl: "" })}
+                            showAspectSelector={false}
+                            width={150}
+                        />
+                    )}
 
                     <Group grow>
                         <TextInput

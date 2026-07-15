@@ -51,6 +51,7 @@ export const isFeatureEnabled = (restaurant: any, featureKey: string): boolean =
         case "loyalty":
         case "banners":
         case "themes":
+        case "offers":
             return plan === "Premium" || plan === "Free Trial";
             
         default:

@@ -41,7 +41,7 @@ import { ImageKitImage } from "src/components/ImageKitImage";
 import { env } from "src/env/client.mjs";
 import { api } from "src/utils/api";
 import { showErrorToast, showSuccessToast } from "src/utils/helpers";
-import { usePlate } from "src/utils/plateContext";
+import { usePlate, parsePrice, formatPrice } from "src/utils/plateContext";
 
 const getDeviceType = () => {
     if (typeof window === "undefined") return "Desktop";
@@ -167,6 +167,64 @@ const MenuItemDetailPage: NextPage = () => {
         { id: menuItemId },
         { enabled: !!menuItemId }
     );
+
+    // Customization states
+    const [selectedSize, setSelectedSize] = useState<any>(null);
+    const [selectedVariants, setSelectedVariants] = useState<{ [key: string]: string }>({});
+    const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+
+    const parsedSizes = useMemo(() => menuItem?.sizes ? JSON.parse(menuItem.sizes) : [], [menuItem]);
+    const parsedVariants = useMemo(() => menuItem?.variants ? JSON.parse(menuItem.variants) : [], [menuItem]);
+    const parsedAddons = useMemo(() => menuItem?.addons ? JSON.parse(menuItem.addons) : [], [menuItem]);
+
+    // Initialize defaults when menuItem changes
+    useEffect(() => {
+        if (menuItem) {
+            if (parsedSizes.length > 0) {
+                setSelectedSize(parsedSizes[0]);
+            } else {
+                setSelectedSize(null);
+            }
+
+            if (parsedVariants.length > 0) {
+                const initial: any = {};
+                parsedVariants.forEach((v: any) => {
+                    if (v.options && v.options[0]) {
+                        initial[v.groupName] = v.options[0];
+                    }
+                });
+                setSelectedVariants(initial);
+            } else {
+                setSelectedVariants({});
+            }
+
+            setSelectedAddons([]);
+        }
+    }, [menuItem, parsedSizes, parsedVariants]);
+
+    // Compute dynamic customized price
+    const computedPriceInfo = useMemo(() => {
+        const basePriceStr = menuItem?.price || "0";
+        const { currency, number: baseNum } = parsePrice(basePriceStr);
+        
+        let selectedBaseNum = baseNum;
+        if (selectedSize) {
+            const { number: szNum } = parsePrice(selectedSize.price);
+            selectedBaseNum = szNum;
+        }
+
+        const addonsTotal = selectedAddons.reduce((acc, curr) => {
+            const { number: adNum } = parsePrice(curr.price);
+            return acc + adNum;
+        }, 0);
+
+        const totalNum = selectedBaseNum + addonsTotal;
+        return {
+            currency,
+            totalNum,
+            formatted: formatPrice(totalNum, currency)
+        };
+    }, [menuItem, selectedSize, selectedAddons]);
 
     // Fetch feedbacks/reviews
     const {
@@ -449,7 +507,7 @@ const MenuItemDetailPage: NextPage = () => {
                                 >
                                     <Group spacing="md">
                                         <Text color="red" size="xl" weight={700}>
-                                            {menuItem.price}
+                                            {computedPriceInfo.formatted}
                                         </Text>
                                         <Group spacing="xs">
                                             <Group spacing={4}>
@@ -521,12 +579,23 @@ const MenuItemDetailPage: NextPage = () => {
                                             <Button
                                                 color="primary"
                                                 onClick={() => {
+                                                    const sizeStr = selectedSize ? ` (${selectedSize.name})` : "";
+                                                    const variantStr = Object.keys(selectedVariants).length > 0 
+                                                        ? ` [${Object.values(selectedVariants).join(", ")}]` 
+                                                        : "";
+                                                    const addonStr = selectedAddons.length > 0 
+                                                        ? ` + ${selectedAddons.map(a => a.name).join(", ")}` 
+                                                        : "";
+                                                    
+                                                    const customizedName = `${menuItem.name}${sizeStr}${variantStr}${addonStr}`;
+                                                    const uniqueId = `${menuItem.id}-${selectedSize?.name || ""}-${Object.values(selectedVariants).join("-")}-${selectedAddons.map(a => a.name).join("-")}`;
+
                                                     addToPlate(
                                                         {
-                                                            id: menuItem.id,
+                                                            id: uniqueId,
                                                             isVeg: menuItem.isVeg,
-                                                            name: menuItem.name,
-                                                            price: menuItem.price,
+                                                            name: customizedName,
+                                                            price: computedPriceInfo.formatted,
                                                         },
                                                         detailQty
                                                     );

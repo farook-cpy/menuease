@@ -31,6 +31,9 @@ export const menuItemInput = z.object({
     name: z.string().trim().min(1, "Name is required").max(50, "Name cannot be longer than 50 characters"),
     price: z.string().trim().min(1, "Price is required").max(12, "Price cannot be longer than 12 characters"),
     videoUrl: z.string().nullable().optional(),
+    sizes: z.string().optional().nullable(),
+    variants: z.string().optional().nullable(),
+    addons: z.string().optional().nullable(),
 });
 export const restaurantInput = z.object({
     brandColor: z.string().optional().nullable(),
@@ -67,6 +70,11 @@ export const restaurantInput = z.object({
     twitterUrl: z.string().optional().nullable(),
     youtubeUrl: z.string().optional().nullable(),
     tiktokUrl: z.string().optional().nullable(),
+    menuTheme: z.string().optional().default("GRID"),
+    qrFgColor: z.string().optional().default("#000000"),
+    qrBgColor: z.string().optional().default("#ffffff"),
+    qrStyle: z.string().optional().default("SQUARE"),
+    qrLogoUrl: z.string().optional().nullable(),
     happyHourStart: z.string().optional().nullable(),
     happyHourEnd: z.string().optional().nullable(),
     happyHourDiscount: z.union([z.number(), z.string()]).optional().nullable(),
@@ -74,4 +82,13 @@ export const restaurantInput = z.object({
 export const bannerInput = z.object({
     imageBase64: z.string().min(1, "Image is required"),
     restaurantId: z.string().min(1),
+});
+export const offerInput = z.object({
+    title: z.string().trim().min(1, "Title is required").max(60, "Title cannot be longer than 60 characters"),
+    description: z.string().trim().max(250, "Description cannot be longer than 250 characters"),
+    price: z.string().trim().optional().nullable(),
+    type: z.enum(["SPECIAL_OFFER", "COMBO_DEAL"]),
+    isAvailable: z.boolean().default(true),
+    endsAt: z.string().optional().nullable(),
+    items: z.string().optional().nullable(), // JSON string
 });

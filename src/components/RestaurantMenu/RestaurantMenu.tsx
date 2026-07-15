@@ -23,6 +23,7 @@ import {
     Textarea,
     TextInput,
     Title,
+    ScrollArea,
 } from "@mantine/core";
 import {
     IconBell,
@@ -33,6 +34,8 @@ import {
     IconBrandTwitter,
     IconBrandYoutube,
     IconBrandTiktok,
+    IconGift,
+    IconTag,
 } from "@tabler/icons";
 import {
     CheckIcon,
@@ -165,7 +168,13 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         table,
         floor,
         clearPlate,
+        addToPlate,
     } = usePlate();
+
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [generalNotes, setGeneralNotes] = useState("");
@@ -245,7 +254,30 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         return encodeURIComponent(msg);
     };
 
+    // Fetch active offers/combos
+    const { data: offers = [] } = api.offer.getByRestaurant.useQuery(
+        { restaurantId: restaurant.id },
+        { enabled: !!restaurant.id }
+    );
+    const isOffersEnabled = isFeatureEnabled(restaurant, "offers");
+    const activeOffers = useMemo(() => {
+        if (!mounted || !isOffersEnabled) return [];
+        return offers.filter((o: any) => o.isAvailable && (!o.endsAt || new Date(o.endsAt) > new Date()));
+    }, [offers, isOffersEnabled, mounted]);
+
+    const handleAddComboToPlate = (offer: any) => {
+        const comboItem = {
+            id: `combo-${offer.id}`,
+            name: `🔥 ${offer.title}`,
+            price: offer.price || "₹0",
+            isVeg: false
+        };
+        addToPlate(comboItem, 1);
+        showSuccessToast("Combo Added to Plate!", `${offer.title} is now in your plate.`);
+    };
+
     const isHappyHourActive = useMemo(() => {
+        if (!mounted) return false;
         const start = (restaurant as any)?.happyHourStart;
         const end = (restaurant as any)?.happyHourEnd;
         const discount = (restaurant as any)?.happyHourDiscount;
@@ -258,7 +290,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
         } catch (e) {
             return false;
         }
-    }, [restaurant]);
+    }, [restaurant, mounted]);
 
     const getAdjustedPrice = (originalPrice: string) => {
         if (!isHappyHourActive) return originalPrice;
@@ -461,6 +493,22 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
     };
 
     const haveMenuItems = filteredMenuDetails?.categories?.some((category) => category?.items?.length > 0);
+    
+    // Layout configurations based on selected menu theme
+    const menuTheme = (restaurant as any)?.menuTheme || "GRID";
+    const gridCols = menuTheme === "SIMPLE" ? 1 : menuTheme === "GOURMET" ? 2 : 3;
+    const gridBreakpoints = menuTheme === "SIMPLE" 
+        ? [{ cols: 1, minWidth: "xs" }] 
+        : menuTheme === "GOURMET" 
+            ? [
+                { cols: 2, minWidth: "md" },
+                { cols: 1, minWidth: "xs" }
+              ]
+            : [
+                { cols: 3, minWidth: "lg" },
+                { cols: 2, minWidth: "sm" },
+                { cols: 1, minWidth: "xs" }
+              ];
 
     const menuContent = (
         <Box mih="calc(100vh - 100px)">
@@ -631,6 +679,90 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                 </Paper>
             )}
 
+            {/* Live Special Offers & Combo Deals Slider */}
+            {activeOffers.length > 0 && (
+                <Box mb="xl" mt="md">
+                    <Group mb="sm" spacing="xs">
+                        <IconGift color={theme.colors.red[6]} size={22} />
+                        <Title color="dark.8" order={3} size="1.3rem" style={{ fontFamily: "Outfit, sans-serif" }}>
+                            Special Offers & Combo Deals
+                        </Title>
+                    </Group>
+                    <ScrollArea type="hover" pb="sm">
+                        <Flex gap="md" wrap="nowrap">
+                            {activeOffers.map((offer: any) => {
+                                return (
+                                    <Paper
+                                        key={offer.id}
+                                        p="md"
+                                        radius="md"
+                                        shadow="xs"
+                                        withBorder
+                                        sx={{
+                                            flexShrink: 0,
+                                            width: 280,
+                                            borderColor: theme.colors.orange[2],
+                                            background: `linear-gradient(135deg, ${theme.white} 0%, ${theme.colors.orange[0]} 100%)`,
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            justifyContent: "space-between"
+                                        }}
+                                    >
+                                        <Stack spacing={4}>
+                                            <Group position="apart">
+                                                <Badge color={offer.type === "COMBO_DEAL" ? "violet" : "orange"} variant="filled">
+                                                    {offer.type === "COMBO_DEAL" ? "Combo" : "Special"}
+                                                </Badge>
+                                                {offer.price && (
+                                                    <Badge color="red" variant="filled" size="sm">
+                                                        {offer.price}
+                                                    </Badge>
+                                                )}
+                                            </Group>
+                                            <Text weight={800} size="sm" color="dark.8" mt="xs" lineClamp={1}>
+                                                {offer.title}
+                                            </Text>
+                                            <Text size="xs" color="dimmed" lineClamp={2} style={{ minHeight: 32 }}>
+                                                {offer.description}
+                                            </Text>
+                                        </Stack>
+
+                                        {offer.type === "COMBO_DEAL" ? (
+                                            <Button
+                                                variant="light"
+                                                color="violet"
+                                                size="xs"
+                                                mt="sm"
+                                                fullWidth
+                                                onClick={() => handleAddComboToPlate(offer)}
+                                            >
+                                                Add Combo +
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="light"
+                                                color="orange"
+                                                size="xs"
+                                                mt="sm"
+                                                fullWidth
+                                                onClick={() => {
+                                                    showSuccessToast(
+                                                        "Special Offer Details",
+                                                        `${offer.title}: ${offer.description}`
+                                                    );
+                                                }}
+                                            >
+                                                View Offer Details
+                                            </Button>
+                                        )}
+                                    </Paper>
+                                );
+                            })}
+                        </Flex>
+                    </ScrollArea>
+                </Box>
+            )}
+
             <Tabs my={40} onTabChange={setSelectedMenu} value={selectedMenu}>
                 <Tabs.List>
                     {restaurant?.menus?.map((menu) => (
@@ -666,11 +798,8 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                             <Badge color="orange" variant="filled">Chef Recommended</Badge>
                         </Group>
                         <SimpleGrid
-                            breakpoints={[
-                                { cols: 3, minWidth: "lg" },
-                                { cols: 2, minWidth: "sm" },
-                                { cols: 1, minWidth: "xs" },
-                            ]}
+                            breakpoints={gridBreakpoints as any}
+                            cols={gridCols}
                             mb={20}
                         >
                             {dailySpecials.map((item) => (
@@ -678,6 +807,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                     key={`special-${item.id}`}
                                     isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled}
                                     item={item}
+                                    styleTheme={menuTheme}
                                 />
                             ))}
                         </SimpleGrid>
@@ -693,11 +823,8 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                 {category.name}
                             </Text>
                             <SimpleGrid
-                                breakpoints={[
-                                    { cols: 3, minWidth: "lg" },
-                                    { cols: 2, minWidth: "sm" },
-                                    { cols: 1, minWidth: "xs" },
-                                ]}
+                                breakpoints={gridBreakpoints as any}
+                                cols={gridCols}
                                 mb={30}
                             >
                                 {category.items?.map((item) => (
@@ -705,6 +832,7 @@ export const RestaurantMenu: FC<Props> = ({ restaurant }) => {
                                         key={item.id}
                                         isOrderFeatureEnabled={(restaurant as any).isOrderFeatureEnabled}
                                         item={item}
+                                        styleTheme={menuTheme}
                                     />
                                 ))}
                             </SimpleGrid>

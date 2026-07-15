@@ -16,9 +16,10 @@ import { ImageKitImage } from "../ImageKitImage";
 export interface StyleProps {
     imageColor?: string;
     isOutOfStock?: boolean;
+    styleTheme?: string;
 }
 
-const useStyles = createStyles((theme, { imageColor, isOutOfStock }: StyleProps, getRef) => {
+const useStyles = createStyles((theme, { imageColor, isOutOfStock, styleTheme }: StyleProps, getRef) => {
     const image = getRef("image");
 
     const bgColor = useMemo(() => {
@@ -32,23 +33,36 @@ const useStyles = createStyles((theme, { imageColor, isOutOfStock }: StyleProps,
     }, [imageColor, theme.colorScheme]);
 
     return {
-        cardDescWrap: { flex: 1, gap: 0, overflow: "hidden", padding: theme.spacing.lg },
-        cardImage: { height: 150, ref: image, transition: "transform 500ms ease", width: 150 },
+        cardDescWrap: { 
+            flex: 1, 
+            gap: 0, 
+            overflow: "hidden", 
+            padding: styleTheme === "SIMPLE" ? "6px 12px" : theme.spacing.lg 
+        },
+        cardImage: { 
+            height: styleTheme === "SIMPLE" ? 45 : 150, 
+            ref: image, 
+            transition: "transform 500ms ease", 
+            width: styleTheme === "SIMPLE" ? 45 : 150 
+        },
         cardImageWrap: {
-            borderRadius: theme.radius.lg,
-            height: 150,
+            borderRadius: styleTheme === "SIMPLE" || styleTheme === "GOURMET" ? "50%" : theme.radius.lg,
+            height: styleTheme === "SIMPLE" ? 45 : 150,
             overflow: "hidden",
             position: "relative",
-            width: 150,
+            width: styleTheme === "SIMPLE" ? 45 : 150,
+            margin: styleTheme === "SIMPLE" ? "auto 0 auto 10px" : undefined,
+            border: styleTheme === "GOURMET" ? "2px solid #d4af37" : undefined,
         },
         cardItem: {
             "&:hover": isOutOfStock ? {} : {
                 backgroundColor:
-                    theme.colorScheme === "light" ? theme.fn.darken(bgColor, 0.05) : theme.fn.lighten(bgColor, 0.05),
+                    theme.colorScheme === "light" ? theme.fn.darken(bgColor, 0.02) : theme.fn.lighten(bgColor, 0.02),
                 boxShadow: theme.shadows.xs,
             },
-            backgroundColor: bgColor,
-            border: `1px solid ${theme.colors.dark[3]}`,
+            backgroundColor: styleTheme === "SIMPLE" ? "transparent" : bgColor,
+            border: styleTheme === "SIMPLE" ? "none" : styleTheme === "GOURMET" ? "1px solid #d4af37" : `1px solid ${theme.colors.dark[3]}`,
+            borderBottom: styleTheme === "SIMPLE" ? `1px dashed ${theme.colorScheme === "light" ? "#dee2e6" : "#373a40"}` : undefined,
             color: theme.colors.dark[8],
             cursor: isOutOfStock ? "not-allowed" : "pointer",
             display: "flex",
@@ -58,6 +72,8 @@ const useStyles = createStyles((theme, { imageColor, isOutOfStock }: StyleProps,
             opacity: isOutOfStock ? 0.6 : 1,
             filter: isOutOfStock ? "grayscale(0.7)" : "none",
             [`&:hover .${image}`]: isOutOfStock ? {} : { transform: "scale(1.05)" },
+            borderRadius: styleTheme === "SIMPLE" ? 0 : theme.radius.lg,
+            boxShadow: styleTheme === "GOURMET" ? "0 4px 15px rgba(212, 175, 55, 0.15)" : undefined,
         },
         cardItemDesc: { WebkitLineClamp: 3 },
         cardItemTitle: { WebkitLineClamp: 1 },
@@ -76,12 +92,13 @@ interface Props {
     /** Menu item to be displayed in the card */
     item: any;
     isOrderFeatureEnabled?: boolean;
+    styleTheme?: string;
 }
 
 /** Display each menu item as a card in the full restaurant menu */
-export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
+export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled, styleTheme = "GRID" }) => {
     const isOutOfStock = item.isAvailable === false;
-    const { classes, cx } = useStyles({ imageColor: item?.image?.color, isOutOfStock });
+    const { classes, cx } = useStyles({ imageColor: item?.image?.color, isOutOfStock, styleTheme });
     const router = useRouter();
     const restaurantId = router.query?.restaurantId as string;
     const { addToPlate } = usePlate();
@@ -165,35 +182,43 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
 
     const itemUrl = `/restaurant/${restaurantId}/item/${item.id}`;
 
+    const isGourmet = styleTheme === "GOURMET";
+    const isSimple = styleTheme === "SIMPLE";
+
     return (
         <Link
             href={isOutOfStock ? "#" : itemUrl}
             passHref
             style={{ color: "inherit", display: "block", textDecoration: isOutOfStock ? "none" : undefined, cursor: isOutOfStock ? "not-allowed" : "pointer" }}
         >
-            <Paper className={classes.cardItem} data-testid="menu-item-card" h={150} onClick={handleClick}>
+            <Paper className={classes.cardItem} data-testid="menu-item-card" h={isSimple ? 75 : 150} onClick={handleClick}>
                 {item?.image?.path && (
                     <Box className={classes.cardImageWrap}>
                         <Box className={classes.cardImage}>
                             <ImageKitImage
                                 blurhash={item?.image?.blurHash}
                                 color={item?.image?.color}
-                                height={150}
+                                height={isSimple ? 45 : 150}
                                 imageAlt={item.name}
                                 imagePath={item?.image?.path}
-                                width={150}
+                                width={isSimple ? 45 : 150}
                             />
                         </Box>
                     </Box>
                 )}
 
-                <Stack className={classes.cardDescWrap} spacing={4}>
+                <Stack className={classes.cardDescWrap} spacing={isSimple ? 1 : 4}>
                     <Group align="center" noWrap position="apart" style={{ width: "100%" }}>
                         <Text
                             className={cx(classes.cardText, classes.cardItemTitle)}
-                            size="lg"
-                            sx={{ flex: 1 }}
-                            weight={700}
+                            size={isSimple ? "sm" : "lg"}
+                            sx={{ 
+                                flex: 1,
+                                fontFamily: isGourmet ? "'Playfair Display', Georgia, serif" : undefined,
+                                fontStyle: isGourmet ? "italic" : undefined,
+                                fontWeight: isGourmet ? 800 : 700
+                            }}
+                            weight={isGourmet ? 800 : 700}
                         >
                             {item.name}
                         </Text>
@@ -213,45 +238,47 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                             </Badge>
                         )}
                     </Group>
-                    <Group align="center" mt={2} noWrap position="apart" style={{ width: "100%" }}>
+                    <Group align="center" mt={isSimple ? 0 : 2} noWrap position="apart" style={{ width: "100%" }}>
                         <Group spacing="xs">
-                            <Text color="red" size="sm" weight={600}>
+                            <Text color={isGourmet ? "#d4af37" : "red"} size={isSimple ? "xs" : "sm"} weight={600}>
                                 {item.price}
                             </Text>
-                            <Group spacing={6}>
-                                <Group spacing={2}>
-                                    <ActionIcon
-                                        disabled={isOutOfStock}
-                                        size="xs"
-                                        variant={reaction === "like" ? "filled" : "subtle"}
-                                        color={reaction === "like" ? "blue" : "gray"}
-                                        onClick={handleLike}
-                                        sx={{
-                                            backgroundColor: reaction === "like" ? "rgba(34, 139, 230, 0.15) !important" : "transparent",
-                                            color: reaction === "like" ? "#228be6 !important" : "gray",
-                                        }}
-                                    >
-                                        <ThumbsUpIcon size={12} />
-                                    </ActionIcon>
-                                    <Text size="xs" color="dimmed">{item.likes || 0}</Text>
+                            {!isSimple && (
+                                <Group spacing={6}>
+                                    <Group spacing={2}>
+                                        <ActionIcon
+                                            disabled={isOutOfStock}
+                                            size="xs"
+                                            variant={reaction === "like" ? "filled" : "subtle"}
+                                            color={reaction === "like" ? "blue" : "gray"}
+                                            onClick={handleLike}
+                                            sx={{
+                                                backgroundColor: reaction === "like" ? "rgba(34, 139, 230, 0.15) !important" : "transparent",
+                                                color: reaction === "like" ? "#228be6 !important" : "gray",
+                                            }}
+                                        >
+                                            <ThumbsUpIcon size={12} />
+                                        </ActionIcon>
+                                        <Text size="xs" color="dimmed">{item.likes || 0}</Text>
+                                    </Group>
+                                    <Group spacing={2}>
+                                        <ActionIcon
+                                            disabled={isOutOfStock}
+                                            size="xs"
+                                            variant={reaction === "dislike" ? "filled" : "subtle"}
+                                            color={reaction === "dislike" ? "red" : "gray"}
+                                            onClick={handleDislike}
+                                            sx={{
+                                                backgroundColor: reaction === "dislike" ? "rgba(250, 82, 82, 0.15) !important" : "transparent",
+                                                color: reaction === "dislike" ? "#fa5252 !important" : "gray",
+                                            }}
+                                        >
+                                            <ThumbsDownIcon size={12} />
+                                        </ActionIcon>
+                                        <Text size="xs" color="dimmed">{item.dislikes || 0}</Text>
+                                    </Group>
                                 </Group>
-                                <Group spacing={2}>
-                                    <ActionIcon
-                                        disabled={isOutOfStock}
-                                        size="xs"
-                                        variant={reaction === "dislike" ? "filled" : "subtle"}
-                                        color={reaction === "dislike" ? "red" : "gray"}
-                                        onClick={handleDislike}
-                                        sx={{
-                                            backgroundColor: reaction === "dislike" ? "rgba(250, 82, 82, 0.15) !important" : "transparent",
-                                            color: reaction === "dislike" ? "#fa5252 !important" : "gray",
-                                        }}
-                                    >
-                                        <ThumbsDownIcon size={12} />
-                                    </ActionIcon>
-                                    <Text size="xs" color="dimmed">{item.dislikes || 0}</Text>
-                                </Group>
-                            </Group>
+                            )}
                         </Group>
                         {isOrderFeatureEnabled && (
                             <Button
@@ -261,6 +288,11 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     if (isOutOfStock) return;
+                                    const hasCustomizations = !!(item.sizes || item.variants || item.addons);
+                                    if (hasCustomizations) {
+                                        router.push(itemUrl);
+                                        return;
+                                    }
                                     addToPlate({
                                         id: item.id,
                                         isVeg: item.isVeg,
@@ -270,16 +302,23 @@ export const MenuItemCard: FC<Props> = ({ item, isOrderFeatureEnabled }) => {
                                 }}
                                 radius="md"
                                 size="xs"
-                                sx={{ fontSize: 11, height: 26, paddingLeft: 10, paddingRight: 10 }}
+                                sx={{ fontSize: 10, height: 22, paddingLeft: 8, paddingRight: 8 }}
                                 variant="light"
                             >
                                 {isOutOfStock ? "Sold Out" : "Add +"}
                             </Button>
                         )}
                     </Group>
-                    <Text className={cx(classes.cardText, classes.cardItemDesc)} opacity={0.7} size="xs">
-                        {item.description}
-                    </Text>
+                    {!isSimple && (
+                        <Text 
+                            className={cx(classes.cardText, classes.cardItemDesc)} 
+                            opacity={0.7} 
+                            size="xs"
+                            sx={{ fontStyle: isGourmet ? "italic" : undefined }}
+                        >
+                            {item.description}
+                        </Text>
+                    )}
                 </Stack>
             </Paper>
         </Link>
